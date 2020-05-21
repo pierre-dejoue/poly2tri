@@ -6,3 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 file(GLOB SOURCES poly2tri/common/*.cc poly2tri/sweep/*.cc)
 add_library(poly2tri ${SOURCES})
 target_include_directories(poly2tri INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_subdirectory(third_party)
+add_subdirectory(unittest)
+add_subdirectory(testbed)

@@ -1,4 +1,5 @@
-#define BOOST_TEST_DYN_LINK
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_STATIC_LINK
 #define BOOST_TEST_MODULE Poly2triTest
 
 #include <boost/filesystem/path.hpp>
