@@ -1,5 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE Poly2triTest
+
+#include <boost/filesystem/path.hpp>
 #include <boost/test/unit_test.hpp>
 #include <poly2tri/poly2tri.h>
 #include <fstream>
@@ -65,8 +67,8 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
     // Parse and tokenize data file
     std::string line;
     const std::string src(__FILE__); // ../unittest/main.cpp
-    auto folder = src.substr(0, src.find_last_of('/')) + "/../testbed/data/";
-    std::ifstream myfile(folder + filename);
+    const auto datafile = boost::filesystem::path(src).remove_filename() / boost::filesystem::path("../testbed/data/" + std::string(filename));
+    std::ifstream myfile(datafile.string());
     BOOST_REQUIRE(myfile.is_open());
     while (!myfile.eof()) {
       getline(myfile, line);
