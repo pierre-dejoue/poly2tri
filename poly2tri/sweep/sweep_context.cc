@@ -29,8 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "sweep_context.h"
-#include <algorithm>
+
 #include "advancing_front.h"
+
+#include <algorithm>
 
 namespace p2t {
 
@@ -85,10 +87,9 @@ void SweepContext::InitTriangulation()
       ymin = p.y;
   }
 
-  double dx = kAlpha * (xmax - xmin);
-  double dy = kAlpha * (ymax - ymin);
-  head_ = new Point(xmin - dx, ymin - dy);
-  tail_ = new Point(xmax + dx, ymin - dy);
+  const double dl = kAlpha * std::max(xmax - xmin, ymax - ymin);
+  head_ = new Point(xmin - dl, ymin - dl);
+  tail_ = new Point(xmax + dl, ymin - dl);
 
   // Sort points along y-axis
   std::sort(points_.begin(), points_.end(), cmp);
