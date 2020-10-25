@@ -243,6 +243,18 @@ Point* Triangle::PointCCW(const Point& point)
   return nullptr;
 }
 
+// The neighbor across to given point
+Triangle* Triangle::NeighborAcross(const Point& point)
+{
+  if (&point == points_[0]) {
+    return neighbors_[0];
+  } else if (&point == points_[1]) {
+    return neighbors_[1];
+  } else {
+    return neighbors_[2];
+  }
+}
+
 // The neighbor clockwise to given point
 Triangle* Triangle::NeighborCW(const Point& point)
 {
@@ -250,8 +262,9 @@ Triangle* Triangle::NeighborCW(const Point& point)
     return neighbors_[1];
   } else if (&point == points_[1]) {
     return neighbors_[2];
+  } else {
+    return neighbors_[0];
   }
-  return neighbors_[0];
 }
 
 // The neighbor counter-clockwise to given point
@@ -261,8 +274,9 @@ Triangle* Triangle::NeighborCCW(const Point& point)
     return neighbors_[2];
   } else if (&point == points_[1]) {
     return neighbors_[0];
+  } else {
+    return neighbors_[1];
   }
-  return neighbors_[1];
 }
 
 bool Triangle::GetConstrainedEdgeCCW(const Point& p)
@@ -347,23 +361,6 @@ void Triangle::SetDelunayEdgeCW(const Point& p, bool e)
   } else {
     delaunay_edge[0] = e;
   }
-}
-
-// The neighbor across to given point
-Triangle& Triangle::NeighborAcross(const Point& opoint)
-{
-  Triangle* neighbor = nullptr;
-  if (&opoint == points_[0]) {
-    neighbor = neighbors_[0];
-  } else if (&opoint == points_[1]) {
-    neighbor = neighbors_[1];
-  } else {
-    neighbor = neighbors_[2];
-  }
-  if (neighbor == nullptr) {
-      throw std::runtime_error("NeighborAcross - null neighbor");
-  }
-  return *neighbor;
 }
 
 void Triangle::DebugPrint()
