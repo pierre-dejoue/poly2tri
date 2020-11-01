@@ -63,7 +63,7 @@ void ShutDown(int return_code);
 void MainLoop(const double zoom);
 void Draw(const double zoom);
 void DrawMap(const double zoom);
-void ConstrainedColor(bool constrain);
+void ConstrainedColor(bool constrained);
 double StringToDouble(const std::string& s);
 double Random(double (*fun)(double), double xmin, double xmax);
 double Fun(double x);
@@ -489,14 +489,14 @@ void DrawMap(const double zoom)
   }
 }
 
-void ConstrainedColor(bool constrain)
+void ConstrainedColor(bool constrained)
 {
-  if (constrain) {
+  if (constrained) {
     // Green
-    glColor3f(0, 1, 0);
+    glColor3f(0.f, 1.f, 0.f);
   } else {
     // Red
-    glColor3f(1, 0, 0);
+    glColor3f(1.f, 0.f, 0.f);
   }
 }
 

@@ -124,7 +124,7 @@ P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
 // Represents a simple polygon's edge
 struct P2T_DLL_SYMBOL Edge {
 
-  Point* p, *q;
+  Point *p, *q;
 
   /// Constructor
   Edge(Point& p1, Point& p2) : p(&p1), q(&p2)
@@ -193,10 +193,7 @@ bool Contains(const Edge& e);
 bool Contains(const Point* p, const Point* q);
 void Legalize(Point& point);
 void Legalize(Point& opoint, Point& npoint);
-/**
- * Clears all references to all other triangles and points
- */
-void Clear();
+void Clear();  // Clears all references to all other triangles and points
 void ClearNeighbor(const Triangle *triangle);
 void ClearNeighbors();
 void ClearDelunayEdges();

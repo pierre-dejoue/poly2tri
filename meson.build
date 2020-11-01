@@ -14,7 +14,7 @@ boost_test_dep = dependency('boost', modules : [ 'filesystem', 'unit_test_framew
 if boost_test_dep.found()
 	test('Unit Test', executable('unittest', [
 		'unittest/main.cpp',
-		'unittest/TriangleTest.cpp',
+		'unittest/triangle_test.cpp',
 	], dependencies : [boost_test_dep, thread_dep], link_with : lib))
 endif
 

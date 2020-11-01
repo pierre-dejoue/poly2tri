@@ -48,12 +48,10 @@ struct Node {
   double value;
 
   Node(Point& p) : point(&p), triangle(NULL), next(NULL), prev(NULL), value(p.x)
-  {
-  }
+  { }
 
   Node(Point& p, Triangle& t) : point(&p), triangle(&t), next(NULL), prev(NULL), value(p.x)
-  {
-  }
+  { }
 
 };
 

@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
     BOOST_CHECK_NO_THROW(cdt.Triangulate());
     const auto result = cdt.GetTriangles();
     BOOST_REQUIRE(result.size() * 3 > polyline.size());
-    BOOST_CHECK_MESSAGE(p2t::IsDelaunay(result), filename + std::to_string(polyline.size()));
+    BOOST_CHECK_MESSAGE(p2t::IsDelaunay(result), std::string(filename) + " " + std::to_string(polyline.size()));
     for (const auto p : polyline) {
       delete p;
     }

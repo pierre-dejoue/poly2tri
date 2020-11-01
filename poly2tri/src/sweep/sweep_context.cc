@@ -29,12 +29,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "sweep_context.h"
-#include <algorithm>
 #include "advancing_front.h"
+
+#include <algorithm>
 
 namespace p2t {
 
-SweepContext::SweepContext(std::vector<Point*> polyline) : points_(std::move(polyline)),
+SweepContext::SweepContext(std::vector<Point*> polyline) :
+  points_(std::move(polyline)),
   front_(nullptr),
   head_(nullptr),
   tail_(nullptr),

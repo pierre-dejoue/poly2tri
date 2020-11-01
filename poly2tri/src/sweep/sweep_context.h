@@ -31,15 +31,16 @@
 
 #pragma once
 
+#include <cstddef>
 #include <list>
 #include <vector>
-#include <cstddef>
+
 
 namespace p2t {
 
 // Inital triangle factor, seed triangle will extend 30% of
 // PointSet width to both left and right.
-const double kAlpha = 0.3;
+constexpr double kAlpha = 0.3;
 
 struct Point;
 class Triangle;
@@ -122,8 +123,7 @@ struct EdgeEvent {
   bool right;
 
   EdgeEvent() : constrained_edge(NULL), right(false)
-  {
-  }
+  { }
 };
 
 Basin basin;
