@@ -34,7 +34,9 @@
 #include <poly2tri/common/shapes.h>
 
 #include <cassert>
+#include <ostream>
 #include <utility>
+
 
 namespace p2t {
 
@@ -62,6 +64,8 @@ struct Node {
 
 };
 
+std::ostream& operator<<(std::ostream& out, const Node& node);
+
 // Advancing front
 class AdvancingFront {
 public:
@@ -86,6 +90,8 @@ private:
   Node* FindSearchNode(double x);
 
 };
+
+std::ostream& operator<<(std::ostream& out, const AdvancingFront& front);
 
 // Return a range (begin, end) of the inner nodes of the advancing front
 // That is, the range of all nodes from head()->next->next to tail()->prev->prev

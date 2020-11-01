@@ -34,6 +34,7 @@
 #include "advancing_front.h"
 #include "back_front.h"
 #include "sweep_context.h"
+#include "trace.h"
 #include "../common/utils.h"
 
 #include <algorithm>
@@ -89,10 +90,14 @@ void Sweep::CreateAdvancingFront()
 
   assert(front_ == nullptr);
   front_ = std::make_unique<AdvancingFront>(*af_head, *af_tail);
+
+  TRACE_OUT << "CreateAdvancingFront - advancing_front=" << *front_ << std::endl;
 }
 
 void Sweep::CreateBackFront()
 {
+  TRACE_OUT << "CreateBackFront" << std::endl;
+
   // The back front is oriented backward (from the tail point to the head point)
   Node* bf_head = NewNode(tcx_.tail());
   Node* bf_tail = NewNode(tcx_.head());
@@ -142,6 +147,9 @@ void Sweep::FinalizationConvexHull()
   // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
   MeshClearBackFrontTriangles();
   assert(front_); assert(back_front_);
+  TRACE_OUT << "FinalizationConvexHull -\n"
+            << "  advancing_front=" << *front_ << ";\n"
+            << "  back_front=" << *back_front_ << std::endl;
 
   // Remove exterior triangles from the mesh
   assert(front_->head()->triangle && front_->head()->triangle->IsInterior() == false);
@@ -244,6 +252,7 @@ void Sweep::ConvexHullFillOfFront(AdvancingFront& front)
 
 Node& Sweep::PointEvent(const Point* point)
 {
+  TRACE_OUT << "PointEvent - point=" << *point << std::endl;
   Node* node_ptr = front_->LocateNode(point->x);
   if (!node_ptr || !node_ptr->point || !node_ptr->next || !node_ptr->next->point)
   {
@@ -253,9 +262,12 @@ Node& Sweep::PointEvent(const Point* point)
   Node& node = *node_ptr;
   Node& new_node = NewFrontTriangle(point, node);
 
+  TRACE_OUT << "PointEvent - new_node=" << new_node << std::endl;
+
   // Only need to check +epsilon since point never have smaller
   // x value than node due to how we fetch nodes from the front
   if (point->x <= node.point->x + EPSILON) {
+    TRACE_OUT << "PointEvent - Fill" << std::endl;
     Fill(node);
   }
 
@@ -267,6 +279,11 @@ Node& Sweep::PointEvent(const Point* point)
 
 void Sweep::EdgeEvent(Edge* edge, Node* node)
 {
+  TRACE_OUT << "EdgeEvent - "
+            << "edge=" << *edge << "; "
+            << "node=" << *node
+            << std::endl;
+
   edge_event_.constrained_edge = edge;
   edge_event_.right = (edge->p->x > edge->q->x);
 
@@ -286,6 +303,11 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   if (triangle == nullptr) {
     throw std::runtime_error("EdgeEvent - null triangle");
   }
+  TRACE_OUT << "EdgeEvent - "
+            << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
+            << "triangle=" << *triangle << "; "
+            << "point=" << *point
+            << std::endl;
   if (IsEdgeSideOfTriangle(*triangle, ep, eq)) {
     return;
   }
@@ -293,6 +315,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   const Point* p1 = triangle->PointCCW(point);
   const Orientation o1 = Orient2d(*eq, *p1, *ep);
   if (o1 == COLLINEAR) {
+    TRACE_OUT << "EdgeEvent - o1=" << o1 << std::endl;
     if (triangle->Contains(eq, p1)) {
       triangle->MarkConstrainedEdge(eq, p1);
       // We are modifying the constraint maybe it would be better to
@@ -308,6 +331,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
 
   const Point* p2 = triangle->PointCW(point);
   const Orientation o2 = Orient2d(*eq, *p2, *ep);
+  TRACE_OUT << "EdgeEvent - o1=" << o1 << "; o2=" << o2 << std::endl;
   if (o2 == COLLINEAR) {
     if (triangle->Contains(eq, p2)) {
       triangle->MarkConstrainedEdge(eq, p2);
@@ -377,6 +401,8 @@ void Sweep::Fill(Node& node)
 {
   Triangle* triangle = tcx_.AddTriangleToMap(node.prev->point, node.point, node.next->point);
 
+  TRACE_OUT << "Fill - triangle=" << *triangle << std::endl;
+
   // TODO: should copy the constrained_edge value from neighbor triangles
   //       for now constrained_edge values are copied during the legalize
   triangle->MarkNeighbor(*node.prev->triangle);
@@ -400,7 +426,9 @@ void Sweep::FillAdvancingFront(Node& n)
 
   while (node && node->next) {
     // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node)) break;
+    if (LargeHole_DontFill(node))
+      break;
+    TRACE_OUT << "FillAdvancingFront - Fill right node->point " << *node->point << std::endl;
     Fill(*node);
     node = node->next;
   }
@@ -410,7 +438,9 @@ void Sweep::FillAdvancingFront(Node& n)
 
   while (node && node->prev) {
     // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node)) break;
+    if (LargeHole_DontFill(node))
+      break;
+    TRACE_OUT << "FillAdvancingFront - Fill left node->point " << *node->point << std::endl;
     Fill(*node);
     node = node->prev;
   }
@@ -419,6 +449,7 @@ void Sweep::FillAdvancingFront(Node& n)
   if (n.next && n.next->next) {
     const double angle = BasinAngle(n);
     if (angle < PI_3div4) {
+      TRACE_OUT << "FillAdvancingFront - Fill right bassin" << std::endl;
       FillBasin(n);
     }
   }
@@ -595,6 +626,7 @@ bool Sweep::Legalize(Triangle& t)
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handles those so we can end here.
+        TRACE_OUT << "Legalized - triangle=" << t << std::endl;
         return true;
       }
     }
@@ -908,6 +940,12 @@ void Sweep::FillLeftConcaveEdgeEvent(Edge* edge, Node& node)
 void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const Point* p)
 {
   assert(t);
+  TRACE_OUT << "FlipEdgeEvent - "
+            << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
+            << "triangle=" << *t << "; "
+            << "p=" << *p
+            << std::endl;
+
   Triangle* ot_ptr = t->NeighborAcross(p);
   if (ot_ptr == nullptr)
   {
@@ -981,6 +1019,12 @@ const Point* Sweep::NextFlipPoint(const Point* ep, const Point* eq, Triangle& ot
 void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_triangle,
                               Triangle& t, const Point* p)
 {
+  TRACE_OUT << "FlipScanEdgeEvent - "
+            << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
+            << "triangle=" << t << "; "
+            << "p=" << *p << "; "
+            << "flip_triangle=" << flip_triangle
+            << std::endl;
   Triangle* ot_ptr = t.NeighborAcross(p);
   if (ot_ptr == nullptr) {
     throw std::runtime_error("FlipScanEdgeEvent - null neighbor across");

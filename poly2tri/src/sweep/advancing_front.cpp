@@ -44,6 +44,20 @@ AdvancingFront::AdvancingFront(Node& head, Node& tail) :
 {
 }
 
+std::ostream& operator<<(std::ostream& out, const Node& node)
+{
+  out << "{ point=" << *node.point << "; triangle=";
+  if (node.triangle) {
+    out << *node.triangle;
+    if (!node.triangle->IsInterior()) {
+       out << "; EXTERIOR";
+    }
+  } else {
+    out << "NULL";
+  }
+  return out << " }";
+}
+
 AdvancingFront::~AdvancingFront() = default;
 
 Node* AdvancingFront::LocateNode(double x)
@@ -107,6 +121,20 @@ Node* AdvancingFront::LocatePoint(const Point* point)
   }
   if(node) search_node_ = node;
   return node;
+}
+
+std::ostream& operator<<(std::ostream& out, const AdvancingFront& front)
+{
+  const Node* head = front.head();
+  const Node* tail = front.tail();
+  assert(head != nullptr); assert(tail != nullptr);
+  out << "{\n    head=" << *head << " -->\n";
+  const Node* node = head->next;
+  while (node != tail) {
+    out << "         " << *node << " -->\n";
+    node = node->next;
+  }
+  return out  << "    tail=" << *tail << " }";
 }
 
 std::pair<Node*, Node*> GetInnerRange(AdvancingFront& front)
