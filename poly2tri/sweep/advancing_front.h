@@ -33,6 +33,8 @@
 
 #include "../common/shapes.h"
 
+#include <ostream>
+
 namespace p2t {
 
 struct Node;
@@ -56,6 +58,8 @@ struct Node {
   }
 
 };
+
+std::ostream& operator<<(std::ostream& out, Node& node);
 
 // Advancing front
 class AdvancingFront {

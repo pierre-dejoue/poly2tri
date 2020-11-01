@@ -34,6 +34,14 @@
 
 namespace p2t {
 
+std::ostream& operator<<(std::ostream& out, Node& node)
+{
+  return out << "{ "
+             << "point={ " << *node.point << " }; "
+             << "triangle=" << *node.triangle
+             << " }";
+}
+
 AdvancingFront::AdvancingFront(Node& head, Node& tail)
 {
   head_ = &head;

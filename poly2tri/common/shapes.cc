@@ -55,14 +55,35 @@ Triangle::Triangle(Point& a, Point& b, Point& c)
 // Update neighbor pointers
 void Triangle::MarkNeighbor(Point* p1, Point* p2, Triangle* t)
 {
-  if ((p1 == points_[2] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[2]))
+  Point v12 = *p2 - *p1;
+  double det1 = 0.0;
+  if ((p1 == points_[2] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[2])) {
     neighbors_[0] = t;
-  else if ((p1 == points_[0] && p2 == points_[2]) || (p1 == points_[2] && p2 == points_[0]))
+    det1 = Cross(v12, *points_[0] - *p1);
+  }
+  else if ((p1 == points_[0] && p2 == points_[2]) || (p1 == points_[2] && p2 == points_[0])) {
     neighbors_[1] = t;
-  else if ((p1 == points_[0] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[0]))
+    det1 = Cross(v12, *points_[1] - *p1);
+  }
+  else if ((p1 == points_[0] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[0])) {
     neighbors_[2] = t;
-  else
+    det1 = Cross(v12, *points_[2] - *p1);
+  }
+  else {
     assert(0);
+  }
+  double det2 = 0.0;
+  for (unsigned int idx = 0; idx < 3; idx++)
+  {
+    det2 += Cross(v12, *t->GetPoint(idx) - *p1);
+  }
+  // If det1 * det2 is positive the two triangles overlap each over (they are on the same side of side p1 p2
+  if (det1 * det2 >= 0.0)
+  {
+    std::cerr << "Triangle overlap - "
+      << "triangle=" << *this << "; "
+      << "neighbour= " << *t << std::endl;
+  }
 }
 
 // Exhaustive search to update neighbor pointers
@@ -406,6 +427,11 @@ bool IsDelaunay(const std::vector<p2t::Triangle*>& triangles)
     }
   }
   return true;
+}
+
+std::ostream& operator<<(std::ostream& out, Triangle& t)
+{
+  return out << "[{ " << *t.GetPoint(0) << " }, { " << *t.GetPoint(1) << " }, { " << *t.GetPoint(2) << " }]";
 }
 
 } // namespace p2t

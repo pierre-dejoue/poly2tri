@@ -35,6 +35,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <ostream>
 #include <stdexcept>
 #include <vector>
 
@@ -161,12 +162,15 @@ bool constrained_edge[3];
 bool delaunay_edge[3];
 
 Point* GetPoint(int index);
+const Point* GetPoint(int index) const;
 Point* PointCW(const Point& point);
 Point* PointCCW(const Point& point);
 Point* OppositePoint(Triangle& t, const Point& p);
 
 Triangle* GetNeighbor(int index);
+private:
 void MarkNeighbor(Point* p1, Point* p2, Triangle* t);
+public:
 void MarkNeighbor(Triangle& t);
 
 void MarkConstrainedEdge(int index);
@@ -221,9 +225,12 @@ Triangle* neighbors_[3];
 bool interior_;
 };
 
+P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream& out, Triangle& t);
+
 inline bool cmp(const Point* a, const Point* b)
 {
   if (a->y < b->y) {
+    return true;
     return true;
   } else if (a->y == b->y) {
     // Make sure q is point with greater x value
@@ -289,6 +296,11 @@ inline Point Cross(double s, const Point& a)
 }
 
 inline Point* Triangle::GetPoint(int index)
+{
+    return points_[index];
+}
+
+inline const Point* Triangle::GetPoint(int index) const
 {
   return points_[index];
 }
