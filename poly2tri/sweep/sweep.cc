@@ -424,12 +424,13 @@ bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Po
 
   const double bdxcdy = bdx * cdy;
   const double cdxbdy = cdx * bdy;
+  const double obcd = bdxcdy - cdxbdy;
 
   const double alift = adx * adx + ady * ady;
   const double blift = bdx * bdx + bdy * bdy;
   const double clift = cdx * cdx + cdy * cdy;
 
-  const double det = alift * (bdxcdy - cdxbdy) + blift * ocad + clift * oabd;
+  const double det = alift * obcd + blift * ocad + clift * oabd;
 
   return det > 0;
 }
