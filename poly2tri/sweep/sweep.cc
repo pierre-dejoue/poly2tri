@@ -34,6 +34,7 @@
 #include "../common/utils.h"
 
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 
 namespace p2t {
@@ -75,12 +76,23 @@ void Sweep::FinalizationPolygon(SweepContext& tcx)
 
 Node& Sweep::PointEvent(SweepContext& tcx, Point& point)
 {
+  std::cerr << "PointEvent - begin for point { " << point.x << ", " << point.y << " }" << std::endl;
+
   Node& node = tcx.LocateNode(point);
   Node& new_node = NewFrontTriangle(tcx, point, node);
+
+  std::cerr << "PointEvent - new node = { point={ "
+            << new_node.point->x << ", "
+            << new_node.point->y << " }; "
+            << "triangle=[ "
+            << "{ " << new_node.triangle->GetPoint(0)->x << ", " << new_node.triangle->GetPoint(0)->y << " }, "
+            << "{ " << new_node.triangle->GetPoint(1)->x << ", " << new_node.triangle->GetPoint(1)->y << " }, "
+            << "{ " << new_node.triangle->GetPoint(2)->x << ", " << new_node.triangle->GetPoint(2)->y << " } ] }" << std::endl;
 
   // Only need to check +epsilon since point never have smaller
   // x value than node due to how we fetch nodes from the front
   if (point.x <= node.point->x + EPSILON) {
+    std::cerr << "PointEvent - Fill" << std::endl;
     Fill(tcx, node);
   }
 
@@ -92,6 +104,9 @@ Node& Sweep::PointEvent(SweepContext& tcx, Point& point)
 
 void Sweep::EdgeEvent(SweepContext& tcx, Edge* edge, Node* node)
 {
+    std::cerr << "EdgeEvent - Begin for edge { "
+              << "p={ " << edge->p->x << ", " << edge->p->y << " }, "
+              << "q={ " << edge->q->x << ", " << edge->q->y << " } }" << std::endl;
   tcx.edge_event.constrained_edge = edge;
   tcx.edge_event.right = (edge->p->x > edge->q->x);
 
@@ -111,6 +126,14 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
   if (triangle == nullptr) {
     throw std::runtime_error("EdgeEvent - null triangle");
   }
+  std::cerr << "EdgeEvent - "
+            << "p={ " << ep.x << ", " << ep.y << " }; "
+            << "q={ " << eq.x << ", " << eq.y << " }; "
+            << "triangle=[ "
+            << "{ " << triangle->GetPoint(0)->x << ", " << triangle->GetPoint(0)->y << " }, "
+            << "{ " << triangle->GetPoint(1)->x << ", " << triangle->GetPoint(1)->y << " }, "
+            << "{ " << triangle->GetPoint(2)->x << ", " << triangle->GetPoint(2)->y << " } ]; "
+            << "point={ " << point.x << ", " << point.y << " }" << std::endl;
   if (IsEdgeSideOfTriangle(*triangle, ep, eq)) {
     return;
   }
@@ -119,6 +142,7 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
   Orientation o1 = Orient2d(eq, *p1, ep);
   if (o1 == COLLINEAR) {
     if (triangle->Contains(&eq, p1)) {
+      std::cerr << "EdgeEvent - o1 == COLLINEAR" << std::endl;
       triangle->MarkConstrainedEdge(&eq, p1);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
@@ -135,6 +159,7 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
   Orientation o2 = Orient2d(eq, *p2, ep);
   if (o2 == COLLINEAR) {
     if (triangle->Contains(&eq, p2)) {
+      std::cerr << "EdgeEvent - o2 == COLLINEAR" << std::endl;
       triangle->MarkConstrainedEdge(&eq, p2);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
@@ -151,14 +176,17 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
     // Need to decide if we are rotating CW or CCW to get to a triangle
     // that will cross edge
     if (o1 == CW) {
+      std::cerr << "EdgeEvent - o1 == o2 == CW. NeighborCCW" << std::endl;
       triangle = triangle->NeighborCCW(point);
     } else {
+      std::cerr << "EdgeEvent - o1 == o2 == CCW. NeighborCW" << std::endl;
       triangle = triangle->NeighborCW(point);
     }
     EdgeEvent(tcx, ep, eq, triangle, point);
   } else {
     // This triangle crosses constraint so lets flippin start!
     assert(triangle);
+    std::cerr << "EdgeEvent - o1 != o2. FlipEdgeEvent" << std::endl;
     FlipEdgeEvent(tcx, ep, eq, triangle, point);
   }
 }
@@ -204,6 +232,12 @@ void Sweep::Fill(SweepContext& tcx, Node& node)
 {
   Triangle* triangle = new Triangle(*node.prev->point, *node.point, *node.next->point);
 
+  std::cerr << "Fill - "
+      << "triangle=[ "
+      << "{ " << triangle->GetPoint(0)->x << ", " << triangle->GetPoint(0)->y << " }, "
+      << "{ " << triangle->GetPoint(1)->x << ", " << triangle->GetPoint(1)->y << " }, "
+      << "{ " << triangle->GetPoint(2)->x << ", " << triangle->GetPoint(2)->y << " } ]" << std::endl;
+
   // TODO: should copy the constrained_edge value from neighbor triangles
   //       for now constrained_edge values are copied during the legalize
   triangle->MarkNeighbor(*node.prev->triangle);
@@ -229,7 +263,11 @@ void Sweep::FillAdvancingFront(SweepContext& tcx, Node& n)
 
   while (node->next) {
     // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node)) break;
+    if (LargeHole_DontFill(node))
+      break;
+    std::cerr << "FillAdvancingFront - Fill right node->point { "
+              << node->point->x << ", "
+              << node->point->y << " }" << std::endl;
     Fill(tcx, *node);
     node = node->next;
   }
@@ -239,7 +277,11 @@ void Sweep::FillAdvancingFront(SweepContext& tcx, Node& n)
 
   while (node->prev) {
     // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node)) break;
+    if (LargeHole_DontFill(node))
+      break;
+    std::cerr << "FillAdvancingFront - Fill left node->point { "
+              << node->point->x << ", "
+              << node->point->y << " }" << std::endl;
     Fill(tcx, *node);
     node = node->prev;
   }
@@ -248,6 +290,7 @@ void Sweep::FillAdvancingFront(SweepContext& tcx, Node& n)
   if (n.next && n.next->next) {
     const double angle = BasinAngle(n);
     if (angle < PI_3div4) {
+      std::cerr << "FillAdvancingFront - Fill right bassin" << std::endl;
       FillBasin(tcx, n);
     }
   }
@@ -383,6 +426,10 @@ bool Sweep::Legalize(SweepContext& tcx, Triangle& t)
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handles those so we can end here.
+        std::cerr << "Legalized triangle=[ "
+            << "{ " << t.GetPoint(0)->x << ", " << t.GetPoint(0)->y << " }, "
+            << "{ " << t.GetPoint(1)->x << ", " << t.GetPoint(1)->y << " }, "
+            << "{ " << t.GetPoint(2)->x << ", " << t.GetPoint(2)->y << " } ]" << std::endl;
         return true;
       }
     }
