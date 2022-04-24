@@ -107,8 +107,10 @@ int main(int argc, char* argv[])
 
   if (argc != 5) {
     cout << "-== USAGE ==-" << endl;
-    cout << "Load Data File: p2t filename center_x center_y zoom" << endl;
-    cout << "Example: ./build/p2t testbed/data/dude.dat 500 500 1" << endl;
+    cout << "Load Data File: p2t <filename> <center_x> <center_y> <zoom>" << endl;
+    cout << "  Example: ./build/p2t testbed/data/dude.dat 500 500 1" << endl;
+    cout << "Generate random polygon: p2t random <num_points> <max_xy> <zoom>" << endl;
+    cout << "  Example: ./build/p2t random 100 1 500" << endl;
     return 1;
   }
 
@@ -454,8 +456,6 @@ void ConstrainedColor(bool constrain)
     glColor3f(1, 0, 0);
   }
 }
-
-
 
 double StringToDouble(const std::string& s)
 {
