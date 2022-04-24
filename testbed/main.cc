@@ -78,6 +78,9 @@ const double rotations_per_tick = 0.2;
 constexpr int default_window_width = 800;
 constexpr int default_window_height = 600;
 
+// Flip Y axis
+constexpr bool flag_flip_y = false;
+
 /// Screen center x
 double cx = 0.0;
 /// Screen center y
@@ -387,12 +390,13 @@ void MainLoop(const double zoom)
   }
 }
 
-void ResetZoom(double zoom, double cx, double cy, double width, double height)
+void ResetZoom(double zoom, double cx, double cy, double width, double height, bool flag_flip_y)
 {
   double left = -width / zoom;
   double right = width / zoom;
   double bottom = -height / zoom;
   double top = height / zoom;
+  double flip_y = flag_flip_y ? -1.0 : 1.0;
 
   // Reset viewport
   glLoadIdentity();
@@ -401,7 +405,8 @@ void ResetZoom(double zoom, double cx, double cy, double width, double height)
 
   // Reset ortho view
   glOrtho(left, right, bottom, top, 1.0, -1.0);
-  glTranslated(-cx, -cy, 0.0);
+  glTranslated(-cx, flip_y * -cy, 0.0);
+  glScaled(1.0, flip_y, 1.0);
   glMatrixMode(GL_MODELVIEW);
   glDisable(GL_DEPTH_TEST);
   glLoadIdentity();
@@ -415,7 +420,7 @@ void Draw(const double zoom)
   // reset zoom
   Point center = Point(cx, cy);
 
-  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height);
+  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height, flag_flip_y);
 
   for (int i = 0; i < triangles.size(); i++) {
     Triangle& t = *triangles[i];
@@ -456,7 +461,7 @@ void DrawMap(const double zoom)
   // reset zoom
   Point center = Point(cx, cy);
 
-  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height);
+  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height, flag_flip_y);
 
   list<Triangle*>::iterator it;
   for (it = map.begin(); it != map.end(); it++) {
