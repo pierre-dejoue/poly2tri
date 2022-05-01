@@ -38,6 +38,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 namespace p2t {
@@ -51,6 +52,8 @@ class Triangle;
 class Sweep
 {
 public:
+  Sweep();
+  ~Sweep();
 
   /**
    * Triangulate
@@ -60,9 +63,14 @@ public:
   void Triangulate(SweepContext& tcx);
 
   /**
-   * Destructor - clean up memory
-   */
-  ~Sweep();
+  * Triangulate, interactive mode
+  *
+  * Call iteratively
+  *
+  * @param tcx
+  * @return true if the triangulation has completed, false otherwise
+  */
+  bool TriangulateInteractive(SweepContext& tcx);
 
 private:
 
@@ -70,8 +78,9 @@ private:
    * Start sweeping the Y-sorted point set from bottom to top
    *
    * @param tcx
+   * @return true if the triangulation has completed, false otherwise
    */
-  void SweepPoints(SweepContext& tcx);
+  bool SweepPoints(SweepContext& tcx);
 
   /**
    * Find closes node to the left of the new point and
@@ -276,8 +285,11 @@ private:
 
   void FinalizationPolygon(SweepContext& tcx);
 
+private:
   std::vector<Node*> nodes_;
 
+  struct Interactive;
+  std::unique_ptr<Interactive> interactive_;
 };
 
 }

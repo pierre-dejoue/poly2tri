@@ -39,26 +39,109 @@
 
 namespace p2t {
 
+namespace {
+  enum class SweepStep
+  {
+    Init,
+    Events,
+    Finalize,
+    Done
+  };
+}
+struct Sweep::Interactive {
+  SweepStep step = SweepStep::Init;
+  unsigned int index_point = 1;
+  unsigned int index_edge = 0;
+  bool edge_event = false;
+  Node* node = nullptr;
+};
+
+Sweep::Sweep()
+  : nodes_()
+  , interactive_(std::make_unique<Interactive>())
+{
+}
+
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(SweepContext& tcx)
 {
   tcx.InitTriangulation();
   tcx.CreateAdvancingFront();
   // Sweep points; build mesh
-  SweepPoints(tcx);
+  bool finished = false;
+  while (!finished)
+  {
+    finished = SweepPoints(tcx);
+  }
   // Clean up
   FinalizationPolygon(tcx);
 }
 
-void Sweep::SweepPoints(SweepContext& tcx)
+bool Sweep::TriangulateInteractive(SweepContext& tcx)
 {
-  for (size_t i = 1; i < tcx.point_count(); i++) {
-    Point& point = *tcx.GetPoint(i);
-    Node* node = &PointEvent(tcx, point);
-    for (auto& j : point.edge_list) {
-      EdgeEvent(tcx, j, node);
-    }
+  switch (interactive_->step)
+  {
+  case SweepStep::Init:
+    tcx.InitTriangulation();
+    tcx.CreateAdvancingFront();
+    interactive_->step = SweepStep::Events;
+    return false;
+
+  case SweepStep::Events:
+  {
+    const bool finished = SweepPoints(tcx);
+    if (finished)
+      interactive_->step = SweepStep::Finalize;
+    return false;
   }
+
+  case SweepStep::Finalize:
+    FinalizationPolygon(tcx);
+    interactive_->step = SweepStep::Done;
+    return true;
+
+  case SweepStep::Done:
+    return true;
+
+  default:
+    assert(0);
+    return false;
+  }
+}
+
+
+bool Sweep::SweepPoints(SweepContext& tcx)
+{
+  auto& i = interactive_->index_point;
+  auto& j = interactive_->index_edge;
+  auto& node = interactive_->node;
+  bool& edge_event = interactive_->edge_event;
+  if (i < tcx.point_count())
+  {
+    Point& point = *tcx.GetPoint(i);
+    if (edge_event)
+    {
+      assert(j < point.edge_list.size());
+      assert(node);
+      Edge* edge = point.edge_list[j];
+      EdgeEvent(tcx, edge, node);
+      j++;
+    }
+    else
+    {
+      node = &PointEvent(tcx, point);
+      j = 0;
+      edge_event = true;
+    }
+    assert(edge_event);
+    if (j == point.edge_list.size())
+    {
+      edge_event = false;
+      i++;
+    }
+    return false;
+  }
+  return true;
 }
 
 void Sweep::FinalizationPolygon(SweepContext& tcx)
@@ -893,7 +976,6 @@ void Sweep::FlipScanEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle&
 }
 
 Sweep::~Sweep() {
-
     // Clean up memory
     for (auto& node : nodes_) {
       delete node;

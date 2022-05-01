@@ -81,6 +81,13 @@ public:
   void Triangulate();
 
   /**
+  * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points
+  *
+  * Iterative version: run iteratively until the method returns true.
+  */
+  bool TriangulateInteractive();
+
+  /**
    * Get CDT triangles
    */
   std::vector<Triangle*> GetTriangles();
@@ -89,6 +96,11 @@ public:
    * Get triangle map
    */
   std::list<Triangle*> GetMap();
+
+  /**
+   * Read the sweep context (for interactive mode)
+   */
+  const SweepContext& GetSweepContext() const;
 
   private:
 

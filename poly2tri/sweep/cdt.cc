@@ -52,6 +52,11 @@ void CDT::Triangulate()
   sweep_->Triangulate(*sweep_context_);
 }
 
+bool CDT::TriangulateInteractive()
+{
+  return sweep_->TriangulateInteractive(*sweep_context_);
+}
+
 std::vector<p2t::Triangle*> CDT::GetTriangles()
 {
   return sweep_context_->GetTriangles();
@@ -60,6 +65,11 @@ std::vector<p2t::Triangle*> CDT::GetTriangles()
 std::list<p2t::Triangle*> CDT::GetMap()
 {
   return sweep_context_->GetMap();
+}
+
+const SweepContext& CDT::GetSweepContext() const
+{
+  return *sweep_context_;
 }
 
 CDT::~CDT()
