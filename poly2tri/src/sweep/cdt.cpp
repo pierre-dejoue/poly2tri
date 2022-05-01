@@ -140,6 +140,25 @@ void CDT::Triangulate(Policy triangulation_policy)
   }
 }
 
+bool CDT::TriangulateInteractive(Policy triangulation_policy)
+{
+  SweepContext& tcx = *sweep_context_;
+  if (tcx.GetPoints().empty())
+    return true;
+  if (!sweep_)
+  {
+    info_ = Info{};
+    tcx.InitTriangulation();
+    info_.nb_input_points = static_cast<unsigned int>(tcx.GetPoints().size());
+    info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdgesCount());
+    sweep_ = std::make_unique<Sweep>(tcx, info_);
+  }
+  assert(sweep_);
+  const bool done = sweep_->TriangulateInteractive(triangulation_policy);
+  if (done) { sweep_.reset(); }
+  return done;
+}
+
 std::size_t CDT::GetTrianglesCount() const
 {
   return sweep_context_->GetTriangles().size();

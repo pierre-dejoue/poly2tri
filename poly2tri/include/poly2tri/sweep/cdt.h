@@ -133,6 +133,11 @@ public:
   void Triangulate(Policy triangulation_policy = Policy::OuterPolygon);
 
   /**
+   * Triangulate, iterative version: run iteratively until the method returns true.
+   */
+  bool TriangulateInteractive(Policy triangulation_policy = Policy::OuterPolygon);
+
+  /**
    * Get the number of CDT triangles
    */
   std::size_t GetTrianglesCount() const;
@@ -173,6 +178,8 @@ public:
   std::vector<const Point*> GetInputPoints() const;
 
 private:
+
+  std::unique_ptr<Sweep>        sweep_;
 
   std::unique_ptr<SweepContext> sweep_context_;
 

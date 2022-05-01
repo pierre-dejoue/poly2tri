@@ -70,6 +70,16 @@ public:
    */
   void Triangulate(Policy policy);
 
+
+  /**
+  * Triangulate, interactive mode
+  *
+  * Call iteratively
+  *
+  * @return true if the triangulation has completed, false otherwise
+  */
+  bool TriangulateInteractive(Policy policy);
+
 private:
 
   /**
@@ -91,8 +101,10 @@ private:
 
   /**
    * Start sweeping the Y-sorted point set from bottom to top
+   *
+   * @return true if the triangulation has completed, false otherwise
    */
-  void SweepPoints();
+  bool SweepPoints();
 
   /**
    * Find closes node to the left of the new point and
@@ -236,7 +248,9 @@ private:
      */
   void FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_triangle, Triangle& t, const Point* p);
 
-  void FinalizationConvexHull();
+  void FinalizationConvexHullFillAdvFront();
+  void FinalizationConvexHullBuildBackFront();
+  void FinalizationConvexHullFillBackFront();
 
   void FinalizationOuterPolygon();
 
@@ -281,6 +295,8 @@ private:
 
   CDT::Info& info_;
 
+  struct Interactive;
+  std::unique_ptr<Interactive> interactive_;
 };
 
 }

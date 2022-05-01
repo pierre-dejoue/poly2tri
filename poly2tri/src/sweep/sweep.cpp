@@ -45,6 +45,24 @@
 
 namespace p2t {
 
+namespace {
+  enum class SweepStep {
+    Init,
+    Events,
+    Finalize,
+    Done
+  };
+}
+
+struct Sweep::Interactive {
+  SweepStep step = SweepStep::Init;
+  unsigned int index_point = 1;
+  unsigned int index_edge = 0;
+  unsigned int convex_hull_step = 0;
+  bool edge_event = false;
+  Node* node = nullptr;
+};
+
 Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   tcx_(tcx),
   front_(),
@@ -52,32 +70,82 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   discarded_nodes_(nullptr),
   edge_event_(),
   legalize_stack_(),
-  info_(info)
+  info_(info),
+  interactive_(std::make_unique<Interactive>())
 {
 }
 
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(Policy policy)
 {
-  CreateAdvancingFront();
-  SweepPoints();
-
-  info_.nb_triangles_pre_finalization = static_cast<unsigned int>(tcx_.map_.size());
-
-  // Finalize the triangulation
-  switch (policy)
-  {
-    case Policy::ConvexHull:
-      FinalizationConvexHull();
-      break;
-
-    case Policy::OuterPolygon:
-    default:
-      FinalizationOuterPolygon();
-      break;
+  bool finished = false;
+  while (!finished) {
+    finished = TriangulateInteractive(policy);
   }
+}
 
-  info_.nb_output_triangles = static_cast<unsigned int>(tcx_.map_.size());
+bool Sweep::TriangulateInteractive(Policy policy)
+{
+  switch (interactive_->step)
+  {
+    case SweepStep::Init:
+      CreateAdvancingFront();
+      interactive_->step = SweepStep::Events;
+      return false;
+
+    case SweepStep::Events:
+    {
+      const bool finished = SweepPoints();
+      if (finished) {
+        info_.nb_triangles_pre_finalization = static_cast<unsigned int>(tcx_.map_.size());
+        interactive_->step = SweepStep::Finalize;
+      }
+      return false;
+    }
+
+    case SweepStep::Finalize:
+    {
+      bool finished = false;
+      switch (policy)
+      {
+        case Policy::ConvexHull:
+          switch (interactive_->convex_hull_step) {
+            case 0:
+              FinalizationConvexHullFillAdvFront();
+              break;
+            case 1:
+              FinalizationConvexHullBuildBackFront();
+              break;
+            case 2:
+              FinalizationConvexHullFillBackFront();
+              finished = true;
+              break;
+            default:
+              assert(0);
+          }
+          interactive_->convex_hull_step++;
+          break;
+
+        case Policy::OuterPolygon:
+        default:
+          FinalizationOuterPolygon();
+          finished = true;
+          break;
+      }
+      if (finished) {
+        info_.nb_output_triangles = static_cast<unsigned int>(tcx_.map_.size());
+        interactive_->step = SweepStep::Done;
+      }
+      return finished;
+    }
+
+    case SweepStep::Done:
+      return true;
+
+    default:
+      assert(0);
+      return false;
+  }
 }
 
 AdvancingFront* Sweep::CreateAdvancingFront()
@@ -135,18 +203,42 @@ void Sweep::DeleteFront()
   nodes_.clear();   // Release all nodes
 }
 
-void Sweep::SweepPoints()
+bool Sweep::SweepPoints()
 {
-  const std::size_t point_count = tcx_.points_.size();
-  // The point with index 0 is already in the advancing front
-  for (size_t i = 1; i < point_count; i++) {
-    Node* node = &PointEvent(tcx_.GetPoint(i));
-    Legalize();
-    for (const auto& e : tcx_.GetUpperEdges(i)) {
-      EdgeEvent(&e, node);
+  const auto point_count = static_cast<unsigned int>(tcx_.points_.size());
+  auto& i = interactive_->index_point;
+  auto& j = interactive_->index_edge;
+  auto& node = interactive_->node;
+  bool& edge_event = interactive_->edge_event;
+  if (i < point_count)
+  {
+    const Point* point = tcx_.GetPoint(i);
+    const auto& edge_list = tcx_.GetUpperEdges(i);
+    if (edge_event)
+    {
+      assert(j < edge_list.size());
+      assert(node);
+      const Edge& edge = edge_list[j];
+      EdgeEvent(&edge, node);
       Legalize();
+      j++;
     }
+    else
+    {
+      node = &PointEvent(point);
+      Legalize();
+      j = 0;
+      edge_event = true;
+    }
+    assert(edge_event);
+    if (j == edge_list.size())
+    {
+      edge_event = false;
+      i++;
+    }
+    return false;
   }
+  return true;
 }
 
 namespace {
@@ -190,14 +282,17 @@ namespace {
 
 } // namespace
 
-void Sweep::FinalizationConvexHull()
+void Sweep::FinalizationConvexHullFillAdvFront()
 {
   // Add the bordering triangles to form the convex hull of the advancing front
   assert(front_);
-  TRACE_OUT << "FinalizationConvexHull -\n"
+  TRACE_OUT << "FinalizationConvexHullFillAdvFront -\n"
             << "  advancing_front=" << *front_ << std::endl;
   ConvexHullFillOfFront(*front_);
+}
 
+void Sweep::FinalizationConvexHullBuildBackFront()
+{
   // Tail triangle
   assert(front_->tail()->prev);
   Triangle* tail_triangle = front_->tail()->prev->triangle;
@@ -208,13 +303,20 @@ void Sweep::FinalizationConvexHull()
   // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
   auto* back_front = MeshClearBackFrontTriangles(tail_triangle);
   assert(back_front);
+  TRACE_OUT << "FinalizationConvexHullBuildBackFront -\n"
+            << "  back_front=" << *back_front << std::endl;
 
   // Remove exterior triangles from the mesh
   const auto erased_ext = tcx_.MeshCleanExteriorTriangles();
-  TRACE_OUT << "FinalizationConvexHull - cleared exterior triangles: " << erased_ext << std::endl;
+  TRACE_OUT << "FinalizationConvexHullBuildBackFront - cleared exterior triangles: " << erased_ext << std::endl;
+}
+
+void Sweep::FinalizationConvexHullFillBackFront()
+{
+  auto* back_front = front_.get();
 
   // Add the bordering triangles to form the convex hull of the back front
-  TRACE_OUT << "FinalizationConvexHull -\n"
+  TRACE_OUT << "FinalizationConvexHullFillBackFront -\n"
             << "  back_front=" << *back_front << std::endl;
   ConvexHullFillOfFront(*back_front);
   DeleteFront();
