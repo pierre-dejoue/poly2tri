@@ -45,6 +45,7 @@
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -73,8 +74,8 @@ double rotate_y = 0.0,
 const double rotations_per_tick = 0.2;
 
 /// Default window size
-constexpr int default_window_width = 800;
-constexpr int default_window_height = 600;
+constexpr int default_window_width = 1200;
+constexpr int default_window_height = 800;
 
 /// Autozoom border (percentage)
 const double autozoom_border = 0.05;
@@ -97,6 +98,8 @@ vector<Point*> steiner;
 bool draw_map = false;
 /// Create a random distribution of points?
 bool random_distribution = false;
+/// Interactive mode?
+bool interactive_mode = true;
 
 GLFWwindow* window = NULL;
 
@@ -110,6 +113,8 @@ template <class C> void FreeClear(C& cntr)
 
 int main(int argc, char* argv[])
 {
+  using namespace std::chrono_literals;
+
   string filename;
   size_t num_points = 0u;
   double max, min;
@@ -198,12 +203,37 @@ int main(int argc, char* argv[])
   /*
    * STEP 3: Triangulate!
    */
-  cdt->Triangulate();
+  bool running = true;
+  bool cdt_finished = false;
+
+  while (running) {
+    glfwPollEvents();
+
+    // escape to quit, arrow keys to rotate view
+    // Check if ESC key was pressed or window was closed
+    running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
+
+    // Press SPACE key to iterate on the CDT solver
+    if (!interactive_mode || glfwGetKey(window, GLFW_KEY_SPACE))
+    {
+      cdt_finished = cdt->TriangulateInteractive();
+      triangles = cdt->GetTriangles();
+      map = cdt->GetMap();
+      std::this_thread::sleep_for(100ms);
+    }
+
+    // Draw the scene
+    if (cdt_finished) {
+      Draw(zoom);
+    } else {
+      DrawMap(zoom);
+    }
+
+    // swap back and front buffers
+    glfwSwapBuffers(window);
+  }
 
   double dt = glfwGetTime() - init_time;
-
-  triangles = cdt->GetTriangles();
-  map = cdt->GetMap();
   const size_t points_in_holes =
       std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
                       [](size_t cumul, const vector<Point*>& hole) { return cumul + hole.size(); });
@@ -217,8 +247,6 @@ int main(int argc, char* argv[])
   cout << "Number of triangles = " << triangles.size() << endl;
   cout << "Is Delaunay = " << (IsDelaunay(triangles) ? "true" : "false") << endl;
   cout << "Elapsed time (ms) = " << dt * 1000.0 << endl;
-
-  MainLoop(zoom);
 
   // Cleanup
   delete cdt;
