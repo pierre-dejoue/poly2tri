@@ -42,8 +42,11 @@
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
+
+using namespace std::chrono_literals;
 
 bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline,
                std::vector<std::vector<p2t::Point>>& out_holes, std::vector<p2t::Point>& out_steiner);
@@ -54,7 +57,7 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
                                      std::vector<p2t::Point>& out_steiner);
 void Init(int window_width, int window_height);
 void ShutDown(int return_code);
-void MainLoop(double initial_zoom);
+void MainLoop(p2t::CDT& cdt, double initial_zoom);
 void Draw(const double zoom);
 double StringToDouble(const std::string& s);
 double RandomDistrib(double x);
@@ -75,6 +78,11 @@ constexpr bool flag_flip_y = false;
 
 /// Convex hull triangulation
 constexpr bool convex_hull_triangulation = false;
+
+/// Interactive mode: If false, the animation doesn't stop. If true, press SPACE to iterate.
+bool interactive_mode = true;
+
+constexpr auto animation_sleep_duration = 50ms;
 
 /// Create a random distribution of points?
 bool random_distribution = false;
@@ -168,8 +176,6 @@ int main(int argc, char* argv[])
    * Perform triangulation!
    */
 
-  double init_time = glfwGetTime();
-
   /*
    * STEP 1: Create CDT and add primary polyline
    * NOTE: polyline must be a simple polygon. The polyline's points
@@ -199,13 +205,8 @@ int main(int argc, char* argv[])
   /*
    * STEP 3: Triangulate!
    */
-  const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
-  cdt.Triangulate(policy);
+  MainLoop(cdt, zoom);
 
-  double dt = glfwGetTime() - init_time;
-
-  triangles.reserve(cdt.GetTrianglesCount());
-  cdt.GetTriangles(std::back_inserter(triangles));
   const size_t points_in_holes =
       std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
                       [](size_t cumul, const std::vector<p2t::Point>& hole) { return cumul + hole.size(); });
@@ -216,10 +217,7 @@ int main(int argc, char* argv[])
   std::cout << "Number of Steiner points = " << steiner.size() << std::endl;
   std::cout << "Total number of points = " << (polyline.size() + points_in_holes + steiner.size()) << std::endl;
   std::cout << "Number of triangles = " << triangles.size() << std::endl;
-  std::cout << "Elapsed time (ms) = " << dt * 1000.0 << std::endl;
   std::cout << cdt.LastTriangulationInfo() << std::endl;
-
-  MainLoop(zoom);
 
   ShutDown(0);
   return 0;
@@ -362,12 +360,17 @@ void ShutDown(int return_code)
   exit(return_code);
 }
 
-void MainLoop(double initial_zoom)
+void MainLoop(p2t::CDT& cdt, double initial_zoom)
 {
   // Zoom can be changed with the arrow keys
   double zoom = initial_zoom;
 
+  // Triangulation policy
+  const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
+
   bool running = true;
+  bool cdt_finished = false;
+  unsigned int step = 0;
   while (running) {
     glfwPollEvents();
     glfwGetFramebufferSize(window, &window_width, &window_height);
@@ -375,6 +378,25 @@ void MainLoop(double initial_zoom)
 
     // Check if the ESCAPE key was pressed or the window was closed
     running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
+
+    // Press the SPACE key to iterate on the CDT solver
+    if (!cdt_finished && (!interactive_mode || glfwGetKey(window, GLFW_KEY_SPACE))) {
+      std::cerr << "INTERACTIVE STEP " << step++ << std::endl;
+      cdt_finished = cdt.TriangulateInteractive(policy);
+      if (cdt_finished)
+        std::cerr << "TRIANGULATION IS DONE!" << std::endl;
+      triangles.clear();
+      triangles.reserve(cdt.GetTrianglesCount());
+      cdt.GetTriangles(std::back_inserter(triangles));
+      if (interactive_mode) {
+        std::this_thread::sleep_for(200ms);
+      } else if (animation_sleep_duration.count() > 0) {
+        std::this_thread::sleep_for(animation_sleep_duration);
+      }
+    } else if (cdt_finished && glfwGetKey(window, GLFW_KEY_SPACE)) {
+      cdt_finished = false; // Will restart the animation
+      step = 0;
+    }
 
     // Press the UP and DOWN keys to zoom in/out. Press BACKSPACE to reset zoom.
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
