@@ -268,7 +268,7 @@ bool Sweep::LargeHole_DontFill(const Node* node) const {
   const Node* prevNode = node->prev;
   if (!AngleExceeds90Degrees(node->point, nextNode->point, prevNode->point))
           return false;
-
+#if 0
   // Check additional points on front.
   const Node* next2Node = nextNode->next;
   // "..Plus.." because only want angles on same side as point being added.
@@ -279,7 +279,7 @@ bool Sweep::LargeHole_DontFill(const Node* node) const {
   // "..Plus.." because only want angles on same side as point being added.
   if ((prev2Node != nullptr) && !AngleExceedsPlus90DegreesOrIsNegative(node->point, nextNode->point, prev2Node->point))
           return false;
-
+#endif
   return true;
 }
 
