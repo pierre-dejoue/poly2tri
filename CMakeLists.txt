@@ -7,6 +7,8 @@ option(P2T_BUILD_TESTS "Build tests" OFF)
 option(P2T_BUILD_TESTBED "Build the testbed application" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/third_party/")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/config/")
+
 add_subdirectory(poly2tri)
 
 if(P2T_BUILD_TESTS)

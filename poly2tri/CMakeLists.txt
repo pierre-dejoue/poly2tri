@@ -1,11 +1,15 @@
 #
 # Poly2tri library
 #
+include(compiler_options)
+
 file(GLOB SOURCES src/common/*.cc src/sweep/*.cc)
 file(GLOB PUBLIC_HEADERS include/*.h include/common/*.h include/sweep/*.h)
 file(GLOB PRIVATE_HEADERS src/common/*.h src/sweep/*.h)
 
 add_library(poly2tri ${SOURCES} ${PUBLIC_HEADERS} ${PRIVATE_HEADERS})
+
+set_target_warnings(poly2tri ON)
 
 target_include_directories(poly2tri
   PUBLIC
