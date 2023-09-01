@@ -34,7 +34,7 @@
 // Otherwise #defines like M_PI are undeclared under Visual Studio
 #define _USE_MATH_DEFINES
 
-#include "shapes.h"
+#include <poly2tri/common/shapes.h>
 
 #include <cmath>
 #include <exception>

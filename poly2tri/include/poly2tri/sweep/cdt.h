@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2021, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -28,44 +28,82 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "cdt.h"
+
+#pragma once
+
+#include "../common/dll_symbol.h"
+#include "../common/shapes.h"
+
+#include <list>
+#include <vector>
+
+/**
+ *
+ * @author Mason Green <mason.green@gmail.com>
+ *
+ */
 
 namespace p2t {
 
-CDT::CDT(const std::vector<Point*>& polyline)
+struct Point;
+class Sweep;
+class SweepContext;
+class Triangle;
+
+class P2T_DLL_SYMBOL CDT
 {
-  sweep_context_ = new SweepContext(polyline);
-  sweep_ = new Sweep;
-}
+public:
 
-void CDT::AddHole(const std::vector<Point*>& polyline)
-{
-  sweep_context_->AddHole(polyline);
-}
+  /**
+   * Constructor - add polyline with non repeating points
+   *
+   * @param polyline
+   */
+  CDT(const std::vector<Point*>& polyline);
 
-void CDT::AddPoint(Point* point) {
-  sweep_context_->AddPoint(point);
-}
+   /**
+   * Destructor - clean up memory
+   */
+  ~CDT();
 
-void CDT::Triangulate()
-{
-  sweep_->Triangulate(*sweep_context_);
-}
+  /**
+   * Add a hole
+   *
+   * @param polyline
+   */
+  void AddHole(const std::vector<Point*>& polyline);
 
-std::vector<p2t::Triangle*> CDT::GetTriangles()
-{
-  return sweep_context_->GetTriangles();
-}
+  /**
+   * Add a steiner point
+   *
+   * @param point
+   */
+  void AddPoint(Point* point);
 
-std::list<p2t::Triangle*> CDT::GetMap()
-{
-  return sweep_context_->GetMap();
-}
+  /**
+   * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points
+   */
+  void Triangulate();
 
-CDT::~CDT()
-{
-  delete sweep_context_;
-  delete sweep_;
-}
+  /**
+   * Get CDT triangles
+   */
+  std::vector<Triangle*> GetTriangles();
 
-} // namespace p2t
+  /**
+   * Get triangle map
+   */
+  std::list<Triangle*> GetMap();
+
+  private:
+
+  /**
+   * Internals
+   */
+
+  SweepContext* sweep_context_;
+  Sweep* sweep_;
+
+};
+
+}
