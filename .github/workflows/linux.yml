@@ -24,12 +24,12 @@ jobs:
     - name: Build with GCC
       run: |
         cmake -B build -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DP2T_BUILD_TESTS=ON
-        cmake --build build
+        cmake --build build --verbose
 
     - name: Build with Clang
       run: |
         CXX=clang++ cmake -B build-clang -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_EXPORT_COMPILE_COMMANDS=1
-        cmake --build build-clang
+        cmake --build build-clang --verbose
 
     - name: Lint with clang-tidy
       run: python3 /usr/share/clang/run-clang-tidy.py -header-filter=poly2tri -p=build-clang
