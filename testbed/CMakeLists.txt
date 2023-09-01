@@ -1,6 +1,6 @@
 # Dependencies
-find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
+include(glfw)
 
 # Build testbed
 add_executable(p2t

@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 option(P2T_BUILD_TESTS "Build tests" OFF)
 option(P2T_BUILD_TESTBED "Build the testbed application" OFF)
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/third_party/")
+
 file(GLOB SOURCES poly2tri/common/*.cc poly2tri/sweep/*.cc)
 file(GLOB HEADERS poly2tri/*.h poly2tri/common/*.h poly2tri/sweep/*.h)
 add_library(poly2tri ${SOURCES} ${HEADERS})
