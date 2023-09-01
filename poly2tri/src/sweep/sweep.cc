@@ -768,8 +768,8 @@ void Sweep::FlipEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* t, 
         // XXX: I think one of the triangles should be legalized here?
       }
     } else {
-      Orientation o = Orient2d(eq, op, ep);
-      t = &NextFlipTriangle(tcx, (int)o, *t, ot, p, op);
+      const Orientation o = Orient2d(eq, op, ep);
+      t = &NextFlipTriangle(tcx, o, *t, ot, p, op);
       FlipEdgeEvent(tcx, ep, eq, t, p);
     }
   } else {
@@ -779,7 +779,7 @@ void Sweep::FlipEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* t, 
   }
 }
 
-Triangle& Sweep::NextFlipTriangle(SweepContext& tcx, int o, Triangle& t, Triangle& ot, Point& p, Point& op)
+Triangle& Sweep::NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle& t, Triangle& ot, Point& p, Point& op)
 {
   if (o == CCW) {
     // ot is not crossing edge after flip

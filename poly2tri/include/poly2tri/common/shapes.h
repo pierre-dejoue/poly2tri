@@ -146,6 +146,8 @@ struct P2T_DLL_SYMBOL Edge {
   }
 };
 
+enum Orientation { CW, CCW, COLLINEAR };
+
 // Triangle-based data structures are know to have better performance than quad-edge structures
 // See: J. Shewchuk, "Triangle: Engineering a 2D Quality Mesh Generator and Delaunay Triangulator"
 //      "Triangulations in CGAL"

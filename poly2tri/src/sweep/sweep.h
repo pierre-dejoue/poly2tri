@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include <poly2tri/common/shapes.h>
+
 #include <vector>
 
 namespace p2t {
@@ -238,14 +240,14 @@ private:
    * intersecting the edge. So decide which to contiune with and legalize the other
    *
    * @param tcx
-   * @param o - should be the result of an orient2d( eq, op, ep )
+   * @param o - should be the result of an Orient2d( eq, op, ep )
    * @param t - triangle 1
    * @param ot - triangle 2
    * @param p - a point shared by both triangles
    * @param op - another point shared by both triangles
    * @return returns the triangle still intersecting the edge
    */
-  Triangle& NextFlipTriangle(SweepContext& tcx, int o, Triangle&  t, Triangle& ot, Point& p, Point& op);
+  Triangle& NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle&  t, Triangle& ot, Point& p, Point& op);
 
    /**
      * When we need to traverse from one triangle to the next we need

@@ -49,8 +49,6 @@ constexpr double PI_3div4 = 3 * M_PI / 4;
 constexpr double PI_div2 = 1.57079632679489661923;
 constexpr double EPSILON = 1e-12;
 
-enum Orientation { CW, CCW, COLLINEAR };
-
 /**
  * <b>Determines the orientation of triangle abc</b><br>
  * Uses the formula to calculate the signed area:<br>
