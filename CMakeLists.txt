@@ -17,3 +17,7 @@ endif()
 if(P2T_BUILD_TESTBED)
     add_subdirectory(testbed)
 endif()
+
+install(EXPORT poly2tri_project DESTINATION lib/poly2tri)
+install(FILES ${PROJECT_SOURCE_DIR}/AUTHORS DESTINATION .)
+install(FILES ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION .)

@@ -21,3 +21,6 @@ if(poly2tri_target_type STREQUAL SHARED_LIBRARY)
 else()
   target_compile_definitions(poly2tri PUBLIC P2T_STATIC_EXPORTS)
 endif()
+
+install(TARGETS poly2tri EXPORT poly2tri_project)
+install(DIRECTORY include/poly2tri DESTINATION include)      # Public headers
