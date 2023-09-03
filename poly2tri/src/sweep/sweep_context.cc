@@ -59,12 +59,12 @@ void SweepContext::AddPoint(Point* point) {
   points_.push_back(point);
 }
 
-std::vector<Triangle*> &SweepContext::GetTriangles()
+const std::vector<Triangle*>& SweepContext::GetTriangles()
 {
   return triangles_;
 }
 
-std::list<Triangle*> &SweepContext::GetMap()
+const std::list<Triangle*>& SweepContext::GetMap()
 {
   return map_;
 }

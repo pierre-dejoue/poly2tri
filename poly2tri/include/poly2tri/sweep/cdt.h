@@ -88,18 +88,14 @@ public:
   /**
    * Get CDT triangles
    */
-  std::vector<Triangle*> GetTriangles();
+  const std::vector<Triangle*>& GetTriangles();
 
   /**
-   * Get triangle map
+   * Get triangle map - Internal triangulation before mesh clean-up. For debug purpose only.
    */
-  std::list<Triangle*> GetMap();
+  const std::list<Triangle*>& GetMap();
 
-  private:
-
-  /**
-   * Internals
-   */
+private:
 
   SweepContext* sweep_context_;
   Sweep* sweep_;

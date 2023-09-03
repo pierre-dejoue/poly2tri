@@ -79,8 +79,6 @@ void AddToMap(Triangle* triangle);
 
 Point* GetPoint(size_t index);
 
-Point* GetPoints();
-
 void RemoveFromMap(Triangle* triangle);
 
 void AddHole(const std::vector<Point*>& polyline);
@@ -91,8 +89,9 @@ AdvancingFront* front() const;
 
 void MeshClean(Triangle& triangle);
 
-std::vector<Triangle*> &GetTriangles();
-std::list<Triangle*> &GetMap();
+const std::vector<Triangle*>& GetTriangles();
+
+const std::list<Triangle*>& GetMap();
 
 std::vector<Edge*> edge_list;
 
