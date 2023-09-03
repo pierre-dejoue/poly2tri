@@ -1,4 +1,7 @@
-﻿Since there are no Input validation of the data given for triangulation you need
+﻿Foreword
+========
+
+Since there are no Input validation of the data given for triangulation you need
 to think about this. Poly2Tri does not support repeat points within epsilon.
 
 * If you have a cyclic function that generates random points make sure you don't
@@ -17,8 +20,8 @@ Make sure you understand the preceding notice before posting an issue. If you ha
 an issue not covered by the above, include your data-set with the problem.
 The only easy day was yesterday; have a nice day. <Mason Green>
 
-TESTBED INSTALLATION GUIDE
-==========================
+Poly2tri Installation Guide
+===========================
 
 Dependencies
 ------------
@@ -28,6 +31,7 @@ Core poly2tri lib:
 * Standard Template Library (STL)
 
 Unit tests:
+
 * Boost (filesystem, test framework)
 
 Testbed:
@@ -59,12 +63,20 @@ ctest --output-on-failure
 ```
 
 Build with the testbed
------------------
+----------------------
 
 ```
 mkdir build && cd build
 cmake -GNinja -DP2T_BUILD_TESTBED=ON ..
 cmake --build .
+```
+
+Build with meson
+----------------
+
+```
+meson setup build && cd build
+meson compile
 ```
 
 Running the Examples
