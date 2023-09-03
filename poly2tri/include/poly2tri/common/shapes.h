@@ -207,9 +207,9 @@ void DebugPrint();
 
 bool CircumcircleContains(const Point&) const;
 
-private:
+Orientation GetOrientation() const;
 
-bool IsCounterClockwise() const;
+private:
 
 /// Triangle points
 Point* points_[3];

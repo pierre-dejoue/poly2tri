@@ -29,6 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <poly2tri/common/shapes.h>
+#include "utils.h"
 
 #include <cassert>
 #include <iostream>
@@ -369,7 +370,7 @@ void Triangle::DebugPrint()
 
 bool Triangle::CircumcircleContains(const Point& point) const
 {
-  assert(IsCounterClockwise());
+  assert(GetOrientation() == Orientation::CCW);
   const double dx = points_[0]->x - point.x;
   const double dy = points_[0]->y - point.y;
   const double ex = points_[1]->x - point.x;
@@ -384,11 +385,9 @@ bool Triangle::CircumcircleContains(const Point& point) const
   return (dx * (fy * bp - cp * ey) - dy * (fx * bp - cp * ex) + ap * (fx * ey - fy * ex)) < 0;
 }
 
-bool Triangle::IsCounterClockwise() const
+Orientation Triangle::GetOrientation() const
 {
-  return (points_[1]->x - points_[0]->x) * (points_[2]->y - points_[0]->y) -
-             (points_[2]->x - points_[0]->x) * (points_[1]->y - points_[0]->y) >
-         0;
+  return Orient2d(*points_[0], *points_[1], *points_[2]);
 }
 
 bool IsDelaunay(const std::vector<p2t::Triangle*>& triangles)
