@@ -94,7 +94,6 @@ void SweepContext::InitTriangulation()
 
   // Sort points along y-axis
   std::sort(points_.begin(), points_.end(), cmp);
-
 }
 
 void SweepContext::InitEdges(const std::vector<Point*>& polyline)
@@ -124,7 +123,6 @@ Node* SweepContext::LocateNode(const Point& point)
 
 void SweepContext::CreateAdvancingFront()
 {
-
   // Initial triangle
   Triangle* triangle = new Triangle(*points_[0], *head_, *tail_);
 
@@ -169,9 +167,9 @@ void SweepContext::MeshClean(Triangle& triangle)
   std::vector<Triangle *> triangles;
   triangles.push_back(&triangle);
 
-  while(!triangles.empty()){
-	Triangle *t = triangles.back();
-	triangles.pop_back();
+  while(!triangles.empty()) {
+    Triangle *t = triangles.back();
+    triangles.pop_back();
 
     if (t != nullptr && !t->IsInterior()) {
       t->IsInterior(true);
@@ -186,7 +184,6 @@ void SweepContext::MeshClean(Triangle& triangle)
 
 SweepContext::~SweepContext()
 {
-
     // Clean up memory
 
     delete head_;

@@ -61,7 +61,7 @@ public:
    */
   CDT(const std::vector<Point*>& polyline);
 
-   /**
+  /**
    * Destructor - clean up memory
    */
   ~CDT();
