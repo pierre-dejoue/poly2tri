@@ -13,6 +13,6 @@ BOOST_AUTO_TEST_CASE(TriangleTest)
   BOOST_CHECK(triangle.Contains(&a));
   BOOST_CHECK(triangle.Contains(&b));
   BOOST_CHECK(triangle.Contains(&c));
-  BOOST_CHECK(triangle.CircumcicleContains(p2t::Point(0.5, 0.1)));
-  BOOST_CHECK(!triangle.CircumcicleContains(p2t::Point(1.0, 0.4)));
+  BOOST_CHECK(triangle.CircumcircleContains(p2t::Point(0.5, 0.1)));
+  BOOST_CHECK(!triangle.CircumcircleContains(p2t::Point(1.0, 0.4)));
 }

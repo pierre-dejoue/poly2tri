@@ -367,7 +367,7 @@ void Triangle::DebugPrint()
   std::cout << *points_[0] << " " << *points_[1] << " " << *points_[2] << std::endl;
 }
 
-bool Triangle::CircumcicleContains(const Point& point) const
+bool Triangle::CircumcircleContains(const Point& point) const
 {
   assert(IsCounterClockwise());
   const double dx = points_[0]->x - point.x;
@@ -399,7 +399,7 @@ bool IsDelaunay(const std::vector<p2t::Triangle*>& triangles)
         continue;
       }
       for (int i = 0; i < 3; ++i) {
-        if (triangle->CircumcicleContains(*other->GetPoint(i))) {
+        if (triangle->CircumcircleContains(*other->GetPoint(i))) {
           return false;
         }
       }

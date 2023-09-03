@@ -203,7 +203,7 @@ inline void IsInterior(bool b);
 
 void DebugPrint();
 
-bool CircumcicleContains(const Point&) const;
+bool CircumcircleContains(const Point&) const;
 
 private:
 
