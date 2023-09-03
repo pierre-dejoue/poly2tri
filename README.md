@@ -23,6 +23,20 @@ The only easy day was yesterday; have a nice day. <Mason Green>
 Poly2tri Installation Guide
 ===========================
 
+API Changes
+-----------
+
+Compared to the forked [repository](https://github.com/jhasse/poly2tri).
+
+### Breaking
+
+- Renamed p2t::Triangle::CircumcircleContains(...): This was to fix a typo in the name
+
+### Non-Breaking
+
+- p2t::Orientation enum is now public
+- Added method p2t::Triangle::GetOrientation()
+
 Dependencies
 ------------
 
