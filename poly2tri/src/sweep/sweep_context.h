@@ -85,6 +85,8 @@ public:
 
   void AddPoint(Point* point);
 
+  void AddPoints(const std::vector<Point*>& points);
+
   AdvancingFront* front() const;
 
   void MeshClean(Triangle& triangle);

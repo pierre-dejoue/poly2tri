@@ -91,6 +91,23 @@ BOOST_AUTO_TEST_CASE(QuadTest)
   }
 }
 
+BOOST_AUTO_TEST_CASE(QuadSteinerTest)
+{
+  std::vector<p2t::Point*> points{ new p2t::Point(0, 0), new p2t::Point(0, 1),
+                                   new p2t::Point(1, 1), new p2t::Point(1, 0) };
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.AddPoints(points));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto map = cdt.GetMap();
+  BOOST_REQUIRE_EQUAL(map.size(), 6);
+  const auto result = cdt.GetTriangles();
+  // BOOST_REQUIRE_EQUAL(result.size(), 2);     // Fails at the moment
+  for (const auto p : points) {
+    delete p;
+  }
+}
+
+
 BOOST_AUTO_TEST_CASE(NarrowQuadTest)
 {
   // Very narrow quad that used to demonstrate a failure case during

@@ -68,6 +68,11 @@ void CDT::AddPoint(Point* point)
   sweep_context_->AddPoint(point);
 }
 
+void CDT::AddPoints(const std::vector<Point*>& points)
+{
+  sweep_context_->AddPoints(points);
+}
+
 void CDT::Triangulate()
 {
   if (sweep_context_->point_count() > 0) {

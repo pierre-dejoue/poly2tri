@@ -79,6 +79,11 @@ void SweepContext::AddPoint(Point* point)
   points_.push_back(point);
 }
 
+void SweepContext::AddPoints(const std::vector<Point*>& points)
+{
+  points_.insert(points_.end(), points.cbegin(), points.cend());
+}
+
 const std::vector<Triangle*>& SweepContext::GetTriangles()
 {
   return triangles_;

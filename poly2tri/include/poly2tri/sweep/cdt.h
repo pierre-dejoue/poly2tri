@@ -98,6 +98,13 @@ public:
   void AddPoint(Point* point);
 
   /**
+   * Add several steiner points
+   *
+   * @param points
+   */
+  void AddPoints(const std::vector<Point*>& points);
+
+  /**
    * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points
    */
   void Triangulate();
