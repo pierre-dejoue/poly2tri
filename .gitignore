@@ -6,10 +6,13 @@
 .waf-*
 .waf3-*/
 waf3-*/
-build/
 
 # Visual Studio Code
 /.vscode/
 /.ccls-cache/
 /compile_commands.json
 /.cache/
+
+# Misc
+build/
+misc/
