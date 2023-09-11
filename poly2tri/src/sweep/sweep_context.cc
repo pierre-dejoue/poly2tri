@@ -32,30 +32,50 @@
 #include "advancing_front.h"
 
 #include <algorithm>
+#include <cassert>
+#include <exception>
 
 namespace p2t {
 
-SweepContext::SweepContext(std::vector<Point*> polyline) :
-  points_(std::move(polyline)),
+SweepContext::SweepContext() :
+  points_(),
+  edge_list_(),
+  triangles_(),
+  map_(),
   front_(nullptr),
   head_(nullptr),
   tail_(nullptr),
   af_head_(nullptr),
   af_middle_(nullptr),
-  af_tail_(nullptr)
+  af_tail_(nullptr),
+  basin_(),
+  edge_event_()
 {
+}
+
+void SweepContext::AddPolyline(const std::vector<Point*>& polyline)
+{
+  if (!points_.empty()) {
+    throw std::invalid_argument("The outer polyline must be added first and only once");
+  }
+  if (polyline.size() < 3) {
+    throw std::invalid_argument("A polyline must have at least 3 vertices");
+  }
+  points_ = polyline;
   InitEdges(points_);
 }
 
 void SweepContext::AddHole(const std::vector<Point*>& polyline)
 {
-  InitEdges(polyline);
-  for (auto i : polyline) {
-    points_.push_back(i);
+  if (polyline.size() < 3) {
+    throw std::invalid_argument("A polyline must have at least 3 vertices");
   }
+  points_.insert(points_.end(), polyline.cbegin(), polyline.cend());
+  InitEdges(polyline);
 }
 
-void SweepContext::AddPoint(Point* point) {
+void SweepContext::AddPoint(Point* point)
+{
   points_.push_back(point);
 }
 
@@ -71,6 +91,7 @@ const std::list<Triangle*>& SweepContext::GetMap()
 
 void SweepContext::InitTriangulation()
 {
+  assert(points_.size() > 0);
   double xmax(points_[0]->x), xmin(points_[0]->x);
   double ymax(points_[0]->y), ymin(points_[0]->y);
 
@@ -98,10 +119,11 @@ void SweepContext::InitTriangulation()
 
 void SweepContext::InitEdges(const std::vector<Point*>& polyline)
 {
+  assert(polyline.size() > 1);
   size_t num_points = polyline.size();
   for (size_t i = 0; i < num_points; i++) {
     size_t j = i < num_points - 1 ? i + 1 : 0;
-    edge_list.push_back(new Edge(*polyline[i], *polyline[j]));
+    edge_list_.push_back(new Edge(*polyline[i], *polyline[j]));
   }
 }
 
@@ -124,6 +146,7 @@ Node* SweepContext::LocateNode(const Point& point)
 void SweepContext::CreateAdvancingFront()
 {
   // Initial triangle
+  assert(points_.size() > 0);
   Triangle* triangle = new Triangle(*points_[0], *head_, *tail_);
 
   map_.push_back(triangle);
@@ -186,9 +209,9 @@ SweepContext::~SweepContext()
 {
     // Clean up memory
 
+    delete front_;
     delete head_;
     delete tail_;
-    delete front_;
     delete af_head_;
     delete af_middle_;
     delete af_tail_;
@@ -196,8 +219,9 @@ SweepContext::~SweepContext()
     for (auto ptr : map_) {
       delete ptr;
     }
+    // pointers in triangles_ are copies of pointers in map_ and don't need to be deleted
 
-    for (auto& i : edge_list) {
+    for (auto& i : edge_list_) {
       delete i;
     }
 }

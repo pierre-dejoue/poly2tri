@@ -51,10 +51,10 @@ class AdvancingFront;
 class SweepContext {
 public:
 
-  /// Constructor
-  explicit SweepContext(std::vector<Point*> polyline);
-  /// Destructor
+  SweepContext();
   ~SweepContext();
+
+  void AddPolyline(const std::vector<Point*>& polyline);
 
   void set_head(Point* p1);
 
@@ -93,8 +93,6 @@ public:
 
   const std::list<Triangle*>& GetMap();
 
-  std::vector<Edge*> edge_list;
-
   struct Basin {
     Node* left_node;
     Node* bottom_node;
@@ -102,8 +100,12 @@ public:
     double width;
     bool left_highest;
 
-    Basin()
-    : left_node(nullptr), bottom_node(nullptr), right_node(nullptr), width(0.0), left_highest(false)
+    Basin() :
+      left_node(nullptr),
+      bottom_node(nullptr),
+      right_node(nullptr),
+      width(0.0),
+      left_highest(false)
     {
     }
 
@@ -125,16 +127,14 @@ public:
     { }
   };
 
-  Basin basin;
-  EdgeEvent edge_event;
-
 private:
 
   friend class Sweep;
 
+  std::vector<Point*> points_;
+  std::vector<Edge*> edge_list_;
   std::vector<Triangle*> triangles_;
   std::list<Triangle*> map_;
-  std::vector<Point*> points_;
 
   // Advancing front
   AdvancingFront* front_;
@@ -143,7 +143,13 @@ private:
   // tail point used with advancing front
   Point* tail_;
 
-  Node *af_head_, *af_middle_, *af_tail_;
+  Node *af_head_;
+  Node *af_middle_;
+  Node *af_tail_;
+
+  Basin basin_;
+
+  EdgeEvent edge_event_;
 
   void InitTriangulation();
   void InitEdges(const std::vector<Point*>& polyline);

@@ -38,6 +38,11 @@
 
 namespace p2t {
 
+Sweep::Sweep() :
+  nodes_()
+{
+}
+
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(SweepContext& tcx)
 {
@@ -100,8 +105,8 @@ Node& Sweep::PointEvent(SweepContext& tcx, Point& point)
 
 void Sweep::EdgeEvent(SweepContext& tcx, Edge* edge, Node* node)
 {
-  tcx.edge_event.constrained_edge = edge;
-  tcx.edge_event.right = (edge->p->x > edge->q->x);
+  tcx.edge_event_.constrained_edge = edge;
+  tcx.edge_event_.right = (edge->p->x > edge->q->x);
 
   if (IsEdgeSideOfTriangle(*node->triangle, *edge->p, *edge->q)) {
     return;
@@ -130,7 +135,7 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
       triangle->MarkConstrainedEdge(&eq, p1);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      tcx.edge_event.constrained_edge->q = p1;
+      tcx.edge_event_.constrained_edge->q = p1;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(tcx, ep, *p1, triangle, *p1);
     } else {
@@ -146,7 +151,7 @@ void Sweep::EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangl
       triangle->MarkConstrainedEdge(&eq, p2);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      tcx.edge_event.constrained_edge->q = p2;
+      tcx.edge_event_.constrained_edge->q = p2;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(tcx, ep, *p2, triangle, *p2);
     } else {
@@ -524,36 +529,36 @@ void Sweep::RotateTrianglePair(Triangle& t, Point& p, Triangle& ot, Point& op) c
 void Sweep::FillBasin(SweepContext& tcx, Node& node)
 {
   if (Orient2d(*node.point, *node.next->point, *node.next->next->point) == CCW) {
-    tcx.basin.left_node = node.next->next;
+    tcx.basin_.left_node = node.next->next;
   } else {
-    tcx.basin.left_node = node.next;
+    tcx.basin_.left_node = node.next;
   }
 
   // Find the bottom and right node
-  tcx.basin.bottom_node = tcx.basin.left_node;
-  while (tcx.basin.bottom_node->next
-         && tcx.basin.bottom_node->point->y >= tcx.basin.bottom_node->next->point->y) {
-    tcx.basin.bottom_node = tcx.basin.bottom_node->next;
+  tcx.basin_.bottom_node = tcx.basin_.left_node;
+  while (tcx.basin_.bottom_node->next
+         && tcx.basin_.bottom_node->point->y >= tcx.basin_.bottom_node->next->point->y) {
+    tcx.basin_.bottom_node = tcx.basin_.bottom_node->next;
   }
-  if (tcx.basin.bottom_node == tcx.basin.left_node) {
+  if (tcx.basin_.bottom_node == tcx.basin_.left_node) {
     // No valid basin
     return;
   }
 
-  tcx.basin.right_node = tcx.basin.bottom_node;
-  while (tcx.basin.right_node->next
-         && tcx.basin.right_node->point->y < tcx.basin.right_node->next->point->y) {
-    tcx.basin.right_node = tcx.basin.right_node->next;
+  tcx.basin_.right_node = tcx.basin_.bottom_node;
+  while (tcx.basin_.right_node->next
+         && tcx.basin_.right_node->point->y < tcx.basin_.right_node->next->point->y) {
+    tcx.basin_.right_node = tcx.basin_.right_node->next;
   }
-  if (tcx.basin.right_node == tcx.basin.bottom_node) {
+  if (tcx.basin_.right_node == tcx.basin_.bottom_node) {
     // No valid basins
     return;
   }
 
-  tcx.basin.width = tcx.basin.right_node->point->x - tcx.basin.left_node->point->x;
-  tcx.basin.left_highest = tcx.basin.left_node->point->y > tcx.basin.right_node->point->y;
+  tcx.basin_.width = tcx.basin_.right_node->point->x - tcx.basin_.left_node->point->x;
+  tcx.basin_.left_highest = tcx.basin_.left_node->point->y > tcx.basin_.right_node->point->y;
 
-  FillBasinReq(tcx, tcx.basin.bottom_node);
+  FillBasinReq(tcx, tcx.basin_.bottom_node);
 }
 
 void Sweep::FillBasinReq(SweepContext& tcx, Node* node)
@@ -565,15 +570,15 @@ void Sweep::FillBasinReq(SweepContext& tcx, Node* node)
 
   Fill(tcx, *node);
 
-  if (node->prev == tcx.basin.left_node && node->next == tcx.basin.right_node) {
+  if (node->prev == tcx.basin_.left_node && node->next == tcx.basin_.right_node) {
     return;
-  } else if (node->prev == tcx.basin.left_node) {
+  } else if (node->prev == tcx.basin_.left_node) {
     Orientation o = Orient2d(*node->point, *node->next->point, *node->next->next->point);
     if (o == CW) {
       return;
     }
     node = node->next;
-  } else if (node->next == tcx.basin.right_node) {
+  } else if (node->next == tcx.basin_.right_node) {
     Orientation o = Orient2d(*node->point, *node->prev->point, *node->prev->prev->point);
     if (o == CCW) {
       return;
@@ -595,14 +600,14 @@ bool Sweep::IsShallow(SweepContext& tcx, Node& node)
 {
   double height;
 
-  if (tcx.basin.left_highest) {
-    height = tcx.basin.left_node->point->y - node.point->y;
+  if (tcx.basin_.left_highest) {
+    height = tcx.basin_.left_node->point->y - node.point->y;
   } else {
-    height = tcx.basin.right_node->point->y - node.point->y;
+    height = tcx.basin_.right_node->point->y - node.point->y;
   }
 
   // if shallow stop filling
-  if (tcx.basin.width > height) {
+  if (tcx.basin_.width > height) {
     return true;
   }
   return false;
@@ -610,7 +615,7 @@ bool Sweep::IsShallow(SweepContext& tcx, Node& node)
 
 void Sweep::FillEdgeEvent(SweepContext& tcx, Edge* edge, Node* node)
 {
-  if (tcx.edge_event.right) {
+  if (tcx.edge_event_.right) {
     FillRightAboveEdgeEvent(tcx, edge, node);
   } else {
     FillLeftAboveEdgeEvent(tcx, edge, node);
@@ -759,7 +764,7 @@ void Sweep::FlipEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* t, 
     tcx.MapTriangleToNodes(ot);
 
     if (p == eq && op == ep) {
-      if (eq == *tcx.edge_event.constrained_edge->q && ep == *tcx.edge_event.constrained_edge->p) {
+      if (eq == *tcx.edge_event_.constrained_edge->q && ep == *tcx.edge_event_.constrained_edge->p) {
         t->MarkConstrainedEdge(&ep, &eq);
         ot.MarkConstrainedEdge(&ep, &eq);
         Legalize(tcx, *t);
@@ -850,8 +855,8 @@ void Sweep::FlipScanEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle&
   }
 }
 
-Sweep::~Sweep() {
-
+Sweep::~Sweep()
+{
     // Clean up memory
     for (auto& node : nodes_) {
       delete node;

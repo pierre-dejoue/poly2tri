@@ -33,11 +33,55 @@ BOOST_AUTO_TEST_CASE(BasicTest)
   }
 }
 
+BOOST_AUTO_TEST_CASE(EdgeCases_EmptyInput)
+{
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = cdt.GetTriangles();
+  BOOST_REQUIRE_EQUAL(result.size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(EdgeCases_SinglePoint)
+{
+  std::vector<p2t::Point*> polyline {
+    new p2t::Point(1, 0)
+  };
+  p2t::CDT cdt;
+  BOOST_CHECK_THROW(cdt.AddPolyline(polyline), std::invalid_argument);
+  for (const auto p : polyline) {
+    delete p;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(EdgeCases_SingleEdge)
+{
+  std::vector<p2t::Point*> polyline {
+    new p2t::Point(1, 0),
+    new p2t::Point(0, 1)
+  };
+  p2t::CDT cdt;
+  BOOST_CHECK_THROW(cdt.AddPolyline(polyline), std::invalid_argument);
+  for (const auto p : polyline) {
+    delete p;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(EdgeCases_SingleSteinerPoint)
+{
+  p2t::Point steiner(1, 0);
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.AddPoint(&steiner));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = cdt.GetTriangles();
+  BOOST_REQUIRE_EQUAL(result.size(), 0);
+}
+
 BOOST_AUTO_TEST_CASE(QuadTest)
 {
   std::vector<p2t::Point*> polyline{ new p2t::Point(0, 0), new p2t::Point(0, 1),
                                      new p2t::Point(1, 1), new p2t::Point(1, 0) };
-  p2t::CDT cdt{ polyline };
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);

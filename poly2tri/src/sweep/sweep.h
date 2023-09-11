@@ -55,16 +55,21 @@ class Sweep
 public:
 
   /**
-   * Triangulate
-   *
-   * @param tcx
+   * Constructor
    */
-  void Triangulate(SweepContext& tcx);
+  Sweep();
 
   /**
    * Destructor - clean up memory
    */
   ~Sweep();
+
+  /**
+   * Triangulate
+   *
+   * @param tcx
+   */
+  void Triangulate(SweepContext& tcx);
 
 private:
 

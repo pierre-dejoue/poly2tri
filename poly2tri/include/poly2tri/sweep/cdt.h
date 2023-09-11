@@ -55,6 +55,11 @@ class P2T_DLL_SYMBOL CDT
 public:
 
   /**
+   * Default constructor
+   */
+  CDT();
+
+  /**
    * Constructor - add polyline with non repeating points
    *
    * @param polyline
@@ -65,6 +70,18 @@ public:
    * Destructor - clean up memory
    */
   ~CDT();
+
+  /**
+   * Add the outer polyline
+   *
+   *  - Must be unique
+   *  - Must have no repeating points
+   *  - It is closed (the first and last points form a constrained edge)
+   *  - Call this before the other methods: AddHole, AddPoint
+   *
+   * @param polyline
+   */
+  void AddPolyline(const std::vector<Point*>& polyline);
 
   /**
    * Add a hole
