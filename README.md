@@ -36,6 +36,9 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 
 - p2t::Orientation enum is now public
 - Added method p2t::Triangle::GetOrientation()
+- Methods CDT::GetTriangles() and GetMap() now return by const ref
+- Added default constructor CDT()
+- Added methods CDT::AddPolyline(polyline) and CDT::AddPoints(points)
 
 Dependencies
 ------------
