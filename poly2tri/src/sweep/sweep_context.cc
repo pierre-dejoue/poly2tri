@@ -190,10 +190,10 @@ void SweepContext::RemoveFromMap(Triangle* triangle)
   map_.remove(triangle);
 }
 
-void SweepContext::MeshClean(Triangle& triangle)
+void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)
 {
   std::vector<Triangle *> triangles;
-  triangles.push_back(&triangle);
+  triangles.push_back(&interior_triangle);
 
   while(!triangles.empty()) {
     Triangle *t = triangles.back();
@@ -206,6 +206,24 @@ void SweepContext::MeshClean(Triangle& triangle)
         if (!t->constrained_edge[i])
           triangles.push_back(t->GetNeighbor(i));
       }
+    }
+  }
+}
+
+void SweepContext::MeshCleanHeadAndTail()
+{
+  assert(triangles_.empty());
+  for (Triangle* t : map_)
+  {
+    const Point* p0 =  t->GetPoint(0);
+    const Point* p1 =  t->GetPoint(1);
+    const Point* p2 =  t->GetPoint(2);
+    if (p0 != head_ && p0 != tail_ &&
+        p1 != head_ && p1 != tail_ &&
+        p2 != head_ && p2 != tail_)
+    {
+      t->IsInterior(true);
+      triangles_.emplace_back(t);
     }
   }
 }

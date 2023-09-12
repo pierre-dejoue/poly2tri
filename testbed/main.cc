@@ -82,6 +82,9 @@ const double autozoom_border = 0.05;
 /// Flip Y axis
 constexpr bool flag_flip_y = false;
 
+// convex hull triangulation
+constexpr bool convex_hull_triangulation = false;
+
 /// Screen center x
 double cx = 0.0;
 /// Screen center y
@@ -185,23 +188,37 @@ int main(int argc, char* argv[])
    * NOTE: polyline must be a simple polygon. The polyline's points
    * constitute constrained edges. No repeat points!!!
    */
-  CDT* cdt = new CDT(polyline);
+  CDT* cdt = new CDT();
+
 
   /*
    * STEP 2: Add holes or Steiner points
    */
-  for (const auto& hole : holes) {
-    assert(!hole.empty());
-    cdt->AddHole(hole);
-  }
-  for (const auto& s : steiner) {
-    cdt->AddPoint(s);
+  if (convex_hull_triangulation) {
+    cdt->AddPoints(polyline);
+    for (const auto& hole : holes) {
+      assert(!hole.empty());
+      cdt->AddPoints(hole);
+    }
+    for (const auto& s : steiner) {
+      cdt->AddPoint(s);
+    }
+  } else {
+    cdt->AddPolyline(polyline);
+    for (const auto& hole : holes) {
+      assert(!hole.empty());
+      cdt->AddHole(hole);
+    }
+    for (const auto& s : steiner) {
+      cdt->AddPoint(s);
+    }
   }
 
   /*
    * STEP 3: Triangulate!
    */
-  cdt->Triangulate();
+  const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
+  cdt->Triangulate(policy);
 
   double dt = glfwGetTime() - init_time;
 

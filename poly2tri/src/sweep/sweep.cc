@@ -44,14 +44,24 @@ Sweep::Sweep() :
 }
 
 // Triangulate simple polygon with holes
-void Sweep::Triangulate(SweepContext& tcx)
+void Sweep::Triangulate(SweepContext& tcx, Policy policy)
 {
   tcx.InitTriangulation();
   tcx.CreateAdvancingFront();
-  // Sweep points; build mesh
   SweepPoints(tcx);
-  // Clean up
-  FinalizationPolygon(tcx);
+
+  // Finalize the triangulation
+  switch (policy)
+  {
+    case Policy::ConvexHull:
+      FinalizationConvexHull(tcx);
+      break;
+
+    case Policy::OuterPolygon:
+    default:
+      FinalizationOuterPolygon(tcx);
+      break;
+  }
 }
 
 void Sweep::SweepPoints(SweepContext& tcx)
@@ -65,9 +75,18 @@ void Sweep::SweepPoints(SweepContext& tcx)
   }
 }
 
-void Sweep::FinalizationPolygon(SweepContext& tcx)
+void Sweep::FinalizationConvexHull(SweepContext& tcx)
 {
-  // Get an Internal triangle to start with
+  // 1. Clean the mesh from the two artificial points (head and tail)
+  tcx.MeshCleanHeadAndTail();
+
+  // 2. Add the bordering triangles to form the convec hull
+  // TO BE IMPLEMENTED
+}
+
+void Sweep::FinalizationOuterPolygon(SweepContext& tcx)
+{
+  // Get an internal triangle to start with
   Triangle* t = tcx.front()->head()->next->triangle;
   Point* p = tcx.front()->head()->next->point;
   while (t && !t->GetConstrainedEdgeCW(*p)) {
@@ -76,7 +95,7 @@ void Sweep::FinalizationPolygon(SweepContext& tcx)
 
   // Collect interior triangles constrained by edges
   if (t) {
-    tcx.MeshClean(*t);
+    tcx.MeshCleanExteriorTriangles(*t);
   }
 }
 

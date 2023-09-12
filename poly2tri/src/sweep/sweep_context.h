@@ -89,7 +89,9 @@ public:
 
   AdvancingFront* front() const;
 
-  void MeshClean(Triangle& triangle);
+  void MeshCleanExteriorTriangles(Triangle& interior_triangle);
+
+  void MeshCleanHeadAndTail();
 
   const std::vector<Triangle*>& GetTriangles();
 

@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -33,6 +33,7 @@
 
 #include "../common/dll_symbol.h"
 #include "../common/shapes.h"
+#include "policy.h"
 
 #include <list>
 #include <vector>
@@ -107,7 +108,7 @@ public:
   /**
    * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points
    */
-  void Triangulate();
+  void Triangulate(Policy triangulation_policy = Policy::OuterPolygon);
 
   /**
    * Get CDT triangles

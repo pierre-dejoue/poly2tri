@@ -201,7 +201,7 @@ public:
   void ClearNeighbors();
   void ClearDelunayEdges();
 
-  inline bool IsInterior();
+  inline bool IsInterior() const;
   inline void IsInterior(bool b);
 
   void DebugPrint();
@@ -214,10 +214,11 @@ private:
 
   /// Triangle points
   Point* points_[3];
+
   /// Neighbor list
   Triangle* neighbors_[3];
 
-  /// Has this triangle been marked as an interior triangle?
+  /// Has this triangle been marked as an interior triangle, meaning a triangle that belongs to the finalized CDT
   bool interior_;
 
 };
@@ -314,7 +315,7 @@ inline bool Triangle::Contains(const Point* p, const Point* q)
   return Contains(p) && Contains(q);
 }
 
-inline bool Triangle::IsInterior()
+inline bool Triangle::IsInterior() const
 {
   return interior_;
 }

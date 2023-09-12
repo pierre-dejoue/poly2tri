@@ -39,6 +39,7 @@
 #pragma once
 
 #include <poly2tri/common/shapes.h>
+#include <poly2tri/sweep/policy.h>
 
 #include <vector>
 
@@ -69,7 +70,7 @@ public:
    *
    * @param tcx
    */
-  void Triangulate(SweepContext& tcx);
+  void Triangulate(SweepContext& tcx, Policy policy);
 
 private:
 
@@ -282,7 +283,9 @@ private:
      */
   void FlipScanEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle& flip_triangle, Triangle& t, Point& p);
 
-  void FinalizationPolygon(SweepContext& tcx);
+  void FinalizationConvexHull(SweepContext& tcx);
+
+  void FinalizationOuterPolygon(SweepContext& tcx);
 
   std::vector<Node*> nodes_;
 

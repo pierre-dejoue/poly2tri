@@ -1,7 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2021, Poly2Tri Contributors
- * https://github.com/jhasse/poly2tri
- *
+ * Poly2Tri Copyright (c) 2023, Poly2Tri Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,66 +26,25 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <poly2tri/sweep/cdt.h>
 
-#include "sweep_context.h"
-#include "sweep.h"
+#pragma once
 
-namespace p2t {
-
-CDT::CDT() :
-  sweep_context_(new SweepContext),
-  sweep_(new Sweep)
+namespace p2t
 {
-}
 
-CDT::CDT(const std::vector<Point*>& polyline) :
-  CDT()
+/**
+ * Triangulation Policy
+ *
+ *  - OuterPolygon:  It is the default, and the original behavior of the poly2tri library.
+ *                   Triangulate a simple polygon (the outer polyline), possibly containing holes and steiner points.
+ *  - ConvexHull:    Triangulate the convex hull of the input vertices, taking into account the constrained edges.
+ *
+ * In all cases, we generate a CDT. To generate a DT: Use the "ConvexHull" policy and input only Steiner points with CDT::AddPoints().
+ */
+enum class Policy
 {
-  AddPolyline(polyline);
-}
+    OuterPolygon,
+    ConvexHull
+};
 
-CDT::~CDT()
-{
-  delete sweep_context_;
-  delete sweep_;
 }
-
-void CDT::AddPolyline(const std::vector<Point*>& polyline)
-{
-  sweep_context_->AddPolyline(polyline);
-}
-
-void CDT::AddHole(const std::vector<Point*>& polyline)
-{
-  sweep_context_->AddHole(polyline);
-}
-
-void CDT::AddPoint(Point* point)
-{
-  sweep_context_->AddPoint(point);
-}
-
-void CDT::AddPoints(const std::vector<Point*>& points)
-{
-  sweep_context_->AddPoints(points);
-}
-
-void CDT::Triangulate(Policy triangulation_policy)
-{
-  if (sweep_context_->point_count() > 0) {
-    sweep_->Triangulate(*sweep_context_, triangulation_policy);
-  }
-}
-
-const std::vector<p2t::Triangle*>& CDT::GetTriangles()
-{
-  return sweep_context_->GetTriangles();
-}
-
-const std::list<p2t::Triangle*>& CDT::GetMap()
-{
-  return sweep_context_->GetMap();
-}
-
-} // namespace p2t
