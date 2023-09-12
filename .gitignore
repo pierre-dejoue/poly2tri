@@ -9,8 +9,7 @@ waf3-*/
 build/
 
 # Visual Studio Code
-/.vscode/*cache*
-/.vscode/ipch/
+/.vscode/
 /.ccls-cache/
 /compile_commands.json
 /.cache/
