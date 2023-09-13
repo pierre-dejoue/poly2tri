@@ -30,7 +30,8 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 
 ### Breaking
 
-- Renamed p2t::Triangle::CircumcircleContains(...): This was to fix a typo in the name
+- Renamed method p2t::Triangle::CircumcircleContains to fix a typo in the name
+- Renamed methods p2t::Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name
 
 ### Non-Breaking
 

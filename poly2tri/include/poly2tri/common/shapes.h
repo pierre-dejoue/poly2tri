@@ -186,10 +186,10 @@ public:
   bool GetConstrainedEdgeCW(const Point& p);
   void SetConstrainedEdgeCCW(const Point& p, bool ce);
   void SetConstrainedEdgeCW(const Point& p, bool ce);
-  bool GetDelunayEdgeCCW(const Point& p);
-  bool GetDelunayEdgeCW(const Point& p);
-  void SetDelunayEdgeCCW(const Point& p, bool e);
-  void SetDelunayEdgeCW(const Point& p, bool e);
+  bool GetDelaunayEdgeCCW(const Point& p);
+  bool GetDelaunayEdgeCW(const Point& p);
+  void SetDelaunayEdgeCCW(const Point& p, bool e);
+  void SetDelaunayEdgeCW(const Point& p, bool e);
 
   bool Contains(const Point* p);
   bool Contains(const Edge& e);
@@ -199,7 +199,7 @@ public:
   void Clear();  // Clears all references to all other triangles and points
   void ClearNeighbor(const Triangle *triangle);
   void ClearNeighbors();
-  void ClearDelunayEdges();
+  void ClearDelaunayEdges();
 
   inline bool IsInterior() const;
   inline void IsInterior(bool b);

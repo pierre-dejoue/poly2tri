@@ -511,19 +511,19 @@ void Sweep::RotateTrianglePair(Triangle& t, Point& p, Triangle& ot, Point& op) c
   ce4 = ot.GetConstrainedEdgeCW(op);
 
   bool de1, de2, de3, de4;
-  de1 = t.GetDelunayEdgeCCW(p);
-  de2 = t.GetDelunayEdgeCW(p);
-  de3 = ot.GetDelunayEdgeCCW(op);
-  de4 = ot.GetDelunayEdgeCW(op);
+  de1 = t.GetDelaunayEdgeCCW(p);
+  de2 = t.GetDelaunayEdgeCW(p);
+  de3 = ot.GetDelaunayEdgeCCW(op);
+  de4 = ot.GetDelaunayEdgeCW(op);
 
   t.Legalize(p, op);
   ot.Legalize(op, p);
 
   // Remap delaunay_edge
-  ot.SetDelunayEdgeCCW(p, de1);
-  t.SetDelunayEdgeCW(p, de2);
-  t.SetDelunayEdgeCCW(op, de3);
-  ot.SetDelunayEdgeCW(op, de4);
+  ot.SetDelaunayEdgeCCW(p, de1);
+  t.SetDelaunayEdgeCW(p, de2);
+  t.SetDelaunayEdgeCCW(op, de3);
+  ot.SetDelaunayEdgeCW(op, de4);
 
   // Remap constrained_edge
   ot.SetConstrainedEdgeCCW(p, ce1);
@@ -810,7 +810,7 @@ Triangle& Sweep::NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle& t,
     int edge_index = ot.EdgeIndex(&p, &op);
     ot.delaunay_edge[edge_index] = true;
     Legalize(tcx, ot);
-    ot.ClearDelunayEdges();
+    ot.ClearDelaunayEdges();
     return t;
   }
 
@@ -819,7 +819,7 @@ Triangle& Sweep::NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle& t,
 
   t.delaunay_edge[edge_index] = true;
   Legalize(tcx, t);
-  t.ClearDelunayEdges();
+  t.ClearDelaunayEdges();
   return ot;
 }
 
