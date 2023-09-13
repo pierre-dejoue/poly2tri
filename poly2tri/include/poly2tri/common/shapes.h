@@ -325,7 +325,4 @@ inline void Triangle::IsInterior(bool b)
   interior_ = b;
 }
 
-/// Is this set a valid delaunay triangulation?
-P2T_DLL_SYMBOL bool IsDelaunay(const std::vector<p2t::Triangle*>&);
-
 }

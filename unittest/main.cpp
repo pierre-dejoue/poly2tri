@@ -3,6 +3,8 @@
 #endif
 #define BOOST_TEST_MODULE Poly2triTest
 
+#include "utility.h"
+
 #include <poly2tri/poly2tri.h>
 
 #include <boost/filesystem/path.hpp>
@@ -27,7 +29,7 @@ BOOST_AUTO_TEST_CASE(BasicTest)
   BOOST_CHECK_EQUAL(*result[0]->GetPoint(0), *polyline[0]);
   BOOST_CHECK_EQUAL(*result[0]->GetPoint(1), *polyline[1]);
   BOOST_CHECK_EQUAL(*result[0]->GetPoint(2), *polyline[2]);
-  BOOST_CHECK(p2t::IsDelaunay(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   for (const auto p : polyline) {
     delete p;
   }
@@ -85,7 +87,7 @@ BOOST_AUTO_TEST_CASE(QuadTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(p2t::IsDelaunay(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   for (const auto p : polyline) {
     delete p;
   }
@@ -102,6 +104,7 @@ BOOST_AUTO_TEST_CASE(QuadSteinerTest)
   BOOST_REQUIRE_EQUAL(map.size(), 6);
   const auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   for (const auto p : points) {
     delete p;
   }
@@ -121,7 +124,7 @@ BOOST_AUTO_TEST_CASE(NarrowQuadTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(p2t::IsDelaunay(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   for (const auto p : polyline) {
     delete p;
   }
@@ -163,7 +166,7 @@ BOOST_AUTO_TEST_CASE(ConcaveBoundaryTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 18);
-  BOOST_CHECK(p2t::IsDelaunay(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   for (const auto p : polyline) {
     delete p;
   }
@@ -315,7 +318,7 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
     BOOST_CHECK_NO_THROW(cdt.Triangulate());
     const auto result = cdt.GetTriangles();
     BOOST_REQUIRE(result.size() * 3 > polyline.size());
-    BOOST_CHECK_MESSAGE(p2t::IsDelaunay(result), std::string(filename) + " " + std::to_string(polyline.size()));
+    BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result), std::string(filename) + " " + std::to_string(polyline.size()));
     for (const auto p : polyline) {
       delete p;
     }

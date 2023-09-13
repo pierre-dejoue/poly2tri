@@ -390,21 +390,4 @@ Orientation Triangle::GetOrientation() const
   return Orient2d(*points_[0], *points_[1], *points_[2]);
 }
 
-bool IsDelaunay(const std::vector<p2t::Triangle*>& triangles)
-{
-  for (const auto triangle : triangles) {
-    for (const auto other : triangles) {
-      if (triangle == other) {
-        continue;
-      }
-      for (int i = 0; i < 3; ++i) {
-        if (triangle->CircumcircleContains(*other->GetPoint(i))) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
-}
-
 } // namespace p2t

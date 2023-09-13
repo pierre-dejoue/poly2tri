@@ -15,6 +15,7 @@ if boost_test_dep.found()
 	test('Unit Test', executable('unittest', [
 		'unittest/main.cpp',
 		'unittest/triangle_test.cpp',
+		'unittest/utility.cpp',
 	], dependencies : [boost_test_dep, thread_dep], link_with : lib))
 endif
 

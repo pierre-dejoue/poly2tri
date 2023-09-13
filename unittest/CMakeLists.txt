@@ -11,6 +11,7 @@ find_package(Boost 1.69 REQUIRED COMPONENTS
 add_executable(test_poly2tri
     main.cpp
     triangle_test.cpp
+    utility.cpp
 )
 
 target_include_directories(test_poly2tri
