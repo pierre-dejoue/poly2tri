@@ -63,9 +63,11 @@ public:
   /**
    * Constructor - add polyline with non repeating points
    *
+   * Note: prefer using the default constructor followed by a call to AddPolyline()
+   *
    * @param polyline
    */
-  CDT(const std::vector<Point*>& polyline);
+  CDT(const std::vector<Point*>& polyline);   // Kept for backward compatibility
 
   /**
    * Destructor - clean up memory
@@ -81,29 +83,41 @@ public:
    *  - Call this before the other methods: AddHole, AddPoint
    *
    * @param polyline
+   * @param num_points
+   * @param stride (in bytes) If zero, assume a contiguous array of Points
    */
-  void AddPolyline(const std::vector<Point*>& polyline);
+  void AddPolyline(const std::vector<Point*>& polyline);  // Kept for backward compatibility
+  void AddPolyline(const Point* const* polyline, std::size_t num_points);
+  void AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
 
   /**
    * Add a hole
    *
    * @param polyline
+   * @param num_points
+   * @param stride (in bytes) If zero, assume a contiguous array of Points
    */
-  void AddHole(const std::vector<Point*>& polyline);
+  void AddHole(const std::vector<Point*>& polyline);      // Kept for backward compatibility
+  void AddHole(const Point* const* polyline, std::size_t num_points);
+  void AddHole(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
 
   /**
    * Add a steiner point
    *
    * @param point
    */
-  void AddPoint(Point* point);
+  void AddPoint(const Point* point);
 
   /**
    * Add several steiner points
    *
    * @param points
+   * @param num_points
+   * @param stride (in bytes) If zero, assume a contiguous array of Points
    */
-  void AddPoints(const std::vector<Point*>& points);
+  void AddPoints(const std::vector<Point*>& points);      // Kept for backward compatibility
+  void AddPoints(const Point* const* points, std::size_t num_points);
+  void AddPoints(const Point* points, std::size_t num_points, std::size_t stride = 0u);
 
   /**
    * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points

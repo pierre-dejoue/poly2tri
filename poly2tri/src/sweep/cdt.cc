@@ -55,22 +55,52 @@ CDT::~CDT()
 
 void CDT::AddPolyline(const std::vector<Point*>& polyline)
 {
-  sweep_context_->AddPolyline(polyline);
+  sweep_context_->AddPolyline(polyline.data(), polyline.size());
+}
+
+void CDT::AddPolyline(const Point* const* polyline, std::size_t num_points)
+{
+  sweep_context_->AddPolyline(polyline, num_points);
+}
+
+void CDT::AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
+{
+  sweep_context_->AddPolyline(polyline, num_points, stride);
 }
 
 void CDT::AddHole(const std::vector<Point*>& polyline)
 {
-  sweep_context_->AddHole(polyline);
+  sweep_context_->AddHole(polyline.data(), polyline.size());
 }
 
-void CDT::AddPoint(Point* point)
+void CDT::AddHole(const Point* const* polyline, std::size_t num_points)
+{
+  sweep_context_->AddHole(polyline, num_points);
+}
+
+void CDT::AddHole(const Point* polyline, std::size_t num_points, std::size_t stride)
+{
+  sweep_context_->AddHole(polyline, num_points, stride);
+}
+
+void CDT::AddPoint(const Point* point)
 {
   sweep_context_->AddPoint(point);
 }
 
 void CDT::AddPoints(const std::vector<Point*>& points)
 {
-  sweep_context_->AddPoints(points);
+  sweep_context_->AddPoints(points.data(), points.size());
+}
+
+void CDT::AddPoints(const Point* const* points, std::size_t num_points)
+{
+  sweep_context_->AddPoints(points, num_points);
+}
+
+void CDT::AddPoints(const Point* polyline, std::size_t num_points, std::size_t stride)
+{
+  sweep_context_->AddPoints(polyline, num_points, stride);
 }
 
 void CDT::Triangulate(Policy triangulation_policy)

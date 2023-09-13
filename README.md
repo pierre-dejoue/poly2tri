@@ -30,17 +30,24 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 
 ### Breaking
 
-- Renamed method p2t::Triangle::CircumcircleContains to fix a typo in the name
-- Renamed methods p2t::Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name
-- Removed function p2t::IsDelaunay
+- Renamed method Triangle::CircumcircleContains to fix a typo in the name
+- Renamed methods Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name
+- Removed function IsDelaunay
+- Method Triangle::GetPoint(index) now returns a const Point*
+- Many other methods in class Triangle have changed to take or return const Point* instead of references.
+  Most of those methods, despite being public, are unlikely to be used in client code.
 
 ### Non-Breaking
 
-- p2t::Orientation enum is now public
-- Added method p2t::Triangle::GetOrientation()
+- Orientation enum is now public
+- Added method Triangle::GetOrientation()
 - Methods CDT::GetTriangles() and GetMap() now return by const ref
-- Added default constructor CDT()
+- Added a default constructor to class CDT
 - Added methods CDT::AddPolyline(polyline) and CDT::AddPoints(points)
+- Make the Point structure safer and more flexible:
+    - Remove the edge_list from Point
+    - New API CDT::Add{Polyline/Hole/Points} with pointer + size arguments
+    - Never modify the user's Point data (const Point*)
 
 Dependencies
 ------------

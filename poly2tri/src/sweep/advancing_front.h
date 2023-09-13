@@ -38,7 +38,7 @@ namespace p2t {
 // Advancing front node
 struct Node {
 
-  Point* point;
+  const Point* point;
   Triangle* triangle;
 
   Node* next;
@@ -46,11 +46,9 @@ struct Node {
 
   double value;
 
-  Node(Point& p) : point(&p), triangle(nullptr), next(nullptr), prev(nullptr), value(p.x)
-  { }
+  Node(const Point* p) : point(p), triangle(nullptr), next(nullptr), prev(nullptr), value(p->x) {}
 
-  Node(Point& p, Triangle& t) : point(&p), triangle(&t), next(nullptr), prev(nullptr), value(p.x)
-  { }
+  Node(const Point* p, Triangle& t) : point(p), triangle(&t), next(nullptr), prev(nullptr), value(p->x) {}
 
 };
 

@@ -55,15 +55,20 @@ public:
   SweepContext();
   ~SweepContext();
 
-  void AddPolyline(const std::vector<Point*>& polyline);
+  void AddPolyline(const Point* const* polyline, std::size_t num_points);
+  void AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
 
-  void set_head(Point* p1);
+  void AddHole(const Point* const* polyline, std::size_t num_points);
+  void AddHole(const Point* polyline, std::size_t num_points, std::size_t stride = 0);
 
-  Point* head() const;
+  void AddPoint(const Point* point);
 
-  void set_tail(Point* p1);
+  void AddPoints(const Point* const* points, std::size_t num_points);
+  void AddPoints(const Point* points, std::size_t num_points, std::size_t stride = 0);
 
-  Point* tail() const;
+  const Point* head() const;
+
+  const Point* tail() const;
 
   size_t point_count() const;
 
@@ -78,17 +83,11 @@ public:
 
   void AddToMap(Triangle* triangle);
 
-  Point* GetPoint(size_t index);
+  const Point* GetPoint(size_t index);
 
   const std::vector<Edge*>& GetUpperEdges(size_t index);
 
   void RemoveFromMap(Triangle* triangle);
-
-  void AddHole(const std::vector<Point*>& polyline);
-
-  void AddPoint(Point* point);
-
-  void AddPoints(const std::vector<Point*>& points);
 
   AdvancingFront* front() const;
 
@@ -136,13 +135,19 @@ public:
 
 private:
 
+  template <typename GenPointPtr>
+  void AddClosedPolylineGen(GenPointPtr generator, std::size_t num_points);
+
+  template <typename GenPointPtr>
+  void AddPointsGen(GenPointPtr generator, std::size_t num_points);
+
   friend class Sweep;
 
   struct SweepPoint
   {
-    SweepPoint(Point* p_) : p(p_), edges() { assert(p != nullptr); }
+    SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
 
-    Point* p;
+    const Point* p;
     std::vector<Edge*> edges;   // List of edges for which this point is the upper endpoint
   };
   static bool cmp(const SweepPoint& a, const SweepPoint& b);
@@ -155,9 +160,9 @@ private:
   // Advancing front
   AdvancingFront* front_;
   // head point used with advancing front
-  Point* head_;
+  const Point* head_;
   // tail point used with advancing front
-  Point* tail_;
+  const Point* tail_;
 
   Node *af_head_;
   Node *af_middle_;
@@ -168,7 +173,7 @@ private:
   EdgeEvent edge_event_;
 
   void InitTriangulation();
-  void InitEdges(const std::vector<Point*>& polyline, std::size_t index_offset);
+  void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
 
 };
 
@@ -182,22 +187,12 @@ inline size_t SweepContext::point_count() const
   return points_.size();
 }
 
-inline void SweepContext::set_head(Point* p1)
-{
-  head_ = p1;
-}
-
-inline Point* SweepContext::head() const
+inline const Point* SweepContext::head() const
 {
   return head_;
 }
 
-inline void SweepContext::set_tail(Point* p1)
-{
-  tail_ = p1;
-}
-
-inline Point* SweepContext::tail() const
+inline const Point* SweepContext::tail() const
 {
   return tail_;
 }

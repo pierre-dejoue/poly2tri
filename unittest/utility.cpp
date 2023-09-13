@@ -27,8 +27,8 @@ bool IsConstrainedDelaunay(const std::vector<p2t::Triangle*>& triangles)
         continue;
       p2t::Triangle* ot = t->GetNeighbor(e);
       if (ot && ot->IsInterior()) {
-        p2t::Point* p = t->GetPoint(e);
-        p2t::Point* op = ot->OppositePoint(*t, *p);
+        const p2t::Point* p = t->GetPoint(e);
+        const p2t::Point* op = ot->OppositePoint(*t, p);
         if (t->CircumcircleContains(*op)) {
           return false;
         }

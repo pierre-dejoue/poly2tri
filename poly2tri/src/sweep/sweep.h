@@ -90,7 +90,7 @@ private:
    * @param point
    * @return
    */
-  Node& PointEvent(SweepContext& tcx, Point& point);
+  Node& PointEvent(SweepContext& tcx, const Point* point);
 
    /**
      *
@@ -101,7 +101,16 @@ private:
      */
   void EdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
 
-  void EdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* triangle, Point& point);
+   /**
+     *
+     *
+     * @param tcx
+     * @param ep
+     * @param eq
+     * @param triangle
+     * @param point
+     */
+  void EdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle* triangle, const Point* point);
 
   /**
    * Creates a new front triangle and legalize it
@@ -111,7 +120,7 @@ private:
    * @param node
    * @return
    */
-  Node& NewFrontTriangle(SweepContext& tcx, Point& point, Node& node);
+  Node& NewFrontTriangle(SweepContext& tcx, const Point* point, Node& node);
 
   /**
    * Adds a triangle to the advancing front to fill a hole.
@@ -166,7 +175,7 @@ private:
    *       n4                    n4
    * </pre>
    */
-  void RotateTrianglePair(Triangle& t, Point& p, Triangle& ot, Point& op) const;
+  void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op) const;
 
   /**
    * Fills holes in the Advancing Front
@@ -219,7 +228,7 @@ private:
 
   bool IsShallow(SweepContext& tcx, Node& node);
 
-  bool IsEdgeSideOfTriangle(Triangle& triangle, Point& ep, Point& eq);
+  bool IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq);
 
   void FillEdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
 
@@ -239,7 +248,7 @@ private:
 
   void FillLeftConvexEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
 
-  void FlipEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle* t, Point& p);
+  void FlipEdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle* t, const Point* p);
 
   /**
    * After a flip we have two triangles and know that only one will still be
@@ -253,7 +262,7 @@ private:
    * @param op - another point shared by both triangles
    * @return returns the triangle still intersecting the edge
    */
-  Triangle& NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle&  t, Triangle& ot, Point& p, Point& op);
+  Triangle& NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle&  t, Triangle& ot, const Point* p, const Point* op);
 
    /**
      * When we need to traverse from one triangle to the next we need
@@ -266,7 +275,7 @@ private:
      * @param op
      * @return
      */
-  Point& NextFlipPoint(Point& ep, Point& eq, Triangle& ot, Point& op);
+  const Point* NextFlipPoint(const Point* ep, const Point* eq, Triangle& ot, const Point* op);
 
    /**
      * Scan part of the FlipScan algorithm<br>
@@ -281,7 +290,7 @@ private:
      * @param t
      * @param p
      */
-  void FlipScanEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle& flip_triangle, Triangle& t, Point& p);
+  void FlipScanEdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle& flip_triangle, Triangle& t, const Point* p);
 
   void FinalizationConvexHull(SweepContext& tcx);
 

@@ -114,6 +114,42 @@ BOOST_AUTO_TEST_CASE(QuadSteinerTest)
   }
 }
 
+BOOST_AUTO_TEST_CASE(QuadTestModernAPI)
+{
+  std::vector<p2t::Point> polyline{ p2t::Point(0, 0), p2t::Point(0, 1),
+                                    p2t::Point(1, 1), p2t::Point(1, 0) };
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline.data(), polyline.size()));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = cdt.GetTriangles();
+  BOOST_REQUIRE_EQUAL(result.size(), 2);
+  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+}
+
+BOOST_AUTO_TEST_CASE(QuadTestWithStride)
+{
+  struct PointStruct
+  {
+    p2t::Point p;
+    float height;
+    unsigned char type;
+  };
+  std::vector<PointStruct> polyline{
+    PointStruct{ p2t::Point(0, 0), 0.1f, 245 },
+    PointStruct{ p2t::Point(0, 1), 0.2f, 244 },
+    PointStruct{ p2t::Point(1, 1), 0.3f, 244 },
+    PointStruct{ p2t::Point(1, 0), 0.4f, 245 }
+  };
+  p2t::CDT cdt;
+  BOOST_CHECK_NO_THROW(cdt.AddPolyline(reinterpret_cast<const p2t::Point*>(polyline.data()), polyline.size(), sizeof(PointStruct)));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = cdt.GetTriangles();
+  BOOST_REQUIRE_EQUAL(result.size(), 2);
+  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+}
+
 BOOST_AUTO_TEST_CASE(NarrowQuadTest)
 {
   // Very narrow quad that used to demonstrate a failure case during

@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <exception>
 
 namespace p2t {
@@ -53,39 +54,71 @@ SweepContext::SweepContext() :
 {
 }
 
-void SweepContext::AddPolyline(const std::vector<Point*>& polyline)
+template <typename GenPointPtr>
+void SweepContext::AddClosedPolylineGen(GenPointPtr generator, std::size_t num_points)
+{
+  if (num_points < 3) {
+    throw std::invalid_argument("A polyline must have at least 3 vertices");
+  }
+  const std::size_t begin_index = points_.size();
+  points_.reserve(begin_index + num_points);
+  std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
+  InitEdges(begin_index, num_points);
+}
+
+void SweepContext::AddPolyline(const Point* const* polyline, std::size_t num_points)
 {
   if (!points_.empty()) {
     throw std::invalid_argument("The outer polyline must be added first and only once");
   }
-  if (polyline.size() < 3) {
-    throw std::invalid_argument("A polyline must have at least 3 vertices");
-  }
-  points_.reserve(polyline.size());
-  std::transform(polyline.cbegin(), polyline.cend(), std::back_inserter(points_), [](auto* p) { return SweepPoint(p); });
-  InitEdges(polyline, 0);
+  AddClosedPolylineGen([&polyline]() { return *polyline++; }, num_points);
 }
 
-void SweepContext::AddHole(const std::vector<Point*>& polyline)
+void SweepContext::AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
 {
-  if (polyline.size() < 3) {
-    throw std::invalid_argument("A polyline must have at least 3 vertices");
+  if (!points_.empty()) {
+    throw std::invalid_argument("The outer polyline must be added first and only once");
   }
-  std::size_t index_offset = points_.size();
-  points_.reserve(points_.size() + polyline.size());
-  std::transform(polyline.cbegin(), polyline.cend(), std::back_inserter(points_), [](auto* p) { return SweepPoint(p); });
-  InitEdges(polyline, index_offset);
+  if (stride == 0u) { stride = sizeof(Point); }
+  auto mem_ptr = reinterpret_cast<const char*>(polyline);
+  AddClosedPolylineGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
 }
 
-void SweepContext::AddPoint(Point* point)
+void SweepContext::AddHole(const Point* const* polyline, std::size_t num_points)
+{
+  AddClosedPolylineGen([&polyline]() { return *polyline++; }, num_points);
+}
+
+void SweepContext::AddHole(const Point* polyline, std::size_t num_points, std::size_t stride)
+{
+  if (stride == 0u) { stride = sizeof(Point); }
+  auto mem_ptr = reinterpret_cast<const char*>(polyline);
+  AddClosedPolylineGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
+}
+
+void SweepContext::AddPoint(const Point* point)
 {
   points_.emplace_back(point);
 }
 
-void SweepContext::AddPoints(const std::vector<Point*>& points)
+template <typename GenPointPtr>
+void SweepContext::AddPointsGen(GenPointPtr generator, std::size_t num_points)
 {
-  points_.reserve(points_.size() + points.size());
-  std::transform(points.cbegin(), points.cend(), std::back_inserter(points_), [](auto* p) { return SweepPoint(p); });
+  const std::size_t begin_index = points_.size();
+  points_.reserve(begin_index + num_points);
+  std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
+}
+
+void SweepContext::AddPoints(const Point* const* points, std::size_t num_points)
+{
+  AddPointsGen([&points]() { return *points++; }, num_points);
+}
+
+void SweepContext::AddPoints(const Point* points, std::size_t num_points, std::size_t stride)
+{
+  if (stride == 0u) { stride = sizeof(Point); }
+  auto mem_ptr = reinterpret_cast<const char*>(points);
+  AddPointsGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
 }
 
 const std::vector<Triangle*>& SweepContext::GetTriangles()
@@ -112,7 +145,7 @@ void SweepContext::InitTriangulation()
 
   // Calculate bounds
   for (const auto& sweep_point : points_) {
-    Point& p = *sweep_point.p;
+    const Point& p = *sweep_point.p;
     if (p.x > xmax)
       xmax = p.x;
     if (p.x < xmin)
@@ -132,20 +165,21 @@ void SweepContext::InitTriangulation()
   std::sort(points_.begin(), points_.end(), &SweepContext::cmp);
 }
 
-void SweepContext::InitEdges(const std::vector<Point*>& polyline, std::size_t index_offset)
+void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points)
 {
-  assert(polyline.size() > 1);
-  size_t num_points = polyline.size();
-  for (size_t i = 0; i < num_points; i++) {
-    size_t j = i < num_points - 1 ? i + 1 : 0;
-    edge_list_.emplace_back(new Edge(*polyline[i], *polyline[j]));
-    size_t upper_endpoint_idx = index_offset + (edge_list_.back()->q == polyline[i] ? i : j);
-    assert(upper_endpoint_idx < points_.size());
-    points_[upper_endpoint_idx].edges.emplace_back(edge_list_.back());
+  assert(num_points > 1);
+  const std::size_t begin = polyline_begin_index;
+  const std::size_t end   = polyline_begin_index + num_points;
+  assert(end <= points_.size());
+  for (std::size_t i = begin; i < end; i++) {
+    std::size_t j = i < (end - 1) ? i + 1 : begin;
+    edge_list_.emplace_back(new Edge(points_[i].p, points_[j].p));
+    std::size_t upper_endpoint = (edge_list_.back()->q == points_[i].p ? i : j);
+    points_[upper_endpoint].edges.emplace_back(edge_list_.back());
   }
 }
 
-Point* SweepContext::GetPoint(size_t index)
+const Point* SweepContext::GetPoint(size_t index)
 {
   return points_[index].p;
 }
@@ -171,13 +205,13 @@ void SweepContext::CreateAdvancingFront()
 {
   // Initial triangle
   assert(points_.size() > 0);
-  Triangle* triangle = new Triangle(*points_[0].p, *head_, *tail_);
+  Triangle* triangle = new Triangle(points_[0].p, head_, tail_);
 
   map_.push_back(triangle);
 
-  af_head_ = new Node(*triangle->GetPoint(1), *triangle);
-  af_middle_ = new Node(*triangle->GetPoint(0), *triangle);
-  af_tail_ = new Node(*triangle->GetPoint(2));
+  af_head_ = new Node(triangle->GetPoint(1), *triangle);
+  af_middle_ = new Node(triangle->GetPoint(0), *triangle);
+  af_tail_ = new Node(triangle->GetPoint(2));
   front_ = new AdvancingFront(*af_head_, *af_tail_);
 
   // TODO: More intuitive if head is middles next and not previous?
@@ -197,7 +231,7 @@ void SweepContext::MapTriangleToNodes(Triangle& t)
 {
   for (int i = 0; i < 3; i++) {
     if (!t.GetNeighbor(i)) {
-      Node* n = front_->LocatePoint(t.PointCW(*t.GetPoint(i)));
+      Node* n = front_->LocatePoint(t.PointCW(t.GetPoint(i)));
       if (n)
         n->triangle = &t;
     }

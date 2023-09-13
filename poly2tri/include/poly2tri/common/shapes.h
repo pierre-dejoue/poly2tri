@@ -33,6 +33,7 @@
 
 #include "dll_symbol.h"
 
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <ostream>
@@ -115,11 +116,11 @@ P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
 // Represents a simple polygon's edge
 struct P2T_DLL_SYMBOL Edge {
 
-  Point *p;   // The lower point
-  Point *q;   // The upper point
+  const Point *p;   // The lower point
+  const Point *q;   // The upper point
 
   /// Constructor
-  Edge(Point& p1, Point& p2);
+  Edge(const Point* p1, const Point* p2);
 
 };
 
@@ -132,48 +133,48 @@ class P2T_DLL_SYMBOL Triangle {
 public:
 
   /// Constructor
-  Triangle(Point& a, Point& b, Point& c);
+  Triangle(const Point* a, const Point* b, const Point* c);
 
   /// Flags to determine if an edge is a Constrained edge
   bool constrained_edge[3];
   /// Flags to determine if an edge is a Delauney edge
   bool delaunay_edge[3];
 
-  Point* GetPoint(int index);
-  Point* PointCW(const Point& point);
-  Point* PointCCW(const Point& point);
-  Point* OppositePoint(Triangle& t, const Point& p);
+  const Point* GetPoint(int index) const;
+  const Point* PointCW(const Point* point);
+  const Point* PointCCW(const Point* point);
+  const Point* OppositePoint(Triangle& t, const Point* p);
 
   Triangle* GetNeighbor(int index);
-  void MarkNeighbor(Point* p1, Point* p2, Triangle* t);
+  void MarkNeighbor(const Point* p1, const Point* p2, Triangle* t);
   void MarkNeighbor(Triangle& t);
 
   void MarkConstrainedEdge(int index);
   void MarkConstrainedEdge(Edge& edge);
-  void MarkConstrainedEdge(Point* p, Point* q);
+  void MarkConstrainedEdge(const Point* p, const Point* q);
 
   int Index(const Point* p);
   int EdgeIndex(const Point* p1, const Point* p2);
 
-  Triangle* NeighborAcross(const Point& point);
-  Triangle* NeighborCW(const Point& point);
-  Triangle* NeighborCCW(const Point& point);
-  bool GetConstrainedEdgeCCW(const Point& p);
-  bool GetConstrainedEdgeCW(const Point& p);
-  void SetConstrainedEdgeCCW(const Point& p, bool ce);
-  void SetConstrainedEdgeCW(const Point& p, bool ce);
-  bool GetDelaunayEdgeCCW(const Point& p);
-  bool GetDelaunayEdgeCW(const Point& p);
-  void SetDelaunayEdgeCCW(const Point& p, bool e);
-  void SetDelaunayEdgeCW(const Point& p, bool e);
+  Triangle* NeighborAcross(const Point* point);
+  Triangle* NeighborCW(const Point* point);
+  Triangle* NeighborCCW(const Point* point);
+  bool GetConstrainedEdgeCCW(const Point* p);
+  bool GetConstrainedEdgeCW(const Point* p);
+  void SetConstrainedEdgeCCW(const Point* p, bool ce);
+  void SetConstrainedEdgeCW(const Point* p, bool ce);
+  bool GetDelaunayEdgeCCW(const Point* p);
+  bool GetDelaunayEdgeCW(const Point* p);
+  void SetDelaunayEdgeCCW(const Point* p, bool e);
+  void SetDelaunayEdgeCW(const Point* p, bool e);
 
   bool Contains(const Point* p);
   bool Contains(const Edge& e);
   bool Contains(const Point* p, const Point* q);
-  void Legalize(Point& point);
-  void Legalize(Point& opoint, Point& npoint);
+  void Legalize(const Point* point);
+  void Legalize(const Point* opoint, const Point* npoint);
   void Clear();  // Clears all references to all other triangles and points
-  void ClearNeighbor(const Triangle *triangle);
+  void ClearNeighbor(const Triangle* triangle);
   void ClearNeighbors();
   void ClearDelaunayEdges();
 
@@ -189,7 +190,7 @@ public:
 private:
 
   /// Triangle points
-  Point* points_[3];
+  const Point* points_[3];
 
   /// Neighbor list
   Triangle* neighbors_[3];
@@ -266,13 +267,15 @@ inline Point Cross(double s, const Point& a)
   return Point(-s * a.y, s * a.x);
 }
 
-inline Point* Triangle::GetPoint(int index)
+inline const Point* Triangle::GetPoint(int index) const
 {
+  assert(index < 3);
   return points_[index];
 }
 
 inline Triangle* Triangle::GetNeighbor(int index)
 {
+  assert(index < 3);
   return neighbors_[index];
 }
 

@@ -444,9 +444,9 @@ void Draw(const double zoom)
 
   for (int i = 0; i < triangles.size(); i++) {
     Triangle& t = *triangles[i];
-    Point& a = *t.GetPoint(0);
-    Point& b = *t.GetPoint(1);
-    Point& c = *t.GetPoint(2);
+    const Point& a = *t.GetPoint(0);
+    const Point& b = *t.GetPoint(1);
+    const Point& c = *t.GetPoint(2);
 
     // Red
     glColor3f(1, 0, 0);
@@ -486,9 +486,9 @@ void DrawMap(const double zoom)
   list<Triangle*>::iterator it;
   for (it = map.begin(); it != map.end(); it++) {
     Triangle& t = **it;
-    Point& a = *t.GetPoint(0);
-    Point& b = *t.GetPoint(1);
-    Point& c = *t.GetPoint(2);
+    const Point& a = *t.GetPoint(0);
+    const Point& b = *t.GetPoint(1);
+    const Point& c = *t.GetPoint(2);
 
     ConstrainedColor(t.constrained_edge[2]);
     glBegin(GL_LINES);

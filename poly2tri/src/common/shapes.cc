@@ -42,24 +42,26 @@ std::ostream& operator<<(std::ostream& out, const Point& point)
   return out << point.x << "," << point.y;
 }
 
-Edge::Edge(Point& p1, Point& p2) : p(&p1), q(&p2)
+Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
 {
-  if (p1.y > p2.y) {
+  assert(p1); assert(p2);
+  if (p1->y > p2->y) {
     std::swap(p, q);
-  } else if (p1.y == p2.y) {
-    if (p1.x > p2.x) {
+  } else if (p1->y == p2->y) {
+    if (p1->x > p2->x) {
       std::swap(p, q);
-    } else if (p1.x == p2.x) {
+    } else if (p1->x == p2->x) {
       // Repeat points
-      throw std::runtime_error("Edge::Edge: p1 == p2");
+      throw std::runtime_error("Edge::Edge: *p1 == *p2");
     }
   }
 }
 
 
-Triangle::Triangle(Point& a, Point& b, Point& c)
+Triangle::Triangle(const Point* a, const Point* b, const Point* c)
 {
-  points_[0] = &a; points_[1] = &b; points_[2] = &c;
+  assert(a); assert(b); assert(c);
+  points_[0] = a; points_[1] = b; points_[2] = c;
   neighbors_[0] = nullptr; neighbors_[1] = nullptr; neighbors_[2] = nullptr;
   constrained_edge[0] = constrained_edge[1] = constrained_edge[2] = false;
   delaunay_edge[0] = delaunay_edge[1] = delaunay_edge[2] = false;
@@ -67,7 +69,7 @@ Triangle::Triangle(Point& a, Point& b, Point& c)
 }
 
 // Update neighbor pointers
-void Triangle::MarkNeighbor(Point* p1, Point* p2, Triangle* t)
+void Triangle::MarkNeighbor(const Point* p1, const Point* p2, Triangle* t)
 {
   if ((p1 == points_[2] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[2]))
     neighbors_[0] = t;
@@ -107,23 +109,24 @@ void Triangle::Clear()
       }
     }
     ClearNeighbors();
-    points_[0]=points_[1]=points_[2] = nullptr;
+    points_[0] = points_[1] = points_[2] = nullptr;
 }
 
-void Triangle::ClearNeighbor(const Triangle *triangle )
+void Triangle::ClearNeighbor(const Triangle* triangle)
 {
-    if( neighbors_[0] == triangle )
-    {
-        neighbors_[0] = nullptr;
-    }
-    else if( neighbors_[1] == triangle )
-    {
-        neighbors_[1] = nullptr;
-    }
-    else
-    {
-        neighbors_[2] = nullptr;
-    }
+  if (neighbors_[0] == triangle)
+  {
+    neighbors_[0] = nullptr;
+  }
+  else if (neighbors_[1] == triangle)
+  {
+    neighbors_[1] = nullptr;
+  }
+  else
+  {
+    assert(neighbors_[2] == triangle);
+    neighbors_[2] = nullptr;
+  }
 }
 
 void Triangle::ClearNeighbors()
@@ -138,35 +141,35 @@ void Triangle::ClearDelaunayEdges()
   delaunay_edge[0] = delaunay_edge[1] = delaunay_edge[2] = false;
 }
 
-Point* Triangle::OppositePoint(Triangle& t, const Point& p)
+const Point* Triangle::OppositePoint(Triangle& t, const Point* p)
 {
-  Point *cw = t.PointCW(p);
-  return PointCW(*cw);
+  const Point* cw = t.PointCW(p);
+  return PointCW(cw);
 }
 
 // Legalized triangle by rotating clockwise around point(0)
-void Triangle::Legalize(Point& point)
+void Triangle::Legalize(const Point* point)
 {
   points_[1] = points_[0];
   points_[0] = points_[2];
-  points_[2] = &point;
+  points_[2] = point;
 }
 
 // Legalize triagnle by rotating clockwise around oPoint
-void Triangle::Legalize(Point& opoint, Point& npoint)
+void Triangle::Legalize(const Point* opoint, const Point* npoint)
 {
-  if (&opoint == points_[0]) {
+  if (opoint == points_[0]) {
     points_[1] = points_[0];
     points_[0] = points_[2];
-    points_[2] = &npoint;
-  } else if (&opoint == points_[1]) {
+    points_[2] = npoint;
+  } else if (opoint == points_[1]) {
     points_[2] = points_[1];
     points_[1] = points_[0];
-    points_[0] = &npoint;
-  } else if (&opoint == points_[2]) {
+    points_[0] = npoint;
+  } else if (opoint == points_[2]) {
     points_[0] = points_[2];
     points_[2] = points_[1];
-    points_[1] = &npoint;
+    points_[1] = npoint;
   } else {
     assert(0);
   }
@@ -211,6 +214,7 @@ int Triangle::EdgeIndex(const Point* p1, const Point* p2)
 
 void Triangle::MarkConstrainedEdge(int index)
 {
+  assert(index < 3);
   constrained_edge[index] = true;
 }
 
@@ -220,7 +224,7 @@ void Triangle::MarkConstrainedEdge(Edge& edge)
 }
 
 // Mark edge as constrained
-void Triangle::MarkConstrainedEdge(Point* p, Point* q)
+void Triangle::MarkConstrainedEdge(const Point* p, const Point* q)
 {
   if ((q == points_[0] && p == points_[1]) || (q == points_[1] && p == points_[0])) {
     constrained_edge[2] = true;
@@ -232,13 +236,13 @@ void Triangle::MarkConstrainedEdge(Point* p, Point* q)
 }
 
 // The point counter-clockwise to given point
-Point* Triangle::PointCW(const Point& point)
+const Point* Triangle::PointCW(const Point* point)
 {
-  if (&point == points_[0]) {
+  if (point == points_[0]) {
     return points_[2];
-  } else if (&point == points_[1]) {
+  } else if (point == points_[1]) {
     return points_[0];
-  } else if (&point == points_[2]) {
+  } else if (point == points_[2]) {
     return points_[1];
   }
   assert(0);
@@ -246,13 +250,13 @@ Point* Triangle::PointCW(const Point& point)
 }
 
 // The point counter-clockwise to given point
-Point* Triangle::PointCCW(const Point& point)
+const Point* Triangle::PointCCW(const Point* point)
 {
-  if (&point == points_[0]) {
+  if (point == points_[0]) {
     return points_[1];
-  } else if (&point == points_[1]) {
+  } else if (point == points_[1]) {
     return points_[2];
-  } else if (&point == points_[2]) {
+  } else if (point == points_[2]) {
     return points_[0];
   }
   assert(0);
@@ -260,118 +264,136 @@ Point* Triangle::PointCCW(const Point& point)
 }
 
 // The neighbor across to given point
-Triangle* Triangle::NeighborAcross(const Point& point)
+Triangle* Triangle::NeighborAcross(const Point* point)
 {
-  if (&point == points_[0]) {
+  if (point == points_[0]) {
     return neighbors_[0];
-  } else if (&point == points_[1]) {
+  } else if (point == points_[1]) {
     return neighbors_[1];
+  } else {
+    assert(point == points_[2]);
+    return neighbors_[2];
   }
-  return neighbors_[2];
 }
 
 // The neighbor clockwise to given point
-Triangle* Triangle::NeighborCW(const Point& point)
+Triangle* Triangle::NeighborCW(const Point* point)
 {
-  if (&point == points_[0]) {
+  if (point == points_[0]) {
     return neighbors_[1];
-  } else if (&point == points_[1]) {
+  } else if (point == points_[1]) {
     return neighbors_[2];
+  } else {
+    assert(point == points_[2]);
+    return neighbors_[0];
   }
-  return neighbors_[0];
 }
 
 // The neighbor counter-clockwise to given point
-Triangle* Triangle::NeighborCCW(const Point& point)
+Triangle* Triangle::NeighborCCW(const Point* point)
 {
-  if (&point == points_[0]) {
+  if (point == points_[0]) {
     return neighbors_[2];
-  } else if (&point == points_[1]) {
+  } else if (point == points_[1]) {
     return neighbors_[0];
+  } else {
+    assert(point == points_[2]);
+    return neighbors_[1];
   }
-  return neighbors_[1];
 }
 
-bool Triangle::GetConstrainedEdgeCCW(const Point& p)
+bool Triangle::GetConstrainedEdgeCCW(const Point* p)
 {
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     return constrained_edge[2];
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
+    return constrained_edge[0];
+  } else {
+    assert(p == points_[2]);
+    return constrained_edge[1];
+  }
+}
+
+bool Triangle::GetConstrainedEdgeCW(const Point* p)
+{
+  if (p == points_[0]) {
+    return constrained_edge[1];
+  } else if (p == points_[1]) {
+    return constrained_edge[2];
+  } else {
+    assert(p == points_[2]);
     return constrained_edge[0];
   }
-  return constrained_edge[1];
 }
 
-bool Triangle::GetConstrainedEdgeCW(const Point& p)
+void Triangle::SetConstrainedEdgeCCW(const Point* p, bool ce)
 {
-  if (&p == points_[0]) {
-    return constrained_edge[1];
-  } else if (&p == points_[1]) {
-    return constrained_edge[2];
-  }
-  return constrained_edge[0];
-}
-
-void Triangle::SetConstrainedEdgeCCW(const Point& p, bool ce)
-{
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     constrained_edge[2] = ce;
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
     constrained_edge[0] = ce;
   } else {
+    assert(p == points_[2]);
     constrained_edge[1] = ce;
   }
 }
 
-void Triangle::SetConstrainedEdgeCW(const Point& p, bool ce)
+void Triangle::SetConstrainedEdgeCW(const Point* p, bool ce)
 {
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     constrained_edge[1] = ce;
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
     constrained_edge[2] = ce;
   } else {
+    assert(p == points_[2]);
     constrained_edge[0] = ce;
   }
 }
 
-bool Triangle::GetDelaunayEdgeCCW(const Point& p)
+bool Triangle::GetDelaunayEdgeCCW(const Point* p)
 {
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     return delaunay_edge[2];
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
+    return delaunay_edge[0];
+  } else {
+    assert(p == points_[2]);
+    return delaunay_edge[1];
+  }
+}
+
+bool Triangle::GetDelaunayEdgeCW(const Point* p)
+{
+  if (p == points_[0]) {
+    return delaunay_edge[1];
+  } else if (p == points_[1]) {
+    return delaunay_edge[2];
+  } else {
+    assert(p == points_[2]);
     return delaunay_edge[0];
   }
-  return delaunay_edge[1];
 }
 
-bool Triangle::GetDelaunayEdgeCW(const Point& p)
+void Triangle::SetDelaunayEdgeCCW(const Point* p, bool e)
 {
-  if (&p == points_[0]) {
-    return delaunay_edge[1];
-  } else if (&p == points_[1]) {
-    return delaunay_edge[2];
-  }
-  return delaunay_edge[0];
-}
-
-void Triangle::SetDelaunayEdgeCCW(const Point& p, bool e)
-{
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     delaunay_edge[2] = e;
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
     delaunay_edge[0] = e;
   } else {
+    assert(p == points_[2]);
     delaunay_edge[1] = e;
   }
 }
 
-void Triangle::SetDelaunayEdgeCW(const Point& p, bool e)
+void Triangle::SetDelaunayEdgeCW(const Point* p, bool e)
 {
-  if (&p == points_[0]) {
+  if (p == points_[0]) {
     delaunay_edge[1] = e;
-  } else if (&p == points_[1]) {
+  } else if (p == points_[1]) {
     delaunay_edge[2] = e;
   } else {
+    assert(p == points_[2]);
     delaunay_edge[0] = e;
   }
 }
