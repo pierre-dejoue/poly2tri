@@ -4,6 +4,17 @@
 
 #include <cassert>
 
+bool TriangulationSanityChecks(const std::vector<p2t::Triangle*>& triangles)
+{
+  for (p2t::Triangle* t : triangles) {
+    if (t == nullptr)
+      return false;
+    if (!t->IsInterior())
+      return false;
+  }
+  return true;
+}
+
 // Check that all edge that are not constrained ones are "locally optimal"
 // which means that the quadrilateral formed by the union of the
 // two adjacent triangles does not need to be legalized
