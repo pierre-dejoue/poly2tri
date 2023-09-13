@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <list>
 #include <vector>
@@ -78,6 +79,8 @@ public:
   void AddToMap(Triangle* triangle);
 
   Point* GetPoint(size_t index);
+
+  const std::vector<Edge*>& GetUpperEdges(size_t index);
 
   void RemoveFromMap(Triangle* triangle);
 
@@ -135,7 +138,16 @@ private:
 
   friend class Sweep;
 
-  std::vector<Point*> points_;
+  struct SweepPoint
+  {
+    SweepPoint(Point* p_) : p(p_), edges() { assert(p != nullptr); }
+
+    Point* p;
+    std::vector<Edge*> edges;   // List of edges for which this point is the upper endpoint
+  };
+  static bool cmp(const SweepPoint& a, const SweepPoint& b);
+
+  std::vector<SweepPoint> points_;
   std::vector<Edge*> edge_list_;
   std::vector<Triangle*> triangles_;
   std::list<Triangle*> map_;
@@ -156,7 +168,7 @@ private:
   EdgeEvent edge_event_;
 
   void InitTriangulation();
-  void InitEdges(const std::vector<Point*>& polyline);
+  void InitEdges(const std::vector<Point*>& polyline, std::size_t index_offset);
 
 };
 

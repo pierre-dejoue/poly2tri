@@ -69,8 +69,8 @@ void Sweep::SweepPoints(SweepContext& tcx)
   for (size_t i = 1; i < tcx.point_count(); i++) {
     Point& point = *tcx.GetPoint(i);
     Node* node = &PointEvent(tcx, point);
-    for (auto& j : point.edge_list) {
-      EdgeEvent(tcx, j, node);
+    for (auto* e : tcx.GetUpperEdges(i)) {
+      EdgeEvent(tcx, e, node);
     }
   }
 }

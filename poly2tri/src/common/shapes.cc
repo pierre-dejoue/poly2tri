@@ -33,16 +33,29 @@
 
 #include <cassert>
 #include <iostream>
+#include <utility>
 
 namespace p2t {
-
-Point::Point(double x, double y) : x(x), y(y)
-{ }
 
 std::ostream& operator<<(std::ostream& out, const Point& point)
 {
   return out << point.x << "," << point.y;
 }
+
+Edge::Edge(Point& p1, Point& p2) : p(&p1), q(&p2)
+{
+  if (p1.y > p2.y) {
+    std::swap(p, q);
+  } else if (p1.y == p2.y) {
+    if (p1.x > p2.x) {
+      std::swap(p, q);
+    } else if (p1.x == p2.x) {
+      // Repeat points
+      throw std::runtime_error("Edge::Edge: p1 == p2");
+    }
+  }
+}
+
 
 Triangle::Triangle(Point& a, Point& b, Point& c)
 {

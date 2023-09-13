@@ -35,6 +35,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <ostream>
 #include <stdexcept>
 #include <vector>
 
@@ -46,18 +47,8 @@ struct P2T_DLL_SYMBOL Point {
 
   double x, y;
 
-  /// Default constructor does nothing (for performance).
-  Point()
-  {
-    x = 0.0;
-    y = 0.0;
-  }
-
-  /// The edges this point constitutes an upper ending point
-  std::vector<Edge*> edge_list;
-
-  /// Construct using coordinates.
-  Point(double x, double y);
+  Point() : x(0.0), y(0.0) {}
+  Point(double x_, double y_) : x(x_), y(y_) {}
 
   /// Set this point to all zeros.
   void set_zero()
@@ -124,26 +115,11 @@ P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
 // Represents a simple polygon's edge
 struct P2T_DLL_SYMBOL Edge {
 
-  Point *p, *q;
+  Point *p;   // The lower point
+  Point *q;   // The upper point
 
   /// Constructor
-  Edge(Point& p1, Point& p2) : p(&p1), q(&p2)
-  {
-    if (p1.y > p2.y) {
-      q = &p1;
-      p = &p2;
-    } else if (p1.y == p2.y) {
-      if (p1.x > p2.x) {
-        q = &p1;
-        p = &p2;
-      } else if (p1.x == p2.x) {
-        // Repeat points
-        throw std::runtime_error("Edge::Edge: p1 == p2");
-      }
-    }
-
-    q->edge_list.push_back(this);
-  }
+  Edge(Point& p1, Point& p2);
 
 };
 
