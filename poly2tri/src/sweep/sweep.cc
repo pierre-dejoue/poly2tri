@@ -48,7 +48,6 @@ Sweep::Sweep() :
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(SweepContext& tcx, Policy policy)
 {
-  tcx.InitTriangulation();
   CreateAdvancingFront(tcx);
   SweepPoints(tcx);
 

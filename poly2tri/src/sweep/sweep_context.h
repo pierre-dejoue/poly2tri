@@ -84,6 +84,8 @@ public:
 
   const std::vector<Triangle*>& GetMap();
 
+  void InitTriangulation();
+
   struct Basin {
     Node* left_node;
     Node* bottom_node;
@@ -150,7 +152,6 @@ private:
 
   EdgeEvent edge_event_;
 
-  void InitTriangulation();
   void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
 
 };

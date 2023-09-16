@@ -35,6 +35,7 @@
 #include "../common/shapes.h"
 #include "policy.h"
 
+#include <memory>
 #include <vector>
 
 /**
@@ -135,8 +136,7 @@ public:
 
 private:
 
-  SweepContext* sweep_context_;
-  Sweep* sweep_;
+  std::unique_ptr<SweepContext> sweep_context_;
 
 };
 

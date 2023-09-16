@@ -159,6 +159,8 @@ void SweepContext::InitTriangulation()
 
   double dx = kAlpha * (xmax - xmin);
   double dy = kAlpha * (ymax - ymin);
+  delete head_;
+  delete tail_;
   head_ = new Point(xmin - dx, ymin - dy);
   tail_ = new Point(xmax + dx, ymin - dy);
 

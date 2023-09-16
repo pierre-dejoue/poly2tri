@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2021, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -28,16 +28,17 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <poly2tri/sweep/cdt.h>
 
 #include "sweep_context.h"
 #include "sweep.h"
 
+
 namespace p2t {
 
 CDT::CDT() :
-  sweep_context_(new SweepContext),
-  sweep_(new Sweep)
+  sweep_context_(std::make_unique<SweepContext>())
 {
 }
 
@@ -47,11 +48,7 @@ CDT::CDT(const std::vector<Point*>& polyline) :
   AddPolyline(polyline);
 }
 
-CDT::~CDT()
-{
-  delete sweep_context_;
-  delete sweep_;
-}
+CDT::~CDT() = default;
 
 void CDT::AddPolyline(const std::vector<Point*>& polyline)
 {
@@ -106,7 +103,8 @@ void CDT::AddPoints(const Point* polyline, std::size_t num_points, std::size_t s
 void CDT::Triangulate(Policy triangulation_policy)
 {
   if (sweep_context_->point_count() > 0) {
-    sweep_->Triangulate(*sweep_context_, triangulation_policy);
+    sweep_context_->InitTriangulation();
+    Sweep().Triangulate(*sweep_context_, triangulation_policy);
   }
 }
 
