@@ -66,6 +66,7 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
   constrained_edge[0] = constrained_edge[1] = constrained_edge[2] = false;
   delaunay_edge[0] = delaunay_edge[1] = delaunay_edge[2] = false;
   interior_ = false;
+  assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
 }
 
 // Update neighbor pointers
@@ -235,7 +236,7 @@ void Triangle::MarkConstrainedEdge(const Point* p, const Point* q)
   }
 }
 
-// The point counter-clockwise to given point
+// The point clockwise to given point
 const Point* Triangle::PointCW(const Point* point)
 {
   if (point == points_[0]) {
