@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -28,18 +28,23 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include "advancing_front.h"
+
+#include "../common/utils.h"
 
 #include <cassert>
 
 namespace p2t {
 
-AdvancingFront::AdvancingFront(Node& head, Node& tail)
+AdvancingFront::AdvancingFront(Node& head, Node& tail) :
+  head_(&head),
+  tail_(&tail),
+  search_node_(&head)
 {
-  head_ = &head;
-  tail_ = &tail;
-  search_node_ = &head;
 }
+
+AdvancingFront::~AdvancingFront() = default;
 
 Node* AdvancingFront::LocateNode(double x)
 {
@@ -65,7 +70,8 @@ Node* AdvancingFront::LocateNode(double x)
 
 Node* AdvancingFront::FindSearchNode(double x)
 {
-  (void)x; // suppress compiler warnings "unused parameter 'x'"
+  UNUSED(x);
+
   // TODO: implement BST index
   return search_node_;
 }
@@ -101,10 +107,6 @@ Node* AdvancingFront::LocatePoint(const Point* point)
   }
   if(node) search_node_ = node;
   return node;
-}
-
-AdvancingFront::~AdvancingFront()
-{
 }
 
 } // namespace p2t

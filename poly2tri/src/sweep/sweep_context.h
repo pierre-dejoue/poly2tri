@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2022, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -46,7 +46,6 @@ struct Point;
 class Triangle;
 struct Node;
 struct Edge;
-class AdvancingFront;
 
 class SweepContext {
 public:
@@ -71,22 +70,11 @@ public:
 
   size_t point_count() const;
 
-  Node* LocateNode(const Point& point);
-
-  void RemoveNode(Node* node);
-
-  void CreateAdvancingFront();
-
-  /// Try to map a node to all sides of this triangle that don't have a neighbor
-  void MapTriangleToNodes(Triangle& t);
-
   void AddToMap(Triangle* triangle);
 
   const Point* GetPoint(size_t index);
 
   const std::vector<Edge*>& GetUpperEdges(size_t index);
-
-  AdvancingFront* front() const;
 
   void MeshCleanExteriorTriangles(Triangle& interior_triangle);
 
@@ -154,16 +142,9 @@ private:
   std::vector<Triangle*> triangles_;
   std::vector<Triangle*> map_;
 
-  // Advancing front
-  AdvancingFront* front_;
-  // head point used with advancing front
+  // Artificial points added to the triangulation
   const Point* head_;
-  // tail point used with advancing front
   const Point* tail_;
-
-  Node *af_head_;
-  Node *af_middle_;
-  Node *af_tail_;
 
   Basin basin_;
 
@@ -173,11 +154,6 @@ private:
   void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
 
 };
-
-inline AdvancingFront* SweepContext::front() const
-{
-  return front_;
-}
 
 inline size_t SweepContext::point_count() const
 {

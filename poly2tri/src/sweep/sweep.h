@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -45,6 +45,7 @@
 
 namespace p2t {
 
+class AdvancingFront;
 class SweepContext;
 struct Node;
 struct Point;
@@ -73,6 +74,13 @@ public:
   void Triangulate(SweepContext& tcx, Policy policy);
 
 private:
+
+  /**
+   * Create the advancing front
+   *
+   * @param tcx
+   */
+  void CreateAdvancingFront(SweepContext& tcx);
 
   /**
    * Start sweeping the Y-sorted point set from bottom to top
@@ -296,6 +304,15 @@ private:
 
   void FinalizationOuterPolygon(SweepContext& tcx);
 
+  /// Try to map a node to all sides of this triangle that don't have a neighbor
+  void MapTriangleToNodes(Triangle& t);
+
+private:
+
+  // Advancing front
+  AdvancingFront* front_;
+
+  // Nodes of the advancing front
   std::vector<Node*> nodes_;
 
 };

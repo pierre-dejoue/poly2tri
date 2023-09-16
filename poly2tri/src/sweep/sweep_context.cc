@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2022, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -28,13 +28,18 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include "sweep_context.h"
-#include "advancing_front.h"
+
+#include <poly2tri/common/shapes.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <exception>
+#include <iterator>
+#include <stdexcept>
+
 
 namespace p2t {
 
@@ -43,12 +48,8 @@ SweepContext::SweepContext() :
   edge_list_(),
   triangles_(),
   map_(),
-  front_(nullptr),
   head_(nullptr),
   tail_(nullptr),
-  af_head_(nullptr),
-  af_middle_(nullptr),
-  af_tail_(nullptr),
   basin_(),
   edge_event_()
 {
@@ -195,49 +196,6 @@ void SweepContext::AddToMap(Triangle* triangle)
   map_.push_back(triangle);
 }
 
-Node* SweepContext::LocateNode(const Point& point)
-{
-  // TODO implement search tree
-  return front_->LocateNode(point.x);
-}
-
-void SweepContext::CreateAdvancingFront()
-{
-  // Initial triangle
-  assert(points_.size() > 0);
-  Triangle* triangle = new Triangle(points_[0].p, head_, tail_);
-
-  AddToMap(triangle);
-
-  af_head_ = new Node(triangle->GetPoint(1), *triangle);
-  af_middle_ = new Node(triangle->GetPoint(0), *triangle);
-  af_tail_ = new Node(triangle->GetPoint(2));
-  front_ = new AdvancingFront(*af_head_, *af_tail_);
-
-  // TODO: More intuitive if head is middles next and not previous?
-  //       so swap head and tail
-  af_head_->next = af_middle_;
-  af_middle_->next = af_tail_;
-  af_middle_->prev = af_head_;
-  af_tail_->prev = af_middle_;
-}
-
-void SweepContext::RemoveNode(Node* node)
-{
-  delete node;
-}
-
-void SweepContext::MapTriangleToNodes(Triangle& t)
-{
-  for (int i = 0; i < 3; i++) {
-    if (!t.GetNeighbor(i)) {
-      Node* n = front_->LocatePoint(t.PointCW(t.GetPoint(i)));
-      if (n)
-        n->triangle = &t;
-    }
-  }
-}
-
 void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)
 {
   std::vector<Triangle *> triangles;
@@ -279,13 +237,8 @@ void SweepContext::MeshCleanHeadAndTail()
 SweepContext::~SweepContext()
 {
     // Clean up memory
-
-    delete front_;
     delete head_;
     delete tail_;
-    delete af_head_;
-    delete af_middle_;
-    delete af_tail_;
 
     for (auto ptr : map_) {
       delete ptr;

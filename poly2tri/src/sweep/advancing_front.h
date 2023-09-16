@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -33,22 +33,31 @@
 
 #include <poly2tri/common/shapes.h>
 
+#include <cassert>
+
 namespace p2t {
 
 // Advancing front node
 struct Node {
 
   const Point* point;
-  Triangle* triangle;
+  Triangle* triangle;     // This triangle (if set) should contain the edge between this node and the next one.
 
   Node* next;
   Node* prev;
 
   double value;
 
-  Node(const Point* p) : point(p), triangle(nullptr), next(nullptr), prev(nullptr), value(p->x) {}
-
-  Node(const Point* p, Triangle& t) : point(p), triangle(&t), next(nullptr), prev(nullptr), value(p->x) {}
+  Node(const Point* p, Triangle* t = nullptr) :
+    point(p),
+    triangle(t),
+    next(nullptr),
+    prev(nullptr),
+    value()
+  {
+    assert(p);
+    value = p->x;
+  }
 
 };
 
@@ -59,12 +68,8 @@ public:
   AdvancingFront(Node& head, Node& tail);
   ~AdvancingFront();
 
-  Node* head();
-  void set_head(Node* node);
-  Node* tail();
-  void set_tail(Node* node);
-  Node* search();
-  void set_search(Node* node);
+  Node* head() const { return head_; }
+  Node* tail() const { return tail_; }
 
   /// Locate insertion point along advancing front
   Node* LocateNode(double x);
@@ -73,38 +78,12 @@ public:
 
 private:
 
-  Node* head_, *tail_, *search_node_;
+  Node* const head_;
+  Node* const tail_;
+  Node* search_node_;
 
   Node* FindSearchNode(double x);
 
 };
-
-inline Node* AdvancingFront::head()
-{
-  return head_;
-}
-inline void AdvancingFront::set_head(Node* node)
-{
-  head_ = node;
-}
-
-inline Node* AdvancingFront::tail()
-{
-  return tail_;
-}
-inline void AdvancingFront::set_tail(Node* node)
-{
-  tail_ = node;
-}
-
-inline Node* AdvancingFront::search()
-{
-  return search_node_;
-}
-
-inline void AdvancingFront::set_search(Node* node)
-{
-  search_node_ = node;
-}
 
 }

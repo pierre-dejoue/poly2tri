@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -28,9 +28,10 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "advancing_front.h"
 #include "sweep.h"
 #include "sweep_context.h"
-#include "advancing_front.h"
 #include "../common/utils.h"
 
 #include <cassert>
@@ -39,6 +40,7 @@
 namespace p2t {
 
 Sweep::Sweep() :
+  front_(nullptr),
   nodes_()
 {
 }
@@ -47,7 +49,7 @@ Sweep::Sweep() :
 void Sweep::Triangulate(SweepContext& tcx, Policy policy)
 {
   tcx.InitTriangulation();
-  tcx.CreateAdvancingFront();
+  CreateAdvancingFront(tcx);
   SweepPoints(tcx);
 
   // Finalize the triangulation
@@ -62,6 +64,32 @@ void Sweep::Triangulate(SweepContext& tcx, Policy policy)
       FinalizationOuterPolygon(tcx);
       break;
   }
+}
+
+void Sweep::CreateAdvancingFront(SweepContext& tcx)
+{
+  // Initial triangle
+  assert(tcx.points_.size() > 0);
+  const Point* lowest_point = tcx.GetPoint(0);
+  Triangle* triangle = new Triangle(lowest_point, tcx.head(), tcx.tail());
+
+  tcx.AddToMap(triangle);
+
+  Node* af_head = new Node(tcx.head(), triangle);
+  Node* af_middle = new Node(lowest_point, triangle);
+  Node* af_tail = new Node(tcx.tail());
+
+  nodes_.emplace_back(af_head);
+  nodes_.emplace_back(af_middle);
+  nodes_.emplace_back(af_tail);
+
+  af_head->next = af_middle;
+  af_middle->next = af_tail;
+  af_middle->prev = af_head;
+  af_tail->prev = af_middle;
+
+  assert(front_ == nullptr);
+  front_ = new AdvancingFront(*af_head, *af_tail);
 }
 
 void Sweep::SweepPoints(SweepContext& tcx)
@@ -86,8 +114,8 @@ void Sweep::FinalizationConvexHull(SweepContext& tcx)
 void Sweep::FinalizationOuterPolygon(SweepContext& tcx)
 {
   // Get an internal triangle to start with
-  Triangle* t = tcx.front()->head()->next->triangle;
-  const Point* p = tcx.front()->head()->next->point;
+  Triangle* t = front_->head()->next->triangle;
+  const Point* p = front_->head()->next->point;
   while (t && !t->GetConstrainedEdgeCW(p)) {
     t = t->NeighborCCW(p);
   }
@@ -100,7 +128,7 @@ void Sweep::FinalizationOuterPolygon(SweepContext& tcx)
 
 Node& Sweep::PointEvent(SweepContext& tcx, const Point* point)
 {
-  Node* node_ptr = tcx.LocateNode(*point);
+  Node* node_ptr = front_->LocateNode(point->x);
   if (!node_ptr || !node_ptr->point || !node_ptr->next || !node_ptr->next->point)
   {
     throw std::runtime_error("PointEvent - null node");
@@ -217,7 +245,7 @@ Node& Sweep::NewFrontTriangle(SweepContext& tcx, const Point* point, Node& node)
   tcx.AddToMap(triangle);
 
   Node* new_node = new Node(point);
-  nodes_.push_back(new_node);
+  nodes_.emplace_back(new_node);
 
   new_node->next = node.next;
   new_node->prev = &node;
@@ -225,7 +253,7 @@ Node& Sweep::NewFrontTriangle(SweepContext& tcx, const Point* point, Node& node)
   node.next = new_node;
 
   if (!Legalize(tcx, *triangle)) {
-    tcx.MapTriangleToNodes(*triangle);
+    MapTriangleToNodes(*triangle);
   }
 
   return *new_node;
@@ -248,7 +276,7 @@ void Sweep::Fill(SweepContext& tcx, Node& node)
 
   // If it was legalized the triangle has already been mapped
   if (!Legalize(tcx, *triangle)) {
-    tcx.MapTriangleToNodes(*triangle);
+    MapTriangleToNodes(*triangle);
   }
 }
 
@@ -435,12 +463,12 @@ bool Sweep::Legalize(SweepContext& tcx, Triangle& t)
         // Make sure that triangle to node mapping is done only one time for a specific triangle
         bool not_legalized = !Legalize(tcx, t);
         if (not_legalized) {
-          tcx.MapTriangleToNodes(t);
+          MapTriangleToNodes(t);
         }
 
         not_legalized = !Legalize(tcx, *ot);
         if (not_legalized)
-          tcx.MapTriangleToNodes(*ot);
+          MapTriangleToNodes(*ot);
 
         // Reset the Delaunay edges, since they only are valid Delaunay edges
         // until we add a new triangle or point.
@@ -778,8 +806,8 @@ void Sweep::FlipEdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, T
   if (InScanArea(*p, *t->PointCCW(p), *t->PointCW(p), *op)) {
     // Lets rotate shared edge one vertex CW
     RotateTrianglePair(*t, p, ot, op);
-    tcx.MapTriangleToNodes(*t);
-    tcx.MapTriangleToNodes(ot);
+    MapTriangleToNodes(*t);
+    MapTriangleToNodes(ot);
 
     if (p == eq && op == ep) {
       if (eq == tcx.edge_event_.constrained_edge->q && ep == tcx.edge_event_.constrained_edge->p) {
@@ -874,9 +902,21 @@ void Sweep::FlipScanEdgeEvent(SweepContext& tcx, const Point* ep, const Point* e
   }
 }
 
+void Sweep::MapTriangleToNodes(Triangle& t)
+{
+  for (int i = 0; i < 3; i++) {
+    if (!t.GetNeighbor(i)) {
+      Node* n = front_->LocatePoint(t.PointCW(t.GetPoint(i)));
+      if (n)
+        n->triangle = &t;
+    }
+  }
+}
+
 Sweep::~Sweep()
 {
     // Clean up memory
+    delete front_;
     for (auto& node : nodes_) {
       delete node;
     }
