@@ -33,7 +33,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <list>
 #include <vector>
 
 
@@ -87,8 +86,6 @@ public:
 
   const std::vector<Edge*>& GetUpperEdges(size_t index);
 
-  void RemoveFromMap(Triangle* triangle);
-
   AdvancingFront* front() const;
 
   void MeshCleanExteriorTriangles(Triangle& interior_triangle);
@@ -97,7 +94,7 @@ public:
 
   const std::vector<Triangle*>& GetTriangles();
 
-  const std::list<Triangle*>& GetMap();
+  const std::vector<Triangle*>& GetMap();
 
   struct Basin {
     Node* left_node;
@@ -155,7 +152,7 @@ private:
   std::vector<SweepPoint> points_;
   std::vector<Edge*> edge_list_;
   std::vector<Triangle*> triangles_;
-  std::list<Triangle*> map_;
+  std::vector<Triangle*> map_;
 
   // Advancing front
   AdvancingFront* front_;

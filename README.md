@@ -36,6 +36,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Method Triangle::GetPoint(index) now returns a const Point*
 - Many other methods in class Triangle have changed to take or return const Point* instead of references.
   Most of those methods, despite being public, are unlikely to be used in client code.
+- CDT::GetMap() returns a std::vector instead of a std::list. That method is for debug purpose only.
 
 ### Non-Breaking
 

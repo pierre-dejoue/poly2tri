@@ -126,7 +126,7 @@ const std::vector<Triangle*>& SweepContext::GetTriangles()
   return triangles_;
 }
 
-const std::list<Triangle*>& SweepContext::GetMap()
+const std::vector<Triangle*>& SweepContext::GetMap()
 {
   return map_;
 }
@@ -207,7 +207,7 @@ void SweepContext::CreateAdvancingFront()
   assert(points_.size() > 0);
   Triangle* triangle = new Triangle(points_[0].p, head_, tail_);
 
-  map_.push_back(triangle);
+  AddToMap(triangle);
 
   af_head_ = new Node(triangle->GetPoint(1), *triangle);
   af_middle_ = new Node(triangle->GetPoint(0), *triangle);
@@ -236,11 +236,6 @@ void SweepContext::MapTriangleToNodes(Triangle& t)
         n->triangle = &t;
     }
   }
-}
-
-void SweepContext::RemoveFromMap(Triangle* triangle)
-{
-  map_.remove(triangle);
 }
 
 void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)

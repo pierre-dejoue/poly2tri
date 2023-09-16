@@ -41,7 +41,6 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <list>
 #include <numeric>
 #include <sstream>
 #include <string>
@@ -93,7 +92,7 @@ double cy = 0.0;
 /// Constrained triangles
 vector<Triangle*> triangles;
 /// Triangle map
-list<Triangle*> map;
+vector<Triangle*> map;
 /// Polylines
 vector<Point*> polyline;
 vector<vector<Point*>> holes;
@@ -483,8 +482,7 @@ void DrawMap(const double zoom)
 
   ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height, flag_flip_y);
 
-  list<Triangle*>::iterator it;
-  for (it = map.begin(); it != map.end(); it++) {
+  for (auto it = map.cbegin(); it != map.cend(); ++it) {
     Triangle& t = **it;
     const Point& a = *t.GetPoint(0);
     const Point& b = *t.GetPoint(1);

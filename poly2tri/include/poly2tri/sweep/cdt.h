@@ -35,7 +35,6 @@
 #include "../common/shapes.h"
 #include "policy.h"
 
-#include <list>
 #include <vector>
 
 /**
@@ -132,7 +131,7 @@ public:
   /**
    * Get triangle map - Internal triangulation before mesh clean-up. For debug purpose only.
    */
-  const std::list<Triangle*>& GetMap();
+  const std::vector<Triangle*>& GetMap();
 
 private:
 

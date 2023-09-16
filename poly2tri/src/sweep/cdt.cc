@@ -115,7 +115,7 @@ const std::vector<p2t::Triangle*>& CDT::GetTriangles()
   return sweep_context_->GetTriangles();
 }
 
-const std::list<p2t::Triangle*>& CDT::GetMap()
+const std::vector<p2t::Triangle*>& CDT::GetMap()
 {
   return sweep_context_->GetMap();
 }
