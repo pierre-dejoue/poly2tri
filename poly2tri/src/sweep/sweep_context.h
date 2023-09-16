@@ -127,7 +127,7 @@ public:
     Edge* constrained_edge;
     bool right;
 
-    EdgeEvent() : constrained_edge(NULL), right(false)
+    EdgeEvent() : constrained_edge(nullptr), right(false)
     { }
   };
 

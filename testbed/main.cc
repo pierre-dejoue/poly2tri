@@ -104,7 +104,7 @@ bool draw_map = false;
 /// Create a random distribution of points?
 bool random_distribution = false;
 
-GLFWwindow* window = NULL;
+GLFWwindow* window = nullptr;
 
 template <class C> void FreeClear(C& cntr)
 {
@@ -354,7 +354,7 @@ void Init(int window_width, int window_height)
   if (glfwInit() != GL_TRUE)
     ShutDown(1);
   // width x height, 16 bit color, no depth, alpha or stencil buffers, windowed
-  window = glfwCreateWindow(window_width, window_height, "Poly2Tri - C++", NULL, NULL);
+  window = glfwCreateWindow(window_width, window_height, "Poly2Tri - C++", nullptr, nullptr);
   if (!window)
     ShutDown(1);
 
@@ -538,14 +538,14 @@ double Fun(double x)
 
 double Random(double (*fun)(double), double xmin = 0, double xmax = 1)
 {
-  static double (*Fun)(double) = NULL, YMin, YMax;
+  static double (*Fun)(double) = nullptr, YMin, YMax;
   static bool First = true;
 
   // Initialises random generator for first call
   if (First)
   {
     First = false;
-    srand((unsigned) time(NULL));
+    srand((unsigned) time(nullptr));
   }
 
   // Evaluates maximum of function
