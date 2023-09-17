@@ -76,11 +76,9 @@ public:
 
   const std::vector<Edge*>& GetUpperEdges(size_t index);
 
-  void MeshCleanExteriorTriangles(Triangle& interior_triangle);
+  void MeshCleanExteriorTriangles();
 
   const std::vector<Triangle*>& GetTriangles();
-
-  const std::vector<Triangle*>& GetMap();
 
   void InitTriangulation();
 
@@ -105,7 +103,6 @@ private:
 
   std::vector<SweepPoint> points_;
   std::vector<Edge*> edge_list_;
-  std::vector<Triangle*> triangles_;
   std::vector<Triangle*> map_;
 
   // Artificial points added to the triangulation

@@ -103,9 +103,7 @@ BOOST_AUTO_TEST_CASE(QuadSteinerTest)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPoints(points));
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
-  const auto map = cdt.GetMap();
-  BOOST_REQUIRE_EQUAL(map.size(), 6);
-  const auto result = cdt.GetTriangles();
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(result));
   BOOST_CHECK(IsConstrainedDelaunay(result));

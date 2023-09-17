@@ -61,7 +61,6 @@ void Init(int window_width, int window_height);
 void ShutDown(int return_code);
 void MainLoop(const double zoom);
 void Draw(const double zoom);
-void DrawMap(const double zoom);
 void ConstrainedColor(bool constrained);
 double StringToDouble(const std::string& s);
 double Random(double (*fun)(double), double xmin, double xmax);
@@ -89,17 +88,13 @@ double cx = 0.0;
 /// Screen center y
 double cy = 0.0;
 
-/// Constrained triangles
+/// Constrained Delaunay triangles
 vector<Triangle*> triangles;
-/// Triangle map
-vector<Triangle*> map;
 /// Polylines
 vector<Point*> polyline;
 vector<vector<Point*>> holes;
 vector<Point*> steiner;
 
-/// Draw the entire triangle map?
-bool draw_map = false;
 /// Create a random distribution of points?
 bool random_distribution = false;
 
@@ -222,7 +217,6 @@ int main(int argc, char* argv[])
   double dt = glfwGetTime() - init_time;
 
   triangles = cdt->GetTriangles();
-  map = cdt->GetMap();
   const size_t points_in_holes =
       std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
                       [](size_t cumul, const vector<Point*>& hole) { return cumul + hole.size(); });
@@ -398,11 +392,7 @@ void MainLoop(const double zoom)
     rotate_z += delta_rotate;
 
     // Draw the scene
-    if (draw_map) {
-      DrawMap(zoom);
-    } else {
-      Draw(zoom);
-    }
+    Draw(zoom);
 
     // swap back and front buffers
     glfwSwapBuffers(window);
@@ -475,39 +465,6 @@ void Draw(const double zoom)
         }
       glEnd();
     }
-  }
-}
-
-void DrawMap(const double zoom)
-{
-  // reset zoom
-  Point center = Point(cx, cy);
-
-  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height, flag_flip_y);
-
-  for (auto it = map.cbegin(); it != map.cend(); ++it) {
-    Triangle& t = **it;
-    const Point& a = *t.GetPoint(0);
-    const Point& b = *t.GetPoint(1);
-    const Point& c = *t.GetPoint(2);
-
-    ConstrainedColor(t.constrained_edge[2]);
-    glBegin(GL_LINES);
-    glVertex2d(a.x, a.y);
-    glVertex2d(b.x, b.y);
-    glEnd( );
-
-    ConstrainedColor(t.constrained_edge[0]);
-    glBegin(GL_LINES);
-    glVertex2d(b.x, b.y);
-    glVertex2d(c.x, c.y);
-    glEnd( );
-
-    ConstrainedColor(t.constrained_edge[1]);
-    glBegin(GL_LINES);
-    glVertex2d(c.x, c.y);
-    glVertex2d(a.x, a.y);
-    glEnd( );
   }
 }
 

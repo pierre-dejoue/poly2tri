@@ -68,6 +68,7 @@ void Sweep::Triangulate(Policy policy)
       FinalizationOuterPolygon();
       break;
   }
+  tcx_.MeshCleanExteriorTriangles();
 }
 
 void Sweep::CreateAdvancingFront()
@@ -106,6 +107,29 @@ void Sweep::SweepPoints()
   }
 }
 
+namespace {
+
+  void FloodFillOfInteriorTriangles(Triangle& interior_triangle)
+  {
+    std::vector<Triangle *> triangles;
+    triangles.push_back(&interior_triangle);
+
+    while(!triangles.empty()) {
+      Triangle *t = triangles.back();
+      triangles.pop_back();
+
+      if (t != nullptr && !t->IsInterior()) {
+        t->IsInterior(true);
+        for (int i = 0; i < 3; i++) {
+          if (!t->constrained_edge[i])
+            triangles.push_back(t->GetNeighbor(i));
+        }
+      }
+    }
+  }
+
+}
+
 void Sweep::FinalizationConvexHull()
 {
   // 1. Clean the mesh from the two artificial points (head and tail)
@@ -125,28 +149,15 @@ void Sweep::FinalizationOuterPolygon()
   }
 
   // Collect interior triangles constrained by edges
-  if (t) {
-    tcx_.MeshCleanExteriorTriangles(*t);
-  }
+  if (t)
+    FloodFillOfInteriorTriangles(*t);
 }
 
 void Sweep::MeshClearBackFrontTriangles()
 {
   // Mark "interior" all triangles except the ones that belong to the back front
   for (Triangle* t : tcx_.map_) { t->IsInterior(true); }
-  const std::size_t traversed = TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
-
-  // Copy interior triangles to the output triangulation and clear exterior neighbors
-  tcx_.triangles_.clear();
-  assert(traversed <= tcx_.map_.size());
-  tcx_.triangles_.reserve(tcx_.map_.size() - traversed);
-  std::copy_if(std::begin(tcx_.map_), std::end(tcx_.map_), std::back_inserter(tcx_.triangles_), [](Triangle* t) {
-     if (!t->IsInterior()) {
-      t->ClearNeighbors();
-      return false;
-    }
-    return true;
-  });
+  TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
 }
 
 Node& Sweep::PointEvent(const Point* point)

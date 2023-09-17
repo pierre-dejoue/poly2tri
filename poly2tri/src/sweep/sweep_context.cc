@@ -46,7 +46,6 @@ namespace p2t {
 SweepContext::SweepContext() :
   points_(),
   edge_list_(),
-  triangles_(),
   map_(),
   head_(nullptr),
   tail_(nullptr)
@@ -122,14 +121,8 @@ void SweepContext::AddPoints(const Point* points, std::size_t num_points, std::s
 
 const std::vector<Triangle*>& SweepContext::GetTriangles()
 {
-  return triangles_;
-}
-
-const std::vector<Triangle*>& SweepContext::GetMap()
-{
   return map_;
 }
-
 
 bool SweepContext::cmp(const SweepPoint& a, const SweepPoint& b)
 {
@@ -196,27 +189,17 @@ void SweepContext::AddToMap(Triangle* triangle)
   map_.push_back(triangle);
 }
 
-void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)
+void SweepContext::MeshCleanExteriorTriangles()
 {
-  std::vector<Triangle *> triangles;
-  triangles.push_back(&interior_triangle);
-
-  while(!triangles.empty()) {
-    Triangle *t = triangles.back();
-    triangles.pop_back();
-
-    if (t != nullptr && !t->IsInterior()) {
-      t->IsInterior(true);
-      triangles_.push_back(t);
-      for (int i = 0; i < 3; i++) {
-        if (!t->constrained_edge[i])
-          triangles.push_back(t->GetNeighbor(i));
-      }
+  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [](Triangle* t) {
+    if (!t->IsInterior()) {
+      t->ClearNeighbors();    // To clear the reciprocate neighbor link
+      delete t;
+      return true;
     }
-  }
-
-  // Clear exterior neighbors
-  std::for_each(std::begin(map_), std::end(map_), [](Triangle* t) { if (!t->IsInterior()) { t->ClearNeighbors(); }});
+    return false;
+  });
+  map_.erase(last_it, std::end(map_));
 }
 
 SweepContext::~SweepContext()
@@ -228,7 +211,6 @@ SweepContext::~SweepContext()
     for (auto ptr : map_) {
       delete ptr;
     }
-    // pointers in triangles_ are copies of pointers in map_ and don't need to be deleted
 
     for (auto& i : edge_list_) {
       delete i;

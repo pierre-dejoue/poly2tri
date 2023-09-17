@@ -129,11 +129,6 @@ public:
    */
   const std::vector<Triangle*>& GetTriangles();
 
-  /**
-   * Get triangle map - Internal triangulation before mesh clean-up. For debug purpose only.
-   */
-  const std::vector<Triangle*>& GetMap();
-
 private:
 
   std::unique_ptr<SweepContext> sweep_context_;
