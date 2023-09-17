@@ -49,6 +49,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
     - Remove the edge_list from Point
     - New API CDT::Add{Polyline/Hole/Points} with pointer + size arguments
     - Never modify the user's Point data (const Point*)
+- Neighbor triangles in the triangulation result are now consistent (no links to triangles exterior to the CDT)
 
 Dependencies
 ------------

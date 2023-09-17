@@ -136,11 +136,17 @@ void Sweep::MeshClearBackFrontTriangles()
   for (Triangle* t : tcx_.map_) { t->IsInterior(true); }
   const std::size_t traversed = TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
 
-  // Copy interior triangles to the output triangulation
+  // Copy interior triangles to the output triangulation and clear exterior neighbors
   tcx_.triangles_.clear();
   assert(traversed <= tcx_.map_.size());
   tcx_.triangles_.reserve(tcx_.map_.size() - traversed);
-  std::copy_if(std::cbegin(tcx_.map_), std::cend(tcx_.map_), std::back_inserter(tcx_.triangles_), [](const Triangle* t) { return t->IsInterior(); });
+  std::copy_if(std::begin(tcx_.map_), std::end(tcx_.map_), std::back_inserter(tcx_.triangles_), [](Triangle* t) {
+     if (!t->IsInterior()) {
+      t->ClearNeighbors();
+      return false;
+    }
+    return true;
+  });
 }
 
 Node& Sweep::PointEvent(const Point* point)

@@ -214,6 +214,9 @@ void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)
       }
     }
   }
+
+  // Clear exterior neighbors
+  std::for_each(std::begin(map_), std::end(map_), [](Triangle* t) { if (!t->IsInterior()) { t->ClearNeighbors(); }});
 }
 
 SweepContext::~SweepContext()

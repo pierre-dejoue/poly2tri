@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -97,24 +97,9 @@ void Triangle::MarkNeighbor(Triangle& t)
   }
 }
 
-/**
- * Clears all references to all other triangles and points
- */
-void Triangle::Clear()
-{
-    Triangle *t;
-    for (auto& neighbor : neighbors_) {
-      t = neighbor;
-      if (t != nullptr) {
-        t->ClearNeighbor(this);
-      }
-    }
-    ClearNeighbors();
-    points_[0] = points_[1] = points_[2] = nullptr;
-}
-
 void Triangle::ClearNeighbor(const Triangle* triangle)
 {
+  // Caution: The caller must clear the link in the other direction
   if (neighbors_[0] == triangle)
   {
     neighbors_[0] = nullptr;
@@ -130,10 +115,14 @@ void Triangle::ClearNeighbor(const Triangle* triangle)
   }
 }
 
+// Disconnect this triangle from all its neighbors
 void Triangle::ClearNeighbors()
 {
+  if (neighbors_[0]) { neighbors_[0]->ClearNeighbor(this); }
   neighbors_[0] = nullptr;
+  if (neighbors_[1]) { neighbors_[1]->ClearNeighbor(this); }
   neighbors_[1] = nullptr;
+  if (neighbors_[2]) { neighbors_[2]->ClearNeighbor(this); }
   neighbors_[2] = nullptr;
 }
 

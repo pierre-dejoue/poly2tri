@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
@@ -148,6 +148,7 @@ public:
   Triangle* GetNeighbor(int index);
   void MarkNeighbor(const Point* p1, const Point* p2, Triangle* t);
   void MarkNeighbor(Triangle& t);
+  void ClearNeighbors();
 
   void MarkConstrainedEdge(int index);
   void MarkConstrainedEdge(Edge& edge);
@@ -173,9 +174,7 @@ public:
   bool Contains(const Point* p, const Point* q);
   void Legalize(const Point* point);
   void Legalize(const Point* opoint, const Point* npoint);
-  void Clear();  // Clears all references to all other triangles and points
-  void ClearNeighbor(const Triangle* triangle);
-  void ClearNeighbors();
+
   void ClearDelaunayEdges();
 
   inline bool IsInterior() const;
@@ -188,6 +187,8 @@ public:
   Orientation GetOrientation() const;
 
 private:
+
+  void ClearNeighbor(const Triangle* triangle);
 
   /// Triangle points
   const Point* points_[3];

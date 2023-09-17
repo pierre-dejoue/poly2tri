@@ -11,6 +11,9 @@ bool TriangulationSanityChecks(const std::vector<p2t::Triangle*>& triangles)
       return false;
     if (!t->IsInterior())
       return false;
+    for (int i = 0; i < 3; i++)
+      if (t->GetNeighbor(i) && !t->GetNeighbor(i)->IsInterior())
+        return false;
   }
   return true;
 }
