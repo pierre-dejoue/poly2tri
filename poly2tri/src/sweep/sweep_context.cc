@@ -218,24 +218,6 @@ void SweepContext::MeshCleanExteriorTriangles(Triangle& interior_triangle)
   }
 }
 
-void SweepContext::MeshCleanHeadAndTail()
-{
-  assert(triangles_.empty());
-  for (Triangle* t : map_)
-  {
-    const Point* p0 =  t->GetPoint(0);
-    const Point* p1 =  t->GetPoint(1);
-    const Point* p2 =  t->GetPoint(2);
-    if (p0 != head_ && p0 != tail_ &&
-        p1 != head_ && p1 != tail_ &&
-        p2 != head_ && p2 != tail_)
-    {
-      t->IsInterior(true);
-      triangles_.emplace_back(t);
-    }
-  }
-}
-
 SweepContext::~SweepContext()
 {
     // Clean up memory

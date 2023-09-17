@@ -78,8 +78,6 @@ public:
 
   void MeshCleanExteriorTriangles(Triangle& interior_triangle);
 
-  void MeshCleanHeadAndTail();
-
   const std::vector<Triangle*>& GetTriangles();
 
   const std::vector<Triangle*>& GetMap();

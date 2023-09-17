@@ -30,10 +30,12 @@
  */
 
 #include "advancing_front.h"
+#include "back_front.h"
 #include "sweep.h"
 #include "sweep_context.h"
 #include "../common/utils.h"
 
+#include <algorithm>
 #include <cassert>
 #include <stdexcept>
 
@@ -105,7 +107,7 @@ void Sweep::SweepPoints()
 void Sweep::FinalizationConvexHull()
 {
   // 1. Clean the mesh from the two artificial points (head and tail)
-  tcx_.MeshCleanHeadAndTail();
+  MeshClearBackFrontTriangles();
 
   // 2. Add the bordering triangles to form the convec hull
   // TO BE IMPLEMENTED
@@ -124,6 +126,19 @@ void Sweep::FinalizationOuterPolygon()
   if (t) {
     tcx_.MeshCleanExteriorTriangles(*t);
   }
+}
+
+void Sweep::MeshClearBackFrontTriangles()
+{
+  // Mark "interior" all triangles except the ones that belong to the back front
+  for (Triangle* t : tcx_.map_) { t->IsInterior(true); }
+  const std::size_t traversed = TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
+
+  // Copy interior triangles to the output triangulation
+  tcx_.triangles_.clear();
+  assert(traversed <= tcx_.map_.size());
+  tcx_.triangles_.reserve(tcx_.map_.size() - traversed);
+  std::copy_if(std::cbegin(tcx_.map_), std::cend(tcx_.map_), std::back_inserter(tcx_.triangles_), [](const Triangle* t) { return t->IsInterior(); });
 }
 
 Node& Sweep::PointEvent(const Point* point)
