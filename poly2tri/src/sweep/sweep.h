@@ -52,14 +52,13 @@ struct Point;
 struct Edge;
 class Triangle;
 
-class Sweep
-{
+class Sweep {
 public:
 
   /**
    * Constructor
    */
-  Sweep();
+  Sweep(SweepContext& tcx);
 
   /**
    * Destructor - clean up memory
@@ -68,79 +67,69 @@ public:
 
   /**
    * Triangulate
-   *
-   * @param tcx
    */
-  void Triangulate(SweepContext& tcx, Policy policy);
+  void Triangulate(Policy policy);
 
 private:
 
   /**
    * Create the advancing front
-   *
-   * @param tcx
    */
-  void CreateAdvancingFront(SweepContext& tcx);
+  void CreateAdvancingFront();
 
   /**
    * Start sweeping the Y-sorted point set from bottom to top
-   *
-   * @param tcx
    */
-  void SweepPoints(SweepContext& tcx);
+  void SweepPoints();
 
   /**
    * Find closes node to the left of the new point and
    * create a new triangle. If needed new holes and basins
    * will be filled to.
    *
-   * @param tcx
    * @param point
    * @return
    */
-  Node& PointEvent(SweepContext& tcx, const Point* point);
+  Node& PointEvent(const Point* point);
 
    /**
+     * Edge event
      *
-     *
-     * @param tcx
      * @param edge
      * @param node
      */
-  void EdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
+  void EdgeEvent(Edge* edge, Node* node);
 
    /**
+     * Edge event
      *
-     *
-     * @param tcx
      * @param ep
      * @param eq
      * @param triangle
      * @param point
      */
-  void EdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle* triangle, const Point* point);
+  void EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, const Point* point);
 
   /**
    * Creates a new front triangle and legalize it
    *
-   * @param tcx
    * @param point
    * @param node
    * @return
    */
-  Node& NewFrontTriangle(SweepContext& tcx, const Point* point, Node& node);
+  Node& NewFrontTriangle(const Point* point, Node& node);
 
   /**
    * Adds a triangle to the advancing front to fill a hole.
-   * @param tcx
+   *
    * @param node - middle node, that is the bottom of the hole
    */
-  void Fill(SweepContext& tcx, Node& node);
+  void Fill(Node& node);
 
   /**
    * Returns true if triangle was legalized
    */
-  bool Legalize(SweepContext& tcx, Triangle& t);
+  bool Legalize(Triangle& t);
 
   /**
    * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
@@ -161,13 +150,14 @@ private:
    * the circumcircle of triangle abc<br>
    *  d is outside A if orient2d(a,b,d) or orient2d(c,a,d) is CW<br>
    *  This preknowledge gives us a way to optimize the incircle test
+   *
    * @param a - triangle point, opposite to d
    * @param b - triangle point
    * @param c - triangle point
    * @param d - point opposite to a
    * @return true if d is inside the circumcircle of triangle abc, false if d is on or outside that circle
    */
-  bool Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd) const;
+  static bool Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd);
 
   /**
    * Rotates a triangle pair one vertex CW
@@ -183,36 +173,34 @@ private:
    *       n4                    n4
    * </pre>
    */
-  void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op) const;
+  static void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op);
 
   /**
    * Fills holes in the Advancing Front
    *
-   *
-   * @param tcx
    * @param n
    */
-  void FillAdvancingFront(SweepContext& tcx, Node& n);
+  void FillAdvancingFront(Node& n);
 
   // Decision-making about when to Fill hole.
   // Contributed by ToolmakerSteve2
-  bool LargeHole_DontFill(const Node* node) const;
-  bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb) const;
-  bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb) const;
-  bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb) const;
-  double Angle(const Point* origin, const Point* pa, const Point* pb) const;
+  static bool LargeHole_DontFill(const Node* node);
+  static bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb);
+  static bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb);
+  static bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb);
+  static double Angle(const Point* origin, const Point* pa, const Point* pb);
 
   /**
    *
    * @param node - middle node
    * @return the angle between 3 front nodes
    */
-  double HoleAngle(const Node& node) const;
+  static double HoleAngle(const Node& node);
 
   /**
    * The basin angle is decided against the horizontal line [1,0]
    */
-  double BasinAngle(const Node& node) const;
+  static double BasinAngle(const Node& node);
 
   /**
    * Fills a basin that has formed on the Advancing Front to the right
@@ -220,49 +208,46 @@ private:
    * First we decide a left,bottom and right node that forms the
    * boundaries of the basin. Then we do a reqursive fill.
    *
-   * @param tcx
    * @param node - starting node, this or next node will be left node
    */
-  void FillBasin(SweepContext& tcx, Node& node);
+  void FillBasin(Node& node);
 
   /**
    * Recursive algorithm to fill a Basin with triangles
    *
-   * @param tcx
    * @param node - bottom_node
    * @param cnt - counter used to alternate on even and odd numbers
    */
-  void FillBasinReq(SweepContext& tcx, Node* node);
+  void FillBasinReq(Node* node);
 
-  bool IsShallow(SweepContext& tcx, Node& node);
+  bool IsShallow(Node& node) const;
 
-  bool IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq);
+  bool IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq) const;
 
-  void FillEdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
+  void FillEdgeEvent(Edge* edge, Node* node);
 
-  void FillRightAboveEdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
+  void FillRightAboveEdgeEvent(Edge* edge, Node* node);
 
-  void FillRightBelowEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillRightBelowEdgeEvent(Edge* edge, Node& node);
 
-  void FillRightConcaveEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillRightConcaveEdgeEvent(Edge* edge, Node& node);
 
-  void FillRightConvexEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillRightConvexEdgeEvent(Edge* edge, Node& node);
 
-  void FillLeftAboveEdgeEvent(SweepContext& tcx, Edge* edge, Node* node);
+  void FillLeftAboveEdgeEvent(Edge* edge, Node* node);
 
-  void FillLeftBelowEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillLeftBelowEdgeEvent(Edge* edge, Node& node);
 
-  void FillLeftConcaveEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillLeftConcaveEdgeEvent(Edge* edge, Node& node);
 
-  void FillLeftConvexEdgeEvent(SweepContext& tcx, Edge* edge, Node& node);
+  void FillLeftConvexEdgeEvent(Edge* edge, Node& node);
 
-  void FlipEdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle* t, const Point* p);
+  void FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const Point* p);
 
   /**
    * After a flip we have two triangles and know that only one will still be
    * intersecting the edge. So decide which to contiune with and legalize the other
    *
-   * @param tcx
    * @param o - should be the result of an Orient2d( eq, op, ep )
    * @param t - triangle 1
    * @param ot - triangle 2
@@ -270,7 +255,7 @@ private:
    * @param op - another point shared by both triangles
    * @return returns the triangle still intersecting the edge
    */
-  Triangle& NextFlipTriangle(SweepContext& tcx, Orientation o, Triangle&  t, Triangle& ot, const Point* p, const Point* op);
+  Triangle& NextFlipTriangle(Orientation o, Triangle&  t, Triangle& ot, const Point* p, const Point* op);
 
    /**
      * When we need to traverse from one triangle to the next we need
@@ -291,23 +276,25 @@ private:
      * point that is inside the flip triangle scan area. When found
      * we generate a new flipEdgeEvent
      *
-     * @param tcx
      * @param ep - last point on the edge we are traversing
      * @param eq - first point on the edge we are traversing
      * @param flipTriangle - the current triangle sharing the point eq with edge
      * @param t
      * @param p
      */
-  void FlipScanEdgeEvent(SweepContext& tcx, const Point* ep, const Point* eq, Triangle& flip_triangle, Triangle& t, const Point* p);
+  void FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_triangle, Triangle& t, const Point* p);
 
-  void FinalizationConvexHull(SweepContext& tcx);
+  void FinalizationConvexHull();
 
-  void FinalizationOuterPolygon(SweepContext& tcx);
+  void FinalizationOuterPolygon();
 
   /// Try to map a node to all sides of this triangle that don't have a neighbor
   void MapTriangleToNodes(Triangle& t);
 
 private:
+
+  // Sweep context
+  SweepContext& tcx_;
 
   // Advancing front
   AdvancingFront* front_;

@@ -102,9 +102,10 @@ void CDT::AddPoints(const Point* polyline, std::size_t num_points, std::size_t s
 
 void CDT::Triangulate(Policy triangulation_policy)
 {
-  if (sweep_context_->point_count() > 0) {
-    sweep_context_->InitTriangulation();
-    Sweep().Triangulate(*sweep_context_, triangulation_policy);
+  SweepContext& tcx = *sweep_context_;
+  if (tcx.point_count() > 0) {
+    tcx.InitTriangulation();
+    Sweep(tcx).Triangulate(triangulation_policy);
   }
 }
 
