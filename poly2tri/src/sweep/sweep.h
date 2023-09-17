@@ -293,6 +293,39 @@ private:
   /// Try to map a node to all sides of this triangle that don't have a neighbor
   void MapTriangleToNodes(Triangle& t);
 
+  struct Basin {
+    Node* left_node;
+    Node* bottom_node;
+    Node* right_node;
+    double width;
+    bool left_highest;
+
+    Basin() :
+      left_node(nullptr),
+      bottom_node(nullptr),
+      right_node(nullptr),
+      width(0.0),
+      left_highest(false)
+    {
+    }
+
+    void Clear()
+    {
+      left_node = nullptr;
+      bottom_node = nullptr;
+      right_node = nullptr;
+      width = 0.0;
+      left_highest = false;
+    }
+  };
+
+  struct EdgeEventData {
+    Edge* constrained_edge;
+    bool right;
+
+    EdgeEventData() : constrained_edge(nullptr), right(false) {}
+  };
+
 private:
 
   // Sweep context
@@ -303,6 +336,10 @@ private:
 
   // Nodes of the advancing front
   std::vector<Node*> nodes_;
+
+  Basin basin_;
+
+  EdgeEventData edge_event_;
 
 };
 

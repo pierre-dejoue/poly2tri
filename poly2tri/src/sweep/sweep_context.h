@@ -84,40 +84,6 @@ public:
 
   void InitTriangulation();
 
-  struct Basin {
-    Node* left_node;
-    Node* bottom_node;
-    Node* right_node;
-    double width;
-    bool left_highest;
-
-    Basin() :
-      left_node(nullptr),
-      bottom_node(nullptr),
-      right_node(nullptr),
-      width(0.0),
-      left_highest(false)
-    {
-    }
-
-    void Clear()
-    {
-      left_node = nullptr;
-      bottom_node = nullptr;
-      right_node = nullptr;
-      width = 0.0;
-      left_highest = false;
-    }
-  };
-
-  struct EdgeEvent {
-    Edge* constrained_edge;
-    bool right;
-
-    EdgeEvent() : constrained_edge(nullptr), right(false)
-    { }
-  };
-
 private:
 
   template <typename GenPointPtr>
@@ -145,10 +111,6 @@ private:
   // Artificial points added to the triangulation
   const Point* head_;
   const Point* tail_;
-
-  Basin basin_;
-
-  EdgeEvent edge_event_;
 
   void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
 

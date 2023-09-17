@@ -49,9 +49,7 @@ SweepContext::SweepContext() :
   triangles_(),
   map_(),
   head_(nullptr),
-  tail_(nullptr),
-  basin_(),
-  edge_event_()
+  tail_(nullptr)
 {
 }
 

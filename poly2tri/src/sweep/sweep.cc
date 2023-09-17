@@ -44,7 +44,9 @@ namespace p2t {
 Sweep::Sweep(SweepContext& tcx) :
   tcx_(tcx),
   front_(nullptr),
-  nodes_()
+  nodes_(),
+  basin_(),
+  edge_event_()
 {
 }
 
@@ -166,8 +168,8 @@ Node& Sweep::PointEvent(const Point* point)
 
 void Sweep::EdgeEvent(Edge* edge, Node* node)
 {
-  tcx_.edge_event_.constrained_edge = edge;
-  tcx_.edge_event_.right = (edge->p->x > edge->q->x);
+  edge_event_.constrained_edge = edge;
+  edge_event_.right = (edge->p->x > edge->q->x);
 
   if (IsEdgeSideOfTriangle(*node->triangle, edge->p, edge->q)) {
     return;
@@ -196,7 +198,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
       triangle->MarkConstrainedEdge(eq, p1);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      tcx_.edge_event_.constrained_edge->q = p1;
+      edge_event_.constrained_edge->q = p1;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p1, triangle, p1);
     } else {
@@ -212,7 +214,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
       triangle->MarkConstrainedEdge(eq, p2);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      tcx_.edge_event_.constrained_edge->q = p2;
+      edge_event_.constrained_edge->q = p2;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p2, triangle, p2);
     } else {
@@ -594,36 +596,36 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
 void Sweep::FillBasin(Node& node)
 {
   if (Orient2d(*node.point, *node.next->point, *node.next->next->point) == CCW) {
-    tcx_.basin_.left_node = node.next->next;
+    basin_.left_node = node.next->next;
   } else {
-    tcx_.basin_.left_node = node.next;
+    basin_.left_node = node.next;
   }
 
   // Find the bottom and right node
-  tcx_.basin_.bottom_node = tcx_.basin_.left_node;
-  while (tcx_.basin_.bottom_node->next
-         && tcx_.basin_.bottom_node->point->y >= tcx_.basin_.bottom_node->next->point->y) {
-    tcx_.basin_.bottom_node = tcx_.basin_.bottom_node->next;
+  basin_.bottom_node = basin_.left_node;
+  while (basin_.bottom_node->next
+         && basin_.bottom_node->point->y >= basin_.bottom_node->next->point->y) {
+    basin_.bottom_node = basin_.bottom_node->next;
   }
-  if (tcx_.basin_.bottom_node == tcx_.basin_.left_node) {
+  if (basin_.bottom_node == basin_.left_node) {
     // No valid basin
     return;
   }
 
-  tcx_.basin_.right_node = tcx_.basin_.bottom_node;
-  while (tcx_.basin_.right_node->next
-         && tcx_.basin_.right_node->point->y < tcx_.basin_.right_node->next->point->y) {
-    tcx_.basin_.right_node = tcx_.basin_.right_node->next;
+  basin_.right_node = basin_.bottom_node;
+  while (basin_.right_node->next
+         && basin_.right_node->point->y < basin_.right_node->next->point->y) {
+    basin_.right_node = basin_.right_node->next;
   }
-  if (tcx_.basin_.right_node == tcx_.basin_.bottom_node) {
+  if (basin_.right_node == basin_.bottom_node) {
     // No valid basins
     return;
   }
 
-  tcx_.basin_.width = tcx_.basin_.right_node->point->x - tcx_.basin_.left_node->point->x;
-  tcx_.basin_.left_highest = tcx_.basin_.left_node->point->y > tcx_.basin_.right_node->point->y;
+  basin_.width = basin_.right_node->point->x - basin_.left_node->point->x;
+  basin_.left_highest = basin_.left_node->point->y > basin_.right_node->point->y;
 
-  FillBasinReq(tcx_.basin_.bottom_node);
+  FillBasinReq(basin_.bottom_node);
 }
 
 void Sweep::FillBasinReq(Node* node)
@@ -635,15 +637,15 @@ void Sweep::FillBasinReq(Node* node)
 
   Fill(*node);
 
-  if (node->prev == tcx_.basin_.left_node && node->next == tcx_.basin_.right_node) {
+  if (node->prev == basin_.left_node && node->next == basin_.right_node) {
     return;
-  } else if (node->prev == tcx_.basin_.left_node) {
+  } else if (node->prev == basin_.left_node) {
     Orientation o = Orient2d(*node->point, *node->next->point, *node->next->next->point);
     if (o == CW) {
       return;
     }
     node = node->next;
-  } else if (node->next == tcx_.basin_.right_node) {
+  } else if (node->next == basin_.right_node) {
     Orientation o = Orient2d(*node->point, *node->prev->point, *node->prev->prev->point);
     if (o == CCW) {
       return;
@@ -665,19 +667,19 @@ bool Sweep::IsShallow(Node& node) const
 {
   double height;
 
-  if (tcx_.basin_.left_highest) {
-    height = tcx_.basin_.left_node->point->y - node.point->y;
+  if (basin_.left_highest) {
+    height = basin_.left_node->point->y - node.point->y;
   } else {
-    height = tcx_.basin_.right_node->point->y - node.point->y;
+    height = basin_.right_node->point->y - node.point->y;
   }
 
   // if shallow stop filling
-  return tcx_.basin_.width > height;
+  return basin_.width > height;
 }
 
 void Sweep::FillEdgeEvent(Edge* edge, Node* node)
 {
-  if (tcx_.edge_event_.right) {
+  if (edge_event_.right) {
     FillRightAboveEdgeEvent(edge, node);
   } else {
     FillLeftAboveEdgeEvent(edge, node);
@@ -826,7 +828,7 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
     MapTriangleToNodes(ot);
 
     if (p == eq && op == ep) {
-      if (eq == tcx_.edge_event_.constrained_edge->q && ep == tcx_.edge_event_.constrained_edge->p) {
+      if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
         t->MarkConstrainedEdge(ep, eq);
         ot.MarkConstrainedEdge(ep, eq);
         Legalize(*t);
