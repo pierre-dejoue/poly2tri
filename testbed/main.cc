@@ -457,21 +457,24 @@ void Draw(const double zoom)
     glEnd();
   }
 
-  // green
-  glColor3f(0, 1, 0);
+  if (!convex_hull_triangulation)
+  {
+    // Green for constrained edges
+    glColor3f(0, 1, 0);
 
-  vector<vector<Point*>*> polylines;
-  polylines.push_back(&polyline);
-  for (vector<Point*>& hole : holes) {
-      polylines.push_back(&hole);
-  }
-  for(int i = 0; i < polylines.size(); i++) {
-    const vector<Point*>& poly = *polylines[i];
-    glBegin(GL_LINE_LOOP);
-      for(int j = 0; j < poly.size(); j++) {
-        glVertex2d(poly[j]->x, poly[j]->y);
-      }
-    glEnd();
+    vector<vector<Point*>*> polylines;
+    polylines.push_back(&polyline);
+    for (vector<Point*>& hole : holes) {
+        polylines.push_back(&hole);
+    }
+    for(int i = 0; i < polylines.size(); i++) {
+      const vector<Point*>& poly = *polylines[i];
+      glBegin(GL_LINE_LOOP);
+        for(int j = 0; j < poly.size(); j++) {
+          glVertex2d(poly[j]->x, poly[j]->y);
+        }
+      glEnd();
+    }
   }
 }
 
