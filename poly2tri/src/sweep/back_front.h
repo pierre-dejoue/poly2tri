@@ -41,25 +41,28 @@ namespace p2t
 
 class Sweep;
 
+using BackFront = AdvancingFront;
+
 /**
- * Traverse all the back triangles, meaning the triangles with a least one of the two artificial points (head and tail)
+ * Traverse all the back triangles, meaning the triangles which contains at least one of the two artificial points (head and tail.)
  * The traversal starts with the tail and ends with the head.
- * Returns the number of traversed triangles
  *
- * An action on a back triangle is a function with prototype void(Triangle* triangle, int index, bool last)
- * and the following arguments:
+ * The back front is made of three families of triangles, encountered in the following order when traversing from tail (T) to head (H):
+ * - A fan of triangles with T as the pivot point
+ * - A unique triangle which contains the segment HT (we call it the "middle" triangle)
+ *-  A fan of triangles with H as the pivot point
+ *
+ * An action on a back triangle is a function with prototype void(Triangle* triangle, int pivot, bool mid, bool last), with argumentss:
  *  - triangle: pointer to the back triangle
- *  - index (= 0, 1 or 2): the index of the first non-artifical vertex in the triangle CCW from one of the artificial point
- *  - last (= true / false): true on the last triangle of the traversal
+ *  - pivot (= 0, 1 or 2): the index of the "pivot" vertex in the triangle, which is either the head or the tail
+ *  - mid (boolean): true iff this is the "middle" triangle
+ *  - last (boolean): true iff this is the last triangle of the traversal
  */
 template <typename ACTION>
-std::size_t TraverseBackTriangles(AdvancingFront& adv_front, ACTION action)
+void TraverseBackTriangles(AdvancingFront& adv_front, ACTION action)
 {
-  std::size_t count = 0u;
   const Node* head = adv_front.head();
-  assert(head != nullptr);
   const Node* tail = adv_front.tail();
-  assert(tail != nullptr);
   const Node* prev_tail = tail->prev;
   assert(prev_tail != nullptr);
   Triangle* triangle = prev_tail->triangle;
@@ -69,19 +72,19 @@ std::size_t TraverseBackTriangles(AdvancingFront& adv_front, ACTION action)
   while ((neighbor = triangle->NeighborCCW(pivot)) != nullptr) { triangle = neighbor; }
   while (triangle != nullptr)
   {
-    int index = triangle->Index(triangle->PointCCW(pivot));
+    bool mid = false;
+    int index = triangle->Index(pivot);
     Triangle* next = triangle->NeighborCW(pivot);
     if (next == nullptr && pivot == tail->point)
     {
+      mid = true;
       assert(triangle->PointCW(pivot) == head->point);
       pivot = head->point;
       next = triangle->NeighborCW(pivot);
     }
-    action(triangle, index, next == nullptr);
-    count++;
+    action(triangle, index, mid, next == nullptr);
     triangle = next;
   }
-  return count;
 }
 
 }

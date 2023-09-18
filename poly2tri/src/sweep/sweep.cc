@@ -29,9 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sweep.h"
+
 #include "advancing_front.h"
 #include "back_front.h"
-#include "sweep.h"
 #include "sweep_context.h"
 #include "../common/utils.h"
 
@@ -90,6 +91,19 @@ void Sweep::CreateAdvancingFront()
   front_ = std::make_unique<AdvancingFront>(*af_head, *af_tail);
 }
 
+void Sweep::CreateBackFront()
+{
+  // The back front is oriented backward (from the tail point to the head point)
+  Node* bf_head = NewNode(tcx_.tail());
+  Node* bf_tail = NewNode(tcx_.head());
+
+  bf_head->next = bf_tail;
+  bf_tail->prev = bf_head;
+
+  assert(back_front_ == nullptr);
+  back_front_ = std::make_unique<BackFront>(*bf_head, *bf_tail);
+}
+
 void Sweep::SweepPoints()
 {
   for (size_t i = 1; i < tcx_.point_count(); i++) {
@@ -125,12 +139,14 @@ namespace {
 
 void Sweep::FinalizationConvexHull()
 {
-  // 1. Clean the mesh from the two artificial points (head and tail)
+  // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
   MeshClearBackFrontTriangles();
   tcx_.MeshCleanExteriorTriangles();
 
-  // 2. Add the bordering triangles to form the convex hull
-  ConvexHullFillOfAdvancingFront();
+  // Add the bordering triangles to form the convex hull
+  assert(front_); assert(back_front_);
+  ConvexHullFillOfFront(*front_);
+  ConvexHullFillOfFront(*back_front_);
 }
 
 void Sweep::FinalizationOuterPolygon()
@@ -152,25 +168,63 @@ void Sweep::FinalizationOuterPolygon()
 
 void Sweep::MeshClearBackFrontTriangles()
 {
-  // Mark "interior" all triangles except the ones that belong to the back front
-  for (auto& t : tcx_.map_) { t->IsInterior(true); }
-  TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
+  CreateBackFront();
+  Node* const h = back_front_->head();
+  Node* const t = back_front_->tail();
+  Node* node = h;
+  Node* middle_node = nullptr;
+
+  // Mark "interior" all triangles
+  for (auto& tri : tcx_.map_) { tri->IsInterior(true); }
+
+  // Mark "exterior" the triangles of the back front and simultaneously build the back front linked list.
+  TraverseBackTriangles(*front_, [this, &node, &middle_node](Triangle* tri, int pivot, bool mid, bool last) {
+    tri->IsInterior(false);
+    const Point* p = tri->PointCCW(tri->GetPoint(pivot));
+    assert(p != back_front_->head()->point && p != back_front_->tail()->point);   // Do not use variables h, t here to prevent a warning in Release
+    if (p != node->point) {
+      Node* new_node = NewNode(p);
+      node->next = new_node;
+      new_node->prev = node;
+      node = new_node;
+    }
+    if (mid) {
+      middle_node = node;
+    } else {
+      node->triangle = tri->GetNeighbor(pivot);
+      assert(node->triangle == nullptr || node->triangle->IsInterior());
+    }
+    if (last && !mid) {
+      const Point* q = tri->PointCW(tri->GetPoint(pivot));
+      assert(q != back_front_->head()->point && q != back_front_->tail()->point);
+      Node* new_node = NewNode(q);
+      node->next = new_node;
+      new_node->prev = node;
+      node = new_node;
+    }
+  });
+  node->next = t;
+  t->prev = node;
+  if (middle_node != nullptr) {
+    middle_node->triangle = middle_node->next->triangle;
+  }
+  h->triangle = h->next->triangle;
 }
 
-void Sweep::ConvexHullFillOfAdvancingFront()
+void Sweep::ConvexHullFillOfFront(AdvancingFront& front)
 {
-  assert(front_);
   // This method will fill the nodes from head()->next->next to tail()->prev->prev
-  const auto node_range = GetInnerRange(*front_);
+  const auto node_range = GetInnerRange(front);
   Node* const begin_node = node_range.first;
   Node* const end_node = node_range.second;
+  Node* const min_prev_node = begin_node->prev;
   Node* node = begin_node;
   while (node != end_node)
   {
     assert(node != nullptr);
     if (Orient2d(*node->prev->point, *node->point, *node->next->point) == CCW) {
       Fill(*node);
-      if (node != begin_node) { node = node->prev; }  // Do not exit the range begin_node, end_node
+      if (node->prev != min_prev_node) { node = node->prev; }  // Stay in range begin_node, end_node
       else { node = node->next; }
     }
     else

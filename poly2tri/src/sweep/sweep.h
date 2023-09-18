@@ -47,6 +47,7 @@
 namespace p2t {
 
 class AdvancingFront;
+using BackFront = AdvancingFront;
 class SweepContext;
 struct Node;
 struct Point;
@@ -77,6 +78,13 @@ private:
    * Create the advancing front
    */
   void CreateAdvancingFront();
+
+  /**
+   * Create the back front
+   *
+   * Used to finalize the convex hull triangulation
+   */
+  void CreateBackFront();
 
   /**
    * Start sweeping the Y-sorted point set from bottom to top
@@ -291,7 +299,7 @@ private:
 
   void MeshClearBackFrontTriangles();
 
-  void ConvexHullFillOfAdvancingFront();
+  void ConvexHullFillOfFront(AdvancingFront& front);    // AdvancingFront or BackFront
 
   /// Try to map a node to all sides of this triangle that don't have a neighbor
   void MapTriangleToNodes(Triangle& t);
@@ -338,6 +346,9 @@ private:
 
   // Advancing front
   std::unique_ptr<AdvancingFront> front_;
+
+  // Back front
+  std::unique_ptr<BackFront> back_front_;
 
   // Nodes of the advancing front
   std::vector<std::unique_ptr<Node>> nodes_;
