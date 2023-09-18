@@ -68,7 +68,6 @@ void Sweep::Triangulate(Policy policy)
       FinalizationOuterPolygon();
       break;
   }
-  tcx_.MeshCleanExteriorTriangles();
 }
 
 void Sweep::CreateAdvancingFront()
@@ -128,9 +127,10 @@ void Sweep::FinalizationConvexHull()
 {
   // 1. Clean the mesh from the two artificial points (head and tail)
   MeshClearBackFrontTriangles();
+  tcx_.MeshCleanExteriorTriangles();
 
-  // 2. Add the bordering triangles to form the convec hull
-  // TO BE IMPLEMENTED
+  // 2. Add the bordering triangles to form the convex hull
+  ConvexHullFillOfAdvancingFront();
 }
 
 void Sweep::FinalizationOuterPolygon()
@@ -145,6 +145,9 @@ void Sweep::FinalizationOuterPolygon()
   // Collect interior triangles constrained by edges
   if (t)
     FloodFillOfInteriorTriangles(*t);
+
+  // Remove exterior triangles
+  tcx_.MeshCleanExteriorTriangles();
 }
 
 void Sweep::MeshClearBackFrontTriangles()
@@ -152,6 +155,29 @@ void Sweep::MeshClearBackFrontTriangles()
   // Mark "interior" all triangles except the ones that belong to the back front
   for (auto& t : tcx_.map_) { t->IsInterior(true); }
   TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
+}
+
+void Sweep::ConvexHullFillOfAdvancingFront()
+{
+  assert(front_);
+  // This method will fill the nodes from head()->next->next to tail()->prev->prev
+  const auto node_range = GetInnerRange(*front_);
+  Node* const begin_node = node_range.first;
+  Node* const end_node = node_range.second;
+  Node* node = begin_node;
+  while (node != end_node)
+  {
+    assert(node != nullptr);
+    if (Orient2d(*node->prev->point, *node->point, *node->next->point) == CCW) {
+      Fill(*node);
+      if (node != begin_node) { node = node->prev; }  // Do not exit the range begin_node, end_node
+      else { node = node->next; }
+    }
+    else
+    {
+      node = node->next;
+    }
+  }
 }
 
 Node& Sweep::PointEvent(const Point* point)

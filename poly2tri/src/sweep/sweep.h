@@ -291,6 +291,8 @@ private:
 
   void MeshClearBackFrontTriangles();
 
+  void ConvexHullFillOfAdvancingFront();
+
   /// Try to map a node to all sides of this triangle that don't have a neighbor
   void MapTriangleToNodes(Triangle& t);
 

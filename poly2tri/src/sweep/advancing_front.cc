@@ -109,4 +109,29 @@ Node* AdvancingFront::LocatePoint(const Point* point)
   return node;
 }
 
+std::pair<Node*, Node*> GetInnerRange(AdvancingFront& front)
+{
+  std::size_t idx = 1;
+  Node* node = front.head()->next;
+  Node* const tail = front.tail();
+  Node* begin_node = nullptr;
+  while (node != nullptr && node != tail && idx < 3)
+  {
+    idx++;
+    node = node->next;
+    if (idx == 2)
+      begin_node = node;
+  }
+  if (idx < 3)
+  {
+    // idx = 1: h -> t
+    // idx = 2: h -> n -> t
+    return std::make_pair(front.head(), front.head());     // Return an empty range
+  }
+  // Else, the advancing range has a length at least equal to 4 (The shortest case is: h -> n1 -> n2 -> t, with begin_node = n2)
+  assert(begin_node != nullptr);
+  assert(tail->prev != nullptr);
+  return std::make_pair(begin_node, tail->prev);
+}
+
 } // namespace p2t

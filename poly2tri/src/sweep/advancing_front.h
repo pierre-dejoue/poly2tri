@@ -34,6 +34,7 @@
 #include <poly2tri/common/shapes.h>
 
 #include <cassert>
+#include <utility>
 
 namespace p2t {
 
@@ -85,5 +86,9 @@ private:
   Node* FindSearchNode(double x);
 
 };
+
+// Return a range (begin, end) of the inner nodes of the advancing front
+// That is, the range of all nodes from head()->next->next to tail()->prev->prev
+std::pair<Node*, Node*> GetInnerRange(AdvancingFront& front);
 
 }
