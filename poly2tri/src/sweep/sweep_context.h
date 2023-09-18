@@ -48,6 +48,8 @@ class Triangle;
 struct Node;
 struct Edge;
 
+struct SweepPoint;
+
 class SweepContext {
 public:
 
@@ -79,6 +81,10 @@ public:
 
   void MeshCleanExteriorTriangles();
 
+  const std::vector<SweepPoint>& GetPoints() const;
+
+  const std::vector<std::unique_ptr<Edge>>& GetEdges() const;
+
   const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
 
   void InitTriangulation();
@@ -97,15 +103,6 @@ private:
 
   Edge* NewEdge(const Point* a, const Point* b);
 
-  struct SweepPoint
-  {
-    SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
-
-    const Point* p;
-    std::vector<Edge*> edges;   // List of edges for which this point is the upper endpoint
-  };
-  static bool cmp(const SweepPoint& a, const SweepPoint& b);
-
   std::vector<SweepPoint> points_;
   std::vector<std::unique_ptr<Edge>> edges_;
   std::vector<std::unique_ptr<Triangle>> map_;
@@ -116,6 +113,19 @@ private:
 
 };
 
+// Wrapper structure around the Points provided by the user
+struct SweepPoint
+{
+  SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
+
+  static bool cmp(const SweepPoint& a, const SweepPoint& b);
+
+  const Point* p;
+  std::vector<Edge*> edges;   // List of edges for which this point is the upper endpoint
+};
+
+
+// Implementations
 inline size_t SweepContext::point_count() const
 {
   return points_.size();

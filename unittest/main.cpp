@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(QuadTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(QuadSteinerTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(QuadTestModernAPI)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(QuadTestWithStride)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(NarrowQuadTest)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_REQUIRE_EQUAL(result.size(), 2);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest01)
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   // BOOST_CHECK(IsConstrainedDelaunay(result));            Fails
   BOOST_REQUIRE_EQUAL(result.size(), 10);
 }
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest02)
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 11);
 }
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest03)
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 5);
 }
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest04)
 
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
-  BOOST_CHECK(TriangulationSanityChecks(result));
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 13);
 }
@@ -349,8 +349,8 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
       BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::OuterPolygon));
       const auto result = p2t::GetTrianglesAsVector(cdt);
       BOOST_REQUIRE(result.size() * 3 > polyline.size());
-      BOOST_CHECK(TriangulationSanityChecks(result));
-      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(result), case_message);
+      BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
       BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result), case_message);
     }
     {
@@ -362,8 +362,8 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
       BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
       const auto result = p2t::GetTrianglesAsVector(cdt);
       BOOST_REQUIRE(result.size() * 3 > polyline.size());
-      BOOST_CHECK(TriangulationSanityChecks(result));
-      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(result), case_message);
+      BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
       BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result), case_message);
     }
   }

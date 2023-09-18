@@ -47,6 +47,7 @@
 namespace p2t {
 
 struct Point;
+struct Edge;
 class Sweep;
 class SweepContext;
 class Triangle;
@@ -137,6 +138,30 @@ public:
   const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
   template <typename OutIt>
   void GetTriangles(OutIt triangle_pointer_dest) const;
+
+  /**
+   * Get the number of points that were given as input by the user
+   */
+  std::size_t GetInputPointsCount() const;
+
+  /**
+   * Get the list of all points that were given as input by the user
+   *
+   * For test and debug purpose only.
+   */
+  std::vector<const Point*> GetInputPoints() const;
+
+  /**
+   * Get the number of edges that were given as input by the user
+   */
+  std::size_t GetInputEdgesCount() const;
+
+  /**
+   * Get the list of all edges that were given as input by the user
+   *
+   * For test and debug purpose only.
+   */
+  std::vector<Edge*> GetInputEdges() const;
 
 private:
 

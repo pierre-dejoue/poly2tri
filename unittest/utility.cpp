@@ -3,18 +3,30 @@
 #include <cassert>
 #include <iterator>
 #include <numeric>
+#include <set>
 
-bool TriangulationSanityChecks(const std::vector<p2t::Triangle*>& triangles)
+bool TriangulationSanityChecks(const p2t::CDT& cdt, const std::vector<p2t::Triangle*>& triangles)
 {
+  const auto all_input_points = cdt.GetInputPoints();
+  std::set<const p2t::Point*> pointset(std::cbegin(all_input_points), std::cend(all_input_points));
+  if (all_input_points.size() != pointset.size())
+    return false;
+
+  std::set<p2t::Triangle*> triangleset(std::cbegin(triangles), std::cend(triangles));
+  if (triangles.size() != triangleset.size())
+    return false;
+
   for (p2t::Triangle* t : triangles) {
     if (t == nullptr)
       return false;
-    if (!t->IsInterior())
-      return false;
     for (int i = 0; i < 3; i++)
-      if (t->GetNeighbor(i) && !t->GetNeighbor(i)->IsInterior())
+      if (pointset.count(t->GetPoint(i)) == 0)
+        return false;
+    for (int i = 0; i < 3; i++)
+      if (t->GetNeighbor(i) && triangleset.count(t->GetNeighbor(i)) == 0)
         return false;
   }
+
   return true;
 }
 

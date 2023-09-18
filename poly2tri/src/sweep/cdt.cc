@@ -34,6 +34,7 @@
 #include "sweep_context.h"
 #include "sweep.h"
 
+#include <algorithm>
 #include <iterator>
 
 namespace p2t {
@@ -118,6 +119,34 @@ std::size_t CDT::GetTrianglesCount() const
 const std::vector<std::unique_ptr<Triangle>>& CDT::GetTriangles() const
 {
   return sweep_context_->GetTriangles();
+}
+
+std::size_t CDT::GetInputPointsCount() const
+{
+  return sweep_context_->GetPoints().size();
+}
+
+std::vector<const Point*> CDT::GetInputPoints() const
+{
+  std::vector<const Point*> result;
+  const auto& sweep_points = sweep_context_->GetPoints();
+  result.reserve(sweep_points.size());
+  std::transform(std::cbegin(sweep_points), std::cend(sweep_points), std::back_inserter(result), [](const auto& sweep_p) { return sweep_p.p; });
+  return result;
+}
+
+std::size_t CDT::GetInputEdgesCount() const
+{
+  return sweep_context_->GetEdges().size();
+}
+
+std::vector<Edge*> CDT::GetInputEdges() const
+{
+  std::vector<Edge*> result;
+  const auto& edges = sweep_context_->GetEdges();
+  result.reserve(edges.size());
+  std::transform(std::cbegin(edges), std::cend(edges), std::back_inserter(result), [](const auto& uniq_ptr) { return uniq_ptr.get(); });
+  return result;
 }
 
 std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)

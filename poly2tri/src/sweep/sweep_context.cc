@@ -119,12 +119,22 @@ void SweepContext::AddPoints(const Point* points, std::size_t num_points, std::s
   AddPointsGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
 }
 
+const std::vector<SweepPoint>& SweepContext::GetPoints() const
+{
+  return points_;
+}
+
+const std::vector<std::unique_ptr<Edge>>& SweepContext::GetEdges() const
+{
+  return edges_;
+}
+
 const std::vector<std::unique_ptr<Triangle>>& SweepContext::GetTriangles() const
 {
   return map_;
 }
 
-bool SweepContext::cmp(const SweepPoint& a, const SweepPoint& b)
+bool SweepPoint::cmp(const SweepPoint& a, const SweepPoint& b)
 {
   return p2t::cmp(a.p, b.p);
 }
@@ -155,7 +165,7 @@ void SweepContext::InitTriangulation()
   tail_ = std::make_unique<const Point>(xmax + dx, ymin - dy);
 
   // Sort points along y-axis
-  std::sort(points_.begin(), points_.end(), &SweepContext::cmp);
+  std::sort(points_.begin(), points_.end(), &SweepPoint::cmp);
 }
 
 void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points)
