@@ -41,6 +41,7 @@
 #include <poly2tri/common/shapes.h>
 #include <poly2tri/sweep/policy.h>
 
+#include <memory>
 #include <vector>
 
 namespace p2t {
@@ -328,14 +329,16 @@ private:
 
 private:
 
+  Node* NewNode(const Point* p, Triangle* t = nullptr);
+
   // Sweep context
   SweepContext& tcx_;
 
   // Advancing front
-  AdvancingFront* front_;
+  std::unique_ptr<AdvancingFront> front_;
 
   // Nodes of the advancing front
-  std::vector<Node*> nodes_;
+  std::vector<std::unique_ptr<Node>> nodes_;
 
   Basin basin_;
 

@@ -37,18 +37,21 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Many other methods in class Triangle have changed to take or return const Point* instead of references.
   Most of those methods, despite being public, are unlikely to be used in client code.
 - Remove CDT::GetMap(). That method was for debug purpose only and imposed an extra memory cost.
+- Method CDT::GetTriangles() returns a vector of unique_ptr by const ref. This is likely to break some client
+  code. A free function p2t::GetTrianglesAsVector(cdt) has been added to facilitate the transition.
 
 ### Non-Breaking
 
 - Orientation enum is now public
 - Added method Triangle::GetOrientation()
-- Methods CDT::GetTriangles() returns by const ref
 - Added a default constructor to class CDT
 - Added methods CDT::AddPolyline(polyline) and CDT::AddPoints(points)
 - Make the Point structure safer and more flexible:
     - Remove the edge_list from Point
     - New API CDT::Add{Polyline/Hole/Points} with pointer + size arguments
     - Never modify the user's Point data (const Point*)
+- Add CDT::GetTrianglesCount()
+- Add CDT::GetTriangles(output_iterator)
 - Neighbor triangles in the triangulation result are now consistent (no links to triangles exterior to the CDT)
 
 Dependencies

@@ -43,7 +43,7 @@ namespace p2t {
 
 Sweep::Sweep(SweepContext& tcx) :
   tcx_(tcx),
-  front_(nullptr),
+  front_(),
   nodes_(),
   basin_(),
   edge_event_()
@@ -76,17 +76,11 @@ void Sweep::CreateAdvancingFront()
   // Initial triangle
   assert(tcx_.points_.size() > 0);
   const Point* lowest_point = tcx_.GetPoint(0);
-  Triangle* triangle = new Triangle(lowest_point, tcx_.head(), tcx_.tail());
+  Triangle* triangle = tcx_.AddTriangleToMap(lowest_point, tcx_.head(), tcx_.tail());
 
-  tcx_.AddToMap(triangle);
-
-  Node* af_head = new Node(tcx_.head(), triangle);
-  Node* af_middle = new Node(lowest_point, triangle);
-  Node* af_tail = new Node(tcx_.tail());
-
-  nodes_.emplace_back(af_head);
-  nodes_.emplace_back(af_middle);
-  nodes_.emplace_back(af_tail);
+  Node* af_head = NewNode(tcx_.head(), triangle);
+  Node* af_middle = NewNode(lowest_point, triangle);
+  Node* af_tail = NewNode(tcx_.tail());
 
   af_head->next = af_middle;
   af_middle->next = af_tail;
@@ -94,7 +88,7 @@ void Sweep::CreateAdvancingFront()
   af_tail->prev = af_middle;
 
   assert(front_ == nullptr);
-  front_ = new AdvancingFront(*af_head, *af_tail);
+  front_ = std::make_unique<AdvancingFront>(*af_head, *af_tail);
 }
 
 void Sweep::SweepPoints()
@@ -156,7 +150,7 @@ void Sweep::FinalizationOuterPolygon()
 void Sweep::MeshClearBackFrontTriangles()
 {
   // Mark "interior" all triangles except the ones that belong to the back front
-  for (Triangle* t : tcx_.map_) { t->IsInterior(true); }
+  for (auto& t : tcx_.map_) { t->IsInterior(true); }
   TraverseBackTriangles(*front_, [](Triangle* t, int, bool) { t->IsInterior(false); });
 }
 
@@ -273,13 +267,11 @@ bool Sweep::IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Poin
 
 Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
 {
-  Triangle* triangle = new Triangle(point, node.point, node.next->point);
+  Triangle* triangle = tcx_.AddTriangleToMap(point, node.point, node.next->point);
 
   triangle->MarkNeighbor(*node.triangle);
-  tcx_.AddToMap(triangle);
 
-  Node* new_node = new Node(point);
-  nodes_.emplace_back(new_node);
+  Node* new_node = NewNode(point);
 
   new_node->next = node.next;
   new_node->prev = &node;
@@ -295,14 +287,12 @@ Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
 
 void Sweep::Fill(Node& node)
 {
-  Triangle* triangle = new Triangle(node.prev->point, node.point, node.next->point);
+  Triangle* triangle = tcx_.AddTriangleToMap(node.prev->point, node.point, node.next->point);
 
   // TODO: should copy the constrained_edge value from neighbor triangles
   //       for now constrained_edge values are copied during the legalize
   triangle->MarkNeighbor(*node.prev->triangle);
   triangle->MarkNeighbor(*node.triangle);
-
-  tcx_.AddToMap(triangle);
 
   // Update the advancing front
   node.prev->next = node.next;
@@ -948,13 +938,12 @@ void Sweep::MapTriangleToNodes(Triangle& t)
   }
 }
 
-Sweep::~Sweep()
+Node* Sweep::NewNode(const Point* p, Triangle* t)
 {
-    // Clean up memory
-    delete front_;
-    for (auto& node : nodes_) {
-      delete node;
-    }
+  nodes_.emplace_back(std::make_unique<Node>(p, t));
+  return nodes_.back().get();
 }
+
+Sweep::~Sweep() = default;
 
 } // namespace p2t

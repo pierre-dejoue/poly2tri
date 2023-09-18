@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 
@@ -70,7 +71,7 @@ public:
 
   size_t point_count() const;
 
-  void AddToMap(Triangle* triangle);
+  Triangle* AddTriangleToMap(const Point* a, const Point* b, const Point* c);
 
   const Point* GetPoint(size_t index);
 
@@ -78,11 +79,13 @@ public:
 
   void MeshCleanExteriorTriangles();
 
-  const std::vector<Triangle*>& GetTriangles();
+  const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
 
   void InitTriangulation();
 
 private:
+
+  friend class Sweep;
 
   template <typename GenPointPtr>
   void AddClosedPolylineGen(GenPointPtr generator, std::size_t num_points);
@@ -90,7 +93,9 @@ private:
   template <typename GenPointPtr>
   void AddPointsGen(GenPointPtr generator, std::size_t num_points);
 
-  friend class Sweep;
+  void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
+
+  Edge* NewEdge(const Point* a, const Point* b);
 
   struct SweepPoint
   {
@@ -102,14 +107,12 @@ private:
   static bool cmp(const SweepPoint& a, const SweepPoint& b);
 
   std::vector<SweepPoint> points_;
-  std::vector<Edge*> edge_list_;
-  std::vector<Triangle*> map_;
+  std::vector<std::unique_ptr<Edge>> edges_;
+  std::vector<std::unique_ptr<Triangle>> map_;
 
   // Artificial points added to the triangulation
-  const Point* head_;
-  const Point* tail_;
-
-  void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
+  std::unique_ptr<const Point> head_;
+  std::unique_ptr<const Point> tail_;
 
 };
 
@@ -120,12 +123,12 @@ inline size_t SweepContext::point_count() const
 
 inline const Point* SweepContext::head() const
 {
-  return head_;
+  return head_.get();
 }
 
 inline const Point* SweepContext::tail() const
 {
-  return tail_;
+  return tail_.get();
 }
 
 }

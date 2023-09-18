@@ -1,8 +1,8 @@
 #include "utility.h"
 
-#include <poly2tri/common/shapes.h>
-
 #include <cassert>
+#include <iterator>
+#include <numeric>
 
 bool TriangulationSanityChecks(const std::vector<p2t::Triangle*>& triangles)
 {
@@ -39,4 +39,12 @@ bool IsConstrainedDelaunay(const std::vector<p2t::Triangle*>& triangles)
     }
   }
   return true;
+}
+
+std::vector<p2t::Point*> MakePointerVector(std::vector<p2t::Point>& points)
+{
+  std::vector<p2t::Point*> result;
+  result.resize(points.size(), nullptr);
+  std::iota(result.begin(), result.end(), points.data());
+  return result;
 }

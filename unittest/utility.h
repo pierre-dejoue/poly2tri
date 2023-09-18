@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
+#include <poly2tri/common/shapes.h>
 
-namespace p2t
-{
-  class Triangle;
-}
+#include <vector>
 
 bool TriangulationSanityChecks(const std::vector<p2t::Triangle*>& triangles);
 
 bool IsConstrainedDelaunay(const std::vector<p2t::Triangle*>& triangles);
+
+std::vector<p2t::Point*> MakePointerVector(std::vector<p2t::Point>& points);

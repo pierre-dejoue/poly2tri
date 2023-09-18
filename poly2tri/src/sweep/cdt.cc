@@ -34,6 +34,7 @@
 #include "sweep_context.h"
 #include "sweep.h"
 
+#include <iterator>
 
 namespace p2t {
 
@@ -109,9 +110,22 @@ void CDT::Triangulate(Policy triangulation_policy)
   }
 }
 
-const std::vector<p2t::Triangle*>& CDT::GetTriangles()
+std::size_t CDT::GetTrianglesCount() const
+{
+  return sweep_context_->GetTriangles().size();
+}
+
+const std::vector<std::unique_ptr<Triangle>>& CDT::GetTriangles() const
 {
   return sweep_context_->GetTriangles();
+}
+
+std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)
+{
+  std::vector<p2t::Triangle*> result;
+  result.reserve(cdt.GetTrianglesCount());
+  cdt.GetTriangles(std::back_inserter(result));
+  return result;
 }
 
 } // namespace p2t

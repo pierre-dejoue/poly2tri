@@ -125,14 +125,39 @@ public:
   void Triangulate(Policy triangulation_policy = Policy::OuterPolygon);
 
   /**
-   * Get CDT triangles
+   * Get the number of CDT triangles
    */
-  const std::vector<Triangle*>& GetTriangles();
+  std::size_t GetTrianglesCount() const;
+
+  /**
+   * Get CDT triangles
+   *
+   * OutIt: An output iterator of Triangle*
+   */
+  const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
+  template <typename OutIt>
+  void GetTriangles(OutIt triangle_pointer_dest) const;
 
 private:
 
   std::unique_ptr<SweepContext> sweep_context_;
 
 };
+
+// Utility function to help the transition from the original API: std::vector<p2t::Triangle*> CDT::GetTriangles();
+std::vector<Triangle*> GetTrianglesAsVector(const p2t::CDT& cdt);
+
+//
+// Implementations
+//
+
+template <typename OutIt>
+void CDT::GetTriangles(OutIt triangle_pointer_dest) const
+{
+  for (const auto& t : GetTriangles())
+  {
+    *triangle_pointer_dest++ = t.get();
+  }
+}
 
 }

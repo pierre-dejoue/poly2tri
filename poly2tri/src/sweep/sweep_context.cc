@@ -45,10 +45,10 @@ namespace p2t {
 
 SweepContext::SweepContext() :
   points_(),
-  edge_list_(),
+  edges_(),
   map_(),
-  head_(nullptr),
-  tail_(nullptr)
+  head_(),
+  tail_()
 {
 }
 
@@ -119,7 +119,7 @@ void SweepContext::AddPoints(const Point* points, std::size_t num_points, std::s
   AddPointsGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
 }
 
-const std::vector<Triangle*>& SweepContext::GetTriangles()
+const std::vector<std::unique_ptr<Triangle>>& SweepContext::GetTriangles() const
 {
   return map_;
 }
@@ -150,10 +150,9 @@ void SweepContext::InitTriangulation()
 
   double dx = kAlpha * (xmax - xmin);
   double dy = kAlpha * (ymax - ymin);
-  delete head_;
-  delete tail_;
-  head_ = new Point(xmin - dx, ymin - dy);
-  tail_ = new Point(xmax + dx, ymin - dy);
+
+  head_ = std::make_unique<const Point>(xmin - dx, ymin - dy);
+  tail_ = std::make_unique<const Point>(xmax + dx, ymin - dy);
 
   // Sort points along y-axis
   std::sort(points_.begin(), points_.end(), &SweepContext::cmp);
@@ -167,10 +166,16 @@ void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_p
   assert(end <= points_.size());
   for (std::size_t i = begin; i < end; i++) {
     std::size_t j = i < (end - 1) ? i + 1 : begin;
-    edge_list_.emplace_back(new Edge(points_[i].p, points_[j].p));
-    std::size_t upper_endpoint = (edge_list_.back()->q == points_[i].p ? i : j);
-    points_[upper_endpoint].edges.emplace_back(edge_list_.back());
+    Edge* edge = NewEdge(points_[i].p, points_[j].p);
+    std::size_t upper_endpoint = (edge->q == points_[i].p ? i : j);
+    points_[upper_endpoint].edges.emplace_back(edge);
   }
+}
+
+Edge* SweepContext::NewEdge(const Point* a, const Point* b)
+{
+  edges_.emplace_back(std::make_unique<Edge>(a, b));
+  return edges_.back().get();
 }
 
 const Point* SweepContext::GetPoint(size_t index)
@@ -184,17 +189,17 @@ const std::vector<Edge*>& SweepContext::GetUpperEdges(size_t index)
 }
 
 
-void SweepContext::AddToMap(Triangle* triangle)
+Triangle* SweepContext::AddTriangleToMap(const Point* a, const Point* b, const Point* c)
 {
-  map_.push_back(triangle);
+  map_.emplace_back(std::make_unique<Triangle>(a, b, c));
+  return map_.back().get();
 }
 
 void SweepContext::MeshCleanExteriorTriangles()
 {
-  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [](Triangle* t) {
+  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [](auto& t) {
     if (!t->IsInterior()) {
       t->ClearNeighbors();    // To clear the reciprocate neighbor link
-      delete t;
       return true;
     }
     return false;
@@ -202,19 +207,6 @@ void SweepContext::MeshCleanExteriorTriangles()
   map_.erase(last_it, std::end(map_));
 }
 
-SweepContext::~SweepContext()
-{
-    // Clean up memory
-    delete head_;
-    delete tail_;
-
-    for (auto ptr : map_) {
-      delete ptr;
-    }
-
-    for (auto& i : edge_list_) {
-      delete i;
-    }
-}
+SweepContext::~SweepContext() = default;
 
 } // namespace p2t
