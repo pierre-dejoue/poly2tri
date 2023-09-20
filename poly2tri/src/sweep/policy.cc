@@ -27,28 +27,29 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <poly2tri/sweep/policy.h>
 
-#include <ostream>
+#include <cassert>
+
 
 namespace p2t
 {
 
-/**
- * Triangulation Policy
- *
- *  - OuterPolygon:  It is the default, and the original behavior of the poly2tri library.
- *                   Triangulate a simple polygon (the outer polyline), possibly containing holes and steiner points.
- *  - ConvexHull:    Triangulate the convex hull of the input vertices, taking into account the constrained edges.
- *
- * In all cases, we generate a CDT. To generate a DT: Use the "ConvexHull" policy and input only Steiner points with CDT::AddPoints().
- */
-enum class Policy
+std::ostream& operator<<(std::ostream& out, Policy policy)
 {
-    OuterPolygon,
-    ConvexHull
-};
-
-std::ostream& operator<<(std::ostream& out, Policy policy);
+  switch(policy) {
+    case Policy::OuterPolygon:
+      out << "OuterPolygon";
+      break;
+    case Policy::ConvexHull:
+      out << "ConvexHull";
+      break;
+    default:
+      assert(0);
+      out << "Unknown";
+      break;
+  }
+  return out;
+}
 
 }

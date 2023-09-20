@@ -312,9 +312,30 @@ BOOST_AUTO_TEST_CASE(PolygonTest04)
   BOOST_REQUIRE_EQUAL(result.size(), 13);
 }
 
+struct FileTest
+{
+  const char* filename;
+  const p2t::Policy triangulation_policy;
+  const bool expected_is_cdt;
+  const std::size_t expected_points;
+  const std::size_t expected_triangles;
+};
+
 BOOST_AUTO_TEST_CASE(TestbedFilesTest)
 {
-  for (const auto& filename : { "custom.dat", "diamond.dat", "star.dat", "test.dat" }) {
+  const std::vector<FileTest> file_tests {
+    { "diamond.dat", p2t::Policy::OuterPolygon, true, 10, 8 },
+    { "diamond.dat", p2t::Policy::ConvexHull, true, 10, 8 },
+    { "star.dat", p2t::Policy::OuterPolygon, true, 10, 8 },
+    { "star.dat", p2t::Policy::ConvexHull, true, 10, 13 },
+    { "test.dat", p2t::Policy::OuterPolygon, true, 6, 4 },
+    { "test.dat", p2t::Policy::ConvexHull, true, 6, 6 },
+    { "dude_sampled_1.dat", p2t::Policy::OuterPolygon, true, 109, 107 },
+    { "dude_sampled_1.dat", p2t::Policy::ConvexHull, false, 109, 199 },
+    { "dude_sampled_2.dat", p2t::Policy::OuterPolygon, false, 512, 510 },
+    { "dude_sampled_2.dat", p2t::Policy::ConvexHull, false, 512, 998 },
+  };
+  for (const auto& test_case : file_tests) {
     std::vector<p2t::Point> points;
     // Load pointset from file
     // Parse and tokenize data file
@@ -324,7 +345,7 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
 #else
     const auto basedir = boost::filesystem::path(P2T_BASE_DIR);
 #endif
-    const auto datafile = basedir / boost::filesystem::path("testbed/data") / boost::filesystem::path(filename);
+    const auto datafile = basedir / boost::filesystem::path("testbed/data") / boost::filesystem::path(test_case.filename);
     std::ifstream myfile(datafile.string());
     BOOST_REQUIRE(myfile.is_open());
     while (!myfile.eof()) {
@@ -341,30 +362,19 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
       points.push_back(p2t::Point(x, y));
     }
     const auto polyline = MakePointerVector(points);
-    {
-      // Triangulation policy: OuterPolygon
-      const std::string case_message = std::string(filename) + " OuterPolygon " + std::to_string(polyline.size());
-      p2t::CDT cdt;
-      cdt.AddPolyline(polyline);
-      BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::OuterPolygon));
-      const auto result = p2t::GetTrianglesAsVector(cdt);
-      BOOST_REQUIRE(result.size() * 3 > polyline.size());
-      BOOST_CHECK(TriangulationSanityChecks(cdt, result));
-      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
-      BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result), case_message);
-    }
-    {
-      // Triangulation policy: ConvexHull
-      const auto polyline = MakePointerVector(points);
-      const std::string case_message = std::string(filename) + " ConvexHull " + std::to_string(polyline.size());
-      p2t::CDT cdt;
-      cdt.AddPolyline(polyline);
-      BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
-      const auto result = p2t::GetTrianglesAsVector(cdt);
-      BOOST_REQUIRE(result.size() * 3 > polyline.size());
-      BOOST_CHECK(TriangulationSanityChecks(cdt, result));
-      BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
-      BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result), case_message);
-    }
+    const std::string case_message = [&]() {
+      std::stringstream sout;
+      sout << test_case.filename << " " << test_case.triangulation_policy << " " << polyline.size();
+      return sout.str();
+    }();
+    p2t::CDT cdt;
+    cdt.AddPolyline(polyline);
+    BOOST_CHECK_NO_THROW(cdt.Triangulate(test_case.triangulation_policy));
+    const auto result = p2t::GetTrianglesAsVector(cdt);
+    BOOST_REQUIRE(result.size() * 3 > polyline.size());
+    BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
+    BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result) == test_case.expected_is_cdt, case_message);
+    BOOST_CHECK_MESSAGE(result.size() == test_case.expected_triangles, case_message);
+    BOOST_CHECK_MESSAGE(CountPoints(result) == test_case.expected_points, case_message);
   }
 }

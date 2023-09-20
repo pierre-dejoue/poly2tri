@@ -5,6 +5,7 @@ lib = static_library('poly2tri', sources : [
 	'poly2tri/src/common/shapes.cc',
 	'poly2tri/src/sweep/advancing_front.cc',
 	'poly2tri/src/sweep/cdt.cc',
+	'poly2tri/src/sweep/policy.cc',
 	'poly2tri/src/sweep/sweep.cc',
 	'poly2tri/src/sweep/sweep_context.cc',
 ], include_directories: include)

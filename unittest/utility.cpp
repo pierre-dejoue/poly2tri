@@ -60,3 +60,15 @@ std::vector<p2t::Point*> MakePointerVector(std::vector<p2t::Point>& points)
   std::iota(result.begin(), result.end(), points.data());
   return result;
 }
+
+std::size_t CountPoints(const std::vector<p2t::Triangle*>& triangles)
+{
+  std::set<const p2t::Point*> pointset;
+  for (const auto* t: triangles)
+  {
+    pointset.insert(t->GetPoint(0));
+    pointset.insert(t->GetPoint(1));
+    pointset.insert(t->GetPoint(2));
+  }
+  return pointset.size();
+}
