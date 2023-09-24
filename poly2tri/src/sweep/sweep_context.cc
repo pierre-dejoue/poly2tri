@@ -166,6 +166,9 @@ void SweepContext::InitTriangulation()
 
   // Sort points along y-axis
   std::sort(points_.begin(), points_.end(), &SweepPoint::cmp);
+
+  // Clear any previous triangulation
+  map_.clear();
 }
 
 void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points)

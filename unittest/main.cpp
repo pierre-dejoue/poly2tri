@@ -138,6 +138,31 @@ BOOST_AUTO_TEST_CASE(QuadTestWithStride)
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
+BOOST_AUTO_TEST_CASE(MultipleTriangulations)
+{
+  std::vector<p2t::Point> polyline{ p2t::Point(0, 0), p2t::Point(0, 3),
+                                    p2t::Point(3, 3), p2t::Point(3, 0) };
+  std::vector<p2t::Point> points  { p2t::Point(1, 1), p2t::Point(1, 2),
+                                    p2t::Point(2, 2), p2t::Point(2, 1) };
+
+  // Allocate one CDT object
+  p2t::CDT cdt;
+
+  // First triangulation
+  BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline.data(), polyline.size()));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  auto result = p2t::GetTrianglesAsVector(cdt);
+  BOOST_REQUIRE_EQUAL(result.size(), 2);
+
+  // Add Steiner and perform another triangulation
+  BOOST_CHECK_NO_THROW(cdt.AddPoints(points.data(), points.size()));
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  result = p2t::GetTrianglesAsVector(cdt);
+  BOOST_REQUIRE_EQUAL(result.size(), 10);
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+}
+
 BOOST_AUTO_TEST_CASE(NarrowQuadTest)
 {
   // Very narrow quad that used to demonstrate a failure case during
