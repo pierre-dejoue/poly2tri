@@ -9,8 +9,8 @@ find_package(Boost 1.69 REQUIRED COMPONENTS
 
 # Build Unit Tests
 add_executable(test_poly2tri
-    main.cpp
-    triangle_test.cpp
+    test_cdt.cpp
+    test_triangle.cpp
     utility.cpp
 )
 
