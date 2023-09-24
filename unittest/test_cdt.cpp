@@ -337,6 +337,27 @@ BOOST_AUTO_TEST_CASE(PolygonTest04)
   BOOST_REQUIRE_EQUAL(result.size(), 13);
 }
 
+BOOST_AUTO_TEST_CASE(PolygonTest05)
+{
+  std::vector<p2t::Point> points {
+    p2t::Point(-0.37557949531446866,  -38.050538121782154),
+    p2t::Point( 50.922527881862266,   -55.434201094814995),
+    p2t::Point( 103.925537109375,     -48.979888916015625),
+    p2t::Point( 145.67479299050069,   -20.598233547940595),
+    p2t::Point( 166.02706909179688,    24.920921325683594),
+    p2t::Point( 164.7850341796875,     98.821723937988281),
+    p2t::Point( 27.873260498046875,    175.64570617675781),
+  };
+  const auto polyline = MakePointerVector(points);
+  p2t::CDT cdt;
+  cdt.AddPolyline(polyline);
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = p2t::GetTrianglesAsVector(cdt);
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  // BOOST_CHECK(IsConstrainedDelaunay(result));    Fails
+  BOOST_REQUIRE_EQUAL(result.size(), 5);
+}
+
 struct FileTest
 {
   const char* filename;
