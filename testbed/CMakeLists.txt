@@ -4,7 +4,7 @@ include(glfw)
 
 # Build testbed
 add_executable(p2t
-    main.cc
+    main.cpp
 )
 
 target_link_libraries(p2t

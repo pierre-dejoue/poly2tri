@@ -2,12 +2,12 @@ project('poly2tri', ['cpp'])
 
 include = include_directories('poly2tri/include')
 lib = static_library('poly2tri', sources : [
-	'poly2tri/src/common/shapes.cc',
-	'poly2tri/src/sweep/advancing_front.cc',
-	'poly2tri/src/sweep/cdt.cc',
-	'poly2tri/src/sweep/policy.cc',
-	'poly2tri/src/sweep/sweep.cc',
-	'poly2tri/src/sweep/sweep_context.cc',
+	'poly2tri/src/common/shapes.cpp',
+	'poly2tri/src/sweep/advancing_front.cpp',
+	'poly2tri/src/sweep/cdt.cpp',
+	'poly2tri/src/sweep/policy.cpp',
+	'poly2tri/src/sweep/sweep.cpp',
+	'poly2tri/src/sweep/sweep_context.cpp',
 ], include_directories: include)
 
 thread_dep = dependency('threads')
