@@ -56,16 +56,12 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
                                      std::vector<p2t::Point>& out_steiner);
 void Init(int window_width, int window_height);
 void ShutDown(int return_code);
-void MainLoop(const double zoom);
+void MainLoop(double initial_zoom);
 void Draw(const double zoom);
 void ConstrainedColor(bool constrained);
 double StringToDouble(const std::string& s);
 double Random(double (*fun)(double), double xmin, double xmax);
 double Fun(double x);
-
-double rotate_y = 0.0,
-       rotate_z = 0.0;
-const double rotations_per_tick = 0.2;
 
 /// Default window size
 constexpr int default_window_width = 800;
@@ -77,25 +73,29 @@ const double autozoom_border = 0.05;
 /// Flip Y axis
 constexpr bool flag_flip_y = false;
 
-// convex hull triangulation
+/// Convex hull triangulation
 constexpr bool convex_hull_triangulation = false;
 
-/// Screen center x
+/// Create a random distribution of points?
+bool random_distribution = false;
+
+/// Screen center
 double cx = 0.0;
-/// Screen center y
 double cy = 0.0;
 
 /// Constrained Delaunay triangles
 std::vector<p2t::Triangle*> triangles;
+
 /// Polylines
 std::vector<p2t::Point> polyline;
 std::vector<std::vector<p2t::Point>> holes;
 std::vector<p2t::Point> steiner;
 
-/// Create a random distribution of points?
-bool random_distribution = false;
-
+/// GLFW Window
 GLFWwindow* window = nullptr;
+
+int window_width = default_window_width;
+int window_height = default_window_height;
 
 int main(int argc, char* argv[])
 {
@@ -341,47 +341,43 @@ void ShutDown(int return_code)
   exit(return_code);
 }
 
-void MainLoop(const double zoom)
+void MainLoop(double initial_zoom)
 {
-  // the time of the previous frame
-  double old_time = glfwGetTime();
-  // this just loops as long as the program runs
-  bool running = true;
+  // Zoom can be changed with the arrow keys
+  double zoom = initial_zoom;
 
+  bool running = true;
   while (running) {
     glfwPollEvents();
+    glfwGetFramebufferSize(window, &window_width, &window_height);
+    glViewport(0, 0, window_width, window_height);
 
-    // calculate time elapsed, and the amount by which stuff rotates
-    double current_time = glfwGetTime(),
-           delta_rotate = (current_time - old_time) * rotations_per_tick * 360.0;
-    old_time = current_time;
-
-    // escape to quit, arrow keys to rotate view
-    // Check if ESC key was pressed or window was closed
+    // Check if the ESCAPE key was pressed or the window was closed
     running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
 
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-      rotate_y += delta_rotate;
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-      rotate_y -= delta_rotate;
-    // z axis always rotates
-    rotate_z += delta_rotate;
+    // Press the UP and DOWN keys to zoom in/out. Press BACKSPACE to reset zoom.
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+      zoom *= 1.05;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+      zoom *= 0.95;
+    if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS)
+      zoom = initial_zoom;
 
     // Draw the scene
     Draw(zoom);
 
-    // swap back and front buffers
+    // Swap back and front buffers
     glfwSwapBuffers(window);
   }
 }
 
 void ResetZoom(double zoom, double cx, double cy, double width, double height, bool flag_flip_y)
 {
-  double left = -width / zoom;
-  double right = width / zoom;
-  double bottom = -height / zoom;
-  double top = height / zoom;
-  double flip_y = flag_flip_y ? -1.0 : 1.0;
+  const double left =   -1.0 * width  / zoom;
+  const double right =   1.0 * width  / zoom;
+  const double bottom = -1.0 * height / zoom;
+  const double top =     1.0 * height / zoom;
+  const double flip_y = flag_flip_y ? -1.0 : 1.0;
 
   // Reset viewport
   glLoadIdentity();
@@ -404,8 +400,7 @@ void Draw(const double zoom)
 {
   // reset zoom
   p2t::Point center = p2t::Point(cx, cy);
-
-  ResetZoom(zoom, center.x, center.y, (double)default_window_width, (double)default_window_height, flag_flip_y);
+  ResetZoom(zoom, center.x, center.y, (double)window_width, (double)window_height, flag_flip_y);
 
   for (int i = 0; i < triangles.size(); i++) {
     p2t::Triangle& t = *triangles[i];
