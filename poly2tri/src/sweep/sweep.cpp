@@ -141,10 +141,18 @@ void Sweep::FinalizationConvexHull()
 {
   // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
   MeshClearBackFrontTriangles();
+  assert(front_); assert(back_front_);
+
+  // Remove exterior triangles from the mesh
+  assert(front_->head()->triangle && front_->head()->triangle->IsInterior() == false);
+  assert(front_->tail()->triangle == nullptr || front_->tail()->triangle->IsInterior() == false);
+  assert(front_->tail()->prev && front_->tail()->prev->triangle && front_->tail()->prev->triangle->IsInterior() == false);
+  front_->head()->triangle = nullptr;
+  front_->tail()->triangle = nullptr;
+  front_->tail()->prev->triangle = nullptr;
   tcx_.MeshCleanExteriorTriangles();
 
   // Add the bordering triangles to form the convex hull
-  assert(front_); assert(back_front_);
   ConvexHullFillOfFront(*front_);
   ConvexHullFillOfFront(*back_front_);
 }
