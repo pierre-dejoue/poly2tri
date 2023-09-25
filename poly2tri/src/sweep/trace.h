@@ -4,7 +4,7 @@
 
 namespace p2t
 {
-constexpr bool ENABLE_TRACE = false;
+constexpr bool ENABLE_TRACE = true;
 }
 
 // From Stack Overflow: https://stackoverflow.com/questions/11832960/short-circuit-operator-output-in-c
