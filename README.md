@@ -39,6 +39,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Remove CDT::GetMap(). That method was for debug purpose only and imposed an extra memory cost.
 - Method CDT::GetTriangles() returns a vector of unique_ptr by const ref. This is likely to break some client
   code. A free function p2t::GetTrianglesAsVector(cdt) has been added to facilitate the transition.
+- Removed p2t::Triangle::DebugPrint(). Replaced by overloaded operator<<.
 
 ### Non-Breaking
 

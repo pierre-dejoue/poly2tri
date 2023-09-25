@@ -39,7 +39,7 @@ namespace p2t {
 
 std::ostream& operator<<(std::ostream& out, const Point& point)
 {
-  return out << point.x << "," << point.y;
+  return out << "{ " << point.x << ", " << point.y << " }";
 }
 
 Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
@@ -57,6 +57,31 @@ Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
   }
 }
 
+std::ostream& operator<<(std::ostream& out, const Edge& edge)
+{
+  return out << "{ p=" << *edge.p << ", q=" << *edge.q << " }";
+}
+
+std::ostream& operator<<(std::ostream& out, const Triangle& t)
+{
+  return out << "{ a=" << *t.GetPoint(0) << ", b=" << *t.GetPoint(1) << ", c=" << *t.GetPoint(2) << " }";
+}
+
+std::ostream& operator<<(std::ostream& out, Orientation o)
+{
+  switch (o)
+  {
+    case Orientation::COLLINEAR:
+      return out << "COLLINEAR";
+    case Orientation::CCW:
+      return out << "CCW";
+    case Orientation::CW:
+      return out << "CW";
+    default:
+      assert(0);
+      return out;
+  }
+}
 
 Triangle::Triangle(const Point* a, const Point* b, const Point* c)
 {
@@ -386,11 +411,6 @@ void Triangle::SetDelaunayEdgeCW(const Point* p, bool e)
     assert(p == points_[2]);
     delaunay_edge[0] = e;
   }
-}
-
-void Triangle::DebugPrint()
-{
-  std::cout << *points_[0] << " " << *points_[1] << " " << *points_[2] << std::endl;
 }
 
 bool Triangle::CircumcircleContains(const Point& point) const

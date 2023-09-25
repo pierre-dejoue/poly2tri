@@ -124,7 +124,11 @@ struct P2T_DLL_SYMBOL Edge {
 
 };
 
+P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Edge&);
+
 enum Orientation { CW, CCW, COLLINEAR };
+
+P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Orientation);
 
 // Triangle-based data structures are know to have better performance than quad-edge structures
 // See: J. Shewchuk, "Triangle: Engineering a 2D Quality Mesh Generator and Delaunay Triangulator"
@@ -180,8 +184,6 @@ public:
   inline bool IsInterior() const;
   inline void IsInterior(bool b);
 
-  void DebugPrint();
-
   bool CircumcircleContains(const Point&) const;
 
   Orientation GetOrientation() const;
@@ -200,6 +202,8 @@ private:
   bool interior_;
 
 };
+
+P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Triangle&);
 
 inline bool cmp(const Point* a, const Point* b)
 {
