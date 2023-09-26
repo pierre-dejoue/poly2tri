@@ -133,7 +133,7 @@ namespace {
       if (t != nullptr && !t->IsInterior()) {
         t->IsInterior(true);
         for (int i = 0; i < 3; i++) {
-          if (!t->constrained_edge[i])
+          if (!t->IsConstrainedEdge(i))
             triangles.push_back(t->GetNeighbor(i));
         }
       }
@@ -170,7 +170,7 @@ void Sweep::FinalizationOuterPolygon()
   // Get an internal triangle to start with
   Triangle* t = front_->head()->next->triangle;
   const Point* p = front_->head()->next->point;
-  while (t && !t->GetConstrainedEdgeCW(p)) {
+  while (t && !t->IsConstrainedEdgeCW(p)) {
     t = t->NeighborCCW(p);
   }
 
@@ -317,7 +317,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   if (o1 == COLLINEAR) {
     TRACE_OUT << "EdgeEvent - o1=" << o1 << std::endl;
     if (triangle->Contains(eq, p1)) {
-      triangle->MarkConstrainedEdge(eq, p1);
+      triangle->SetConstrainedEdge(eq, p1);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
       edge_event_.constrained_edge->q = p1;
@@ -334,7 +334,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   TRACE_OUT << "EdgeEvent - o1=" << o1 << "; o2=" << o2 << std::endl;
   if (o2 == COLLINEAR) {
     if (triangle->Contains(eq, p2)) {
-      triangle->MarkConstrainedEdge(eq, p2);
+      triangle->SetConstrainedEdge(eq, p2);
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
       edge_event_.constrained_edge->q = p2;
@@ -367,10 +367,10 @@ bool Sweep::IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Poin
   const int index = triangle.EdgeIndex(ep, eq);
 
   if (index != -1) {
-    triangle.MarkConstrainedEdge(index);
+    triangle.SetConstrainedEdge(index, true);
     Triangle* t = triangle.GetNeighbor(index);
     if (t) {
-      t->MarkConstrainedEdge(ep, eq);
+      t->SetConstrainedEdge(ep, eq);
     }
     return true;
   }
@@ -577,7 +577,7 @@ bool Sweep::Legalize(Triangle& t)
   // To legalize a triangle we start by finding if any of the three edges
   // violate the Delaunay condition
   for (int i = 0; i < 3; i++) {
-    if (t.delaunay_edge[i])
+    if (t.IsDelaunayEdge(i))
       continue;
 
     Triangle* ot = t.GetNeighbor(i);
@@ -589,8 +589,9 @@ bool Sweep::Legalize(Triangle& t)
 
       // If this is a Constrained Edge or a Delaunay Edge(only during recursive legalization)
       // then we should not try to legalize
-      if (ot->constrained_edge[oi] || ot->delaunay_edge[oi]) {
-        t.constrained_edge[i] = ot->constrained_edge[oi];
+      if (ot->IsConstrainedEdge(oi) || ot->IsDelaunayEdge(oi)) {
+        // TODO: This is strange. Replace by an assertion?
+        t.SetConstrainedEdge(i, ot->IsConstrainedEdge(oi));
         continue;
       }
 
@@ -598,8 +599,8 @@ bool Sweep::Legalize(Triangle& t)
 
       if (inside) {
         // Lets mark this shared edge as Delaunay
-        t.delaunay_edge[i] = true;
-        ot->delaunay_edge[oi] = true;
+        t.SetDelaunayEdge(i, true);
+        ot->SetDelaunayEdge(oi, true);
 
         // Lets rotate shared edge one vertex CW to legalize it
         RotateTrianglePair(t, p, *ot, op);
@@ -621,8 +622,8 @@ bool Sweep::Legalize(Triangle& t)
         // until we add a new triangle or point.
         // TODO: need to think about this. Can these edges be tried after we
         //      return to previous recursive level?
-        t.delaunay_edge[i] = false;
-        ot->delaunay_edge[oi] = false;
+        t.SetDelaunayEdge(i, false);
+        ot->SetDelaunayEdge(oi, false);
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handles those so we can end here.
@@ -680,16 +681,16 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   n4 = ot.NeighborCW(op);
 
   bool ce1, ce2, ce3, ce4;
-  ce1 = t.GetConstrainedEdgeCCW(p);
-  ce2 = t.GetConstrainedEdgeCW(p);
-  ce3 = ot.GetConstrainedEdgeCCW(op);
-  ce4 = ot.GetConstrainedEdgeCW(op);
+  ce1 = t.IsConstrainedEdgeCCW(p);
+  ce2 = t.IsConstrainedEdgeCW(p);
+  ce3 = ot.IsConstrainedEdgeCCW(op);
+  ce4 = ot.IsConstrainedEdgeCW(op);
 
   bool de1, de2, de3, de4;
-  de1 = t.GetDelaunayEdgeCCW(p);
-  de2 = t.GetDelaunayEdgeCW(p);
-  de3 = ot.GetDelaunayEdgeCCW(op);
-  de4 = ot.GetDelaunayEdgeCW(op);
+  de1 = t.IsDelaunayEdgeCCW(p);
+  de2 = t.IsDelaunayEdgeCW(p);
+  de3 = ot.IsDelaunayEdgeCCW(op);
+  de4 = ot.IsDelaunayEdgeCW(op);
 
   t.Legalize(p, op);
   ot.Legalize(op, p);
@@ -962,8 +963,8 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
 
     if (p == eq && op == ep) {
       if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
-        t->MarkConstrainedEdge(ep, eq);
-        ot.MarkConstrainedEdge(ep, eq);
+        t->SetConstrainedEdge(ep, eq);
+        ot.SetConstrainedEdge(ep, eq);
         Legalize(*t);
         Legalize(ot);
       } else {
@@ -986,7 +987,7 @@ Triangle& Sweep::NextFlipTriangle(Orientation o, Triangle& t, Triangle& ot, cons
   if (o == CCW) {
     // ot is not crossing edge after flip
     int edge_index = ot.EdgeIndex(p, op);
-    ot.delaunay_edge[edge_index] = true;
+    ot.SetDelaunayEdge(edge_index, true);
     Legalize(ot);
     ot.ClearDelaunayEdges();
     return t;
@@ -994,8 +995,7 @@ Triangle& Sweep::NextFlipTriangle(Orientation o, Triangle& t, Triangle& ot, cons
 
   // t is not crossing edge after flip
   int edge_index = t.EdgeIndex(p, op);
-
-  t.delaunay_edge[edge_index] = true;
+  t.SetDelaunayEdge(edge_index, true);
   Legalize(t);
   t.ClearDelaunayEdges();
   return ot;

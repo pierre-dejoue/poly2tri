@@ -38,7 +38,7 @@ bool IsConstrainedDelaunay(const std::vector<p2t::Triangle*>& triangles)
   for (p2t::Triangle* t : triangles) {
     // Loop on the triangle edges
     for (int e = 0; e < 3; e++) {
-      if (t->constrained_edge[e])
+      if (t->IsConstrainedEdge(e))
         continue;
       p2t::Triangle* ot = t->GetNeighbor(e);
       if (ot && ot->IsInterior()) {

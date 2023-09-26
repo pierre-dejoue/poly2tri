@@ -31,7 +31,9 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 ### Breaking
 
 - Renamed method Triangle::CircumcircleContains to fix a typo in the name
-- Renamed methods Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name
+- Renamed methods Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name and aldo change the 'Get' prefix to 'Is'.
+- Removed methods Triangle::MarkConstrainedEdge and use Triangle::SetContrainedEdge instead. Those are very unlikely to be used in client code.
+- Members Triangle::contrained_edge[] and Triangle::delaunay_edge[] are now private
 - Removed function IsDelaunay
 - Method Triangle::GetPoint(index) now returns a const Point*
 - Many other methods in class Triangle have changed to take or return const Point* instead of references.

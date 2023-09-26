@@ -139,11 +139,6 @@ public:
   /// Constructor
   Triangle(const Point* a, const Point* b, const Point* c);
 
-  /// Flags to determine if an edge is a Constrained edge
-  bool constrained_edge[3];
-  /// Flags to determine if an edge is a Delauney edge
-  bool delaunay_edge[3];
-
   const Point* GetPoint(int index) const;
   const Point* PointCW(const Point* point);
   const Point* PointCCW(const Point* point);
@@ -154,9 +149,8 @@ public:
   void MarkNeighbor(Triangle& t);
   void ClearNeighbors();
 
-  void MarkConstrainedEdge(int index);
-  void MarkConstrainedEdge(Edge& edge);
-  void MarkConstrainedEdge(const Point* p, const Point* q);
+  void SetConstrainedEdge(Edge& edge);
+  void SetConstrainedEdge(const Point* p, const Point* q);
 
   int Index(const Point* p);
   int EdgeIndex(const Point* p1, const Point* p2);
@@ -164,12 +158,22 @@ public:
   Triangle* NeighborAcross(const Point* point);
   Triangle* NeighborCW(const Point* point);
   Triangle* NeighborCCW(const Point* point);
-  bool GetConstrainedEdgeCCW(const Point* p);
-  bool GetConstrainedEdgeCW(const Point* p);
+
+  bool IsConstrainedEdge(int index);
+  bool IsConstrainedEdge(const Point* p);
+  bool IsConstrainedEdgeCCW(const Point* p);
+  bool IsConstrainedEdgeCW(const Point* p);
+  void SetConstrainedEdge(int index, bool ce);
+  void SetConstrainedEdge(const Point* p, bool ce);
   void SetConstrainedEdgeCCW(const Point* p, bool ce);
   void SetConstrainedEdgeCW(const Point* p, bool ce);
-  bool GetDelaunayEdgeCCW(const Point* p);
-  bool GetDelaunayEdgeCW(const Point* p);
+
+  bool IsDelaunayEdge(int index);
+  bool IsDelaunayEdge(const Point* p);
+  bool IsDelaunayEdgeCCW(const Point* p);
+  bool IsDelaunayEdgeCW(const Point* p);
+  void SetDelaunayEdge(int index, bool e);
+  void SetDelaunayEdge(const Point* p, bool e);
   void SetDelaunayEdgeCCW(const Point* p, bool e);
   void SetDelaunayEdgeCW(const Point* p, bool e);
 
@@ -197,6 +201,12 @@ private:
 
   /// Neighbor list
   Triangle* neighbors_[3];
+
+  /// Flags to determine if an edge is a Constrained edge
+  bool constrained_edge_[3];
+
+  /// Flags to determine if an edge is a Delaunay edge
+  bool delaunay_edge_[3];
 
   /// Has this triangle been marked as an interior triangle, meaning a triangle that belongs to the finalized CDT
   bool interior_;
