@@ -171,15 +171,15 @@ private:
   /**
    * Rotates a triangle pair one vertex CW
    *<pre>
-   *       n2                    n2
+   *
    *  P +-----+             P +-----+
    *    | t  /|               |\  t |
    *    |   / |               | \   |
-   *  n1|  /  |n3           n1|  \  |n3
+   *  n1|  /  |n2           n1|  \  |n2
    *    | /   |    after CW   |   \ |
-   *    |/ oT |               | oT \|
-   *    +-----+ oP            +-----+
-   *       n4                    n4
+   *    |/ ot |               | ot \|
+   *    +-----+ op            +-----+ op
+   *
    * </pre>
    */
   static void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op);

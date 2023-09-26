@@ -124,19 +124,21 @@ void Triangle::MarkNeighbor(Triangle& t)
   }
 }
 
+void Triangle::ClearNeighbor(int index)
+{
+  assert(0 <= index && index < 3);
+  if (neighbors_[index]) { neighbors_[index]->ClearNeighbor(this); }
+  neighbors_[index] = nullptr;
+}
+
 void Triangle::ClearNeighbor(const Triangle* triangle)
 {
   // Caution: The caller must clear the link in the other direction
-  if (neighbors_[0] == triangle)
-  {
+  if (neighbors_[0] == triangle) {
     neighbors_[0] = nullptr;
-  }
-  else if (neighbors_[1] == triangle)
-  {
+  } else if (neighbors_[1] == triangle) {
     neighbors_[1] = nullptr;
-  }
-  else
-  {
+  } else {
     assert(neighbors_[2] == triangle);
     neighbors_[2] = nullptr;
   }
@@ -164,31 +166,60 @@ const Point* Triangle::OppositePoint(Triangle& t, const Point* p)
   return PointCW(cw);
 }
 
-// Legalized triangle by rotating clockwise around point(0)
-void Triangle::Legalize(const Point* point)
+// Legalize triangle by rotating clockwise around point
+// The indices of the opposing points after the legalization are the same as before (although those are not the same points)
+void Triangle::Legalize(const Point* p, const Point* op)
 {
-  points_[1] = points_[0];
-  points_[0] = points_[2];
-  points_[2] = point;
-}
+  assert(!IsConstrainedEdge(p));
 
-// Legalize triagnle by rotating clockwise around oPoint
-void Triangle::Legalize(const Point* opoint, const Point* npoint)
-{
-  if (opoint == points_[0]) {
-    points_[1] = points_[0];
+  if (p == points_[0]) {
     points_[0] = points_[2];
-    points_[2] = npoint;
-  } else if (opoint == points_[1]) {
-    points_[2] = points_[1];
+    // neighbors_[0] remains the same (it is the opposite triangle 'ot')
+    // constrained_edge_[0] is false;
+    // delaunay_edge_[0] remains the same
+
+    points_[2] = op;
+    neighbors_[2] = neighbors_[1];
+    constrained_edge_[2] = constrained_edge_[1];
+    delaunay_edge_[2] = delaunay_edge_[1];
+
+    points_[1] = p;
+    neighbors_[1] = nullptr;      // To be set by the caller
+    // constrained_edge[1] to be set by the caller
+    // delaunay_edge[1] to be set by the caller (most likely false)
+
+  } else if (p == points_[1]) {
     points_[1] = points_[0];
-    points_[0] = npoint;
-  } else if (opoint == points_[2]) {
-    points_[0] = points_[2];
-    points_[2] = points_[1];
-    points_[1] = npoint;
+    // neighbors_[1] remains the same (it is the opposite triangle 'ot')
+    // constrained_edge_[1] is false;
+    // delaunay_edge_[1] remains the same
+
+    points_[0] = op;
+    neighbors_[0] = neighbors_[2];
+    constrained_edge_[0] = constrained_edge_[2];
+    delaunay_edge_[0] = delaunay_edge_[2];
+
+    points_[2] = p;
+    neighbors_[2] = nullptr;      // To be set by the caller
+    // constrained_edge[2] to be set by the caller
+    // delaunay_edge[2] to be set by the caller (most likely false)
+
   } else {
-    assert(0);
+    assert(p == points_[2]);
+    points_[2] = points_[1];
+    // neighbors_[2] remains the same (it is the opposite triangle 'ot')
+    // constrained_edge_[2] is false;
+    // delaunay_edge_[2] remains the same
+
+    points_[1] = op;
+    neighbors_[1] = neighbors_[0];
+    constrained_edge_[1] = constrained_edge_[0];
+    delaunay_edge_[1] = delaunay_edge_[0];
+
+    points_[0] = p;
+    neighbors_[0] = nullptr;      // To be set by the caller
+    // constrained_edge[0] to be set by the caller
+    // delaunay_edge[0] to be set by the caller (most likely false)
   }
 }
 

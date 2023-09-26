@@ -180,8 +180,8 @@ public:
   bool Contains(const Point* p);
   bool Contains(const Edge& e);
   bool Contains(const Point* p, const Point* q);
-  void Legalize(const Point* point);
-  void Legalize(const Point* opoint, const Point* npoint);
+
+  void Legalize(const Point* p, const Point* op);
 
   void ClearDelaunayEdges();
 
@@ -194,6 +194,7 @@ public:
 
 private:
 
+  void ClearNeighbor(int index);
   void ClearNeighbor(const Triangle* triangle);
 
   /// Triangle points

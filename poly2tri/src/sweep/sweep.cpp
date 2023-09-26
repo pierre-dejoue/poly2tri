@@ -588,11 +588,17 @@ bool Sweep::Legalize(Triangle& t)
       const Point* op = ot->OppositePoint(t, p);
       int oi = ot->Index(op);
 
-      // If this is a Constrained Edge or a Delaunay Edge(only during recursive legalization)
-      // then we should not try to legalize
-      if (ot->IsConstrainedEdge(oi) || ot->IsDelaunayEdge(oi)) {
-        // TODO: This is strange. Replace by an assertion?
-        t.SetConstrainedEdge(i, ot->IsConstrainedEdge(oi));
+      // The constrained edge flag is not always symmetrical
+      if (t.IsConstrainedEdge(i)) {
+        ot->SetConstrainedEdge(oi, true);
+        continue;
+      }
+      if (ot->IsConstrainedEdge(oi)) {
+        t.SetConstrainedEdge(i, true);
+        continue;
+      }
+      // Same for the delaunay flag
+      if (ot->IsDelaunayEdge(oi)) {
         continue;
       }
 
@@ -675,51 +681,29 @@ bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Po
 
 void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op)
 {
-  Triangle* n1, *n2, *n3, *n4;
-  n1 = t.NeighborCCW(p);
-  n2 = t.NeighborCW(p);
-  n3 = ot.NeighborCCW(op);
-  n4 = ot.NeighborCW(op);
+  Triangle* n1 = t.NeighborCCW(p);
+  Triangle* n2 = ot.NeighborCCW(op);
 
-  bool ce1, ce2, ce3, ce4;
-  ce1 = t.IsConstrainedEdgeCCW(p);
-  ce2 = t.IsConstrainedEdgeCW(p);
-  ce3 = ot.IsConstrainedEdgeCCW(op);
-  ce4 = ot.IsConstrainedEdgeCW(op);
+  const bool ce1 = t.IsConstrainedEdgeCCW(p);
+  const bool ce2 = ot.IsConstrainedEdgeCCW(op);
 
-  bool de1, de2, de3, de4;
-  de1 = t.IsDelaunayEdgeCCW(p);
-  de2 = t.IsDelaunayEdgeCW(p);
-  de3 = ot.IsDelaunayEdgeCCW(op);
-  de4 = ot.IsDelaunayEdgeCW(op);
+  const bool de1 = t.IsDelaunayEdgeCCW(p);
+  const bool de2 = ot.IsDelaunayEdgeCCW(op);
 
   t.Legalize(p, op);
   ot.Legalize(op, p);
 
-  // Remap delaunay_edge
-  ot.SetDelaunayEdgeCCW(p, de1);
-  t.SetDelaunayEdgeCW(p, de2);
-  t.SetDelaunayEdgeCCW(op, de3);
-  ot.SetDelaunayEdgeCW(op, de4);
+  // Remap remaining neighbors
+  if (n1) ot.MarkNeighbor(*n1);
+  if (n2) t.MarkNeighbor(*n2);
 
   // Remap constrained_edge
   ot.SetConstrainedEdgeCCW(p, ce1);
-  t.SetConstrainedEdgeCW(p, ce2);
-  t.SetConstrainedEdgeCCW(op, ce3);
-  ot.SetConstrainedEdgeCW(op, ce4);
+  t.SetConstrainedEdgeCCW(op, ce2);
 
-  // Remap neighbors
-  // TODO: might optimize the markNeighbor by keeping track of
-  //      what side should be assigned to what neighbor after the
-  //      rotation. Now mark neighbor does lots of testing to find
-  //      the right side.
-  t.ClearNeighbors();
-  ot.ClearNeighbors();
-  if (n1) ot.MarkNeighbor(*n1);
-  if (n2) t.MarkNeighbor(*n2);
-  if (n3) t.MarkNeighbor(*n3);
-  if (n4) ot.MarkNeighbor(*n4);
-  t.MarkNeighbor(ot);
+  // Remap delaunay_edge
+  ot.SetDelaunayEdgeCCW(p, de1);
+  t.SetDelaunayEdgeCCW(op, de2);
 }
 
 void Sweep::FillBasin(Node& node)
