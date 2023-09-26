@@ -619,7 +619,7 @@ bool Sweep::Legalize(Triangle& t)
 
         // Reset the Delaunay edges, since they only are valid Delaunay edges
         // until we add a new triangle or point.
-        // XXX: need to think about this. Can these edges be tried after we
+        // TODO: need to think about this. Can these edges be tried after we
         //      return to previous recursive level?
         t.delaunay_edge[i] = false;
         ot->delaunay_edge[oi] = false;
@@ -707,7 +707,7 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   ot.SetConstrainedEdgeCW(op, ce4);
 
   // Remap neighbors
-  // XXX: might optimize the markNeighbor by keeping track of
+  // TODO: might optimize the markNeighbor by keeping track of
   //      what side should be assigned to what neighbor after the
   //      rotation. Now mark neighbor does lots of testing to find
   //      the right side.
@@ -967,7 +967,7 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
         Legalize(*t);
         Legalize(ot);
       } else {
-        // XXX: I think one of the triangles should be legalized here?
+        // TODO: I think one of the triangles should be legalized here?
       }
     } else {
       const Orientation o = Orient2d(*eq, *op, *ep);
