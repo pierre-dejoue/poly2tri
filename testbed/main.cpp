@@ -58,7 +58,6 @@ void Init(int window_width, int window_height);
 void ShutDown(int return_code);
 void MainLoop(double initial_zoom);
 void Draw(const double zoom);
-void ConstrainedColor(bool constrained);
 double StringToDouble(const std::string& s);
 double RandomDistrib(double x);
 double RandomUnit();
@@ -408,26 +407,32 @@ void Draw(const double zoom)
   p2t::Point center = p2t::Point(cx, cy);
   ResetZoom(zoom, center.x, center.y, (double)window_width, (double)window_height, flag_flip_y);
 
-  for (int i = 0; i < triangles.size(); i++) {
-    p2t::Triangle& t = *triangles[i];
-    const p2t::Point& a = *t.GetPoint(0);
-    const p2t::Point& b = *t.GetPoint(1);
-    const p2t::Point& c = *t.GetPoint(2);
+  for (int n = 0; n < triangles.size(); n++) {
+    p2t::Triangle& t = *triangles[n];
+    for (int i = 0; i < 3; i++) {
+      const p2t::Point& a = *t.GetPoint(i);
+      const p2t::Point& b = *t.GetPoint((i+1) % 3);
+      const p2t::Point& c = *t.GetPoint((i+2) % 3);
 
-    // Red
-    glColor3f(1, 0, 0);
+      if (t.IsDelaunayEdge(i)) {
+        // Blue for Delaunay edges
+        glColor3f(0.f, 0.f, 1.f);
+      } else {
+        // Red is the default edge color
+        glColor3f(1.f, 0.f, 0.f);
+      }
 
-    glBegin(GL_LINE_LOOP);
-    glVertex2d(a.x, a.y);
-    glVertex2d(b.x, b.y);
-    glVertex2d(c.x, c.y);
-    glEnd();
+      glBegin(GL_LINES);
+      glVertex2d(b.x, b.y);
+      glVertex2d(c.x, c.y);
+      glEnd();
+    }
   }
 
   if (!convex_hull_triangulation)
   {
-    // Green for constrained edges
-    glColor3f(0, 1, 0);
+    // Orange for constrained edges
+    glColor3f(1.f, 0.55f, 0.f);
 
     std::vector<std::vector<p2t::Point>*> polylines;
     polylines.push_back(&polyline);
@@ -442,17 +447,6 @@ void Draw(const double zoom)
         }
       glEnd();
     }
-  }
-}
-
-void ConstrainedColor(bool constrained)
-{
-  if (constrained) {
-    // Green
-    glColor3f(0.f, 1.f, 0.f);
-  } else {
-    // Red
-    glColor3f(1.f, 0.f, 0.f);
   }
 }
 
