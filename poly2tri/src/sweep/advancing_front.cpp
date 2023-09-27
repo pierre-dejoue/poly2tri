@@ -92,6 +92,7 @@ Node* AdvancingFront::FindSearchNode(double x)
 
 Node* AdvancingFront::LocatePoint(const Point* point)
 {
+  const double x_dir = (head_->point->x < tail_->point->x) ? 1.0 : -1.0;
   const double px = point->x;
   Node* node = FindSearchNode(px);
   const double nx = node->point->x;
@@ -107,11 +108,10 @@ Node* AdvancingFront::LocatePoint(const Point* point)
         assert(0);
       }
     }
-  } else if (px < nx) {
+  } else if (x_dir * px < x_dir * nx) {
     while ((node = node->prev) != nullptr) {
-      if (point == node->point) {
+      if (point == node->point)
         break;
-      }
     }
   } else {
     while ((node = node->next) != nullptr) {
@@ -119,8 +119,18 @@ Node* AdvancingFront::LocatePoint(const Point* point)
         break;
     }
   }
-  if(node) search_node_ = node;
+  if(node) { search_node_ = node; }
   return node;
+}
+
+void AdvancingFront::MapTriangleToNodes(Triangle& t)
+{
+  for (int i = 0; i < 3; i++) {
+    if (!t.GetNeighbor(i)) {
+      Node* node = LocatePoint(t.PointCW(t.GetPoint(i)));
+      if (node) { node->triangle = &t; }
+    }
+  }
 }
 
 std::ostream& operator<<(std::ostream& out, const AdvancingFront& front)

@@ -119,6 +119,8 @@ void Triangle::MarkNeighbor(Triangle& t)
   } else if (t.Contains(points_[0], points_[1])) {
     neighbors_[2] = &t;
     t.MarkNeighbor(points_[0], points_[1], this);
+  } else {
+    assert(0);
   }
 }
 

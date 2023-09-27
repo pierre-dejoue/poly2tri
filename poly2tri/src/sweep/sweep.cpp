@@ -46,6 +46,7 @@ namespace p2t {
 Sweep::Sweep(SweepContext& tcx) :
   tcx_(tcx),
   front_(),
+  back_front_(),
   nodes_(),
   basin_(),
   edge_event_()
@@ -408,7 +409,7 @@ void Sweep::Fill(Node& node)
   triangle->MarkNeighbor(*node.prev->triangle);
   triangle->MarkNeighbor(*node.triangle);
 
-  // Update the advancing front
+  // Update the front
   node.prev->next = node.next;
   node.next->prev = node.prev;
 
@@ -1061,13 +1062,9 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
 
 void Sweep::MapTriangleToNodes(Triangle& t)
 {
-  for (int i = 0; i < 3; i++) {
-    if (!t.GetNeighbor(i)) {
-      Node* n = front_->LocatePoint(t.PointCW(t.GetPoint(i)));
-      if (n)
-        n->triangle = &t;
-    }
-  }
+  assert(front_);
+  front_->MapTriangleToNodes(t);
+  if (back_front_) { back_front_->MapTriangleToNodes(t); }
 }
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)

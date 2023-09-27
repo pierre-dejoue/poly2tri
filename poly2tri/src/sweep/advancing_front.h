@@ -81,6 +81,8 @@ public:
 
   Node* LocatePoint(const Point* point);
 
+  void MapTriangleToNodes(Triangle& t);
+
 private:
 
   Node* const head_;
