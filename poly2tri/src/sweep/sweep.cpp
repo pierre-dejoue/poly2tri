@@ -587,6 +587,7 @@ bool Sweep::Legalize(Triangle& t)
       const Point* p = t.GetPoint(i);
       const Point* op = ot->OppositePoint(t, p);
       int oi = ot->Index(op);
+      assert(!ot->IsDelaunayEdge(oi));
 
       // The constrained edge flag is not always symmetrical
       if (t.IsConstrainedEdge(i)) {
@@ -597,44 +598,33 @@ bool Sweep::Legalize(Triangle& t)
         t.SetConstrainedEdge(i, true);
         continue;
       }
-      // Same for the delaunay flag
-      if (ot->IsDelaunayEdge(oi)) {
-        continue;
-      }
 
       bool inside = Incircle(*p, *t.PointCCW(p), *t.PointCW(p), *op);
 
-      if (inside) {
-        // Lets mark this shared edge as Delaunay
-        t.SetDelaunayEdge(i, true);
-        ot->SetDelaunayEdge(oi, true);
+      // Lets mark this shared edge as Delaunay
+      t.SetDelaunayEdge(i, true);
+      assert(ot->IsDelaunayEdge(oi));
 
+      if (inside) {
         // Lets rotate shared edge one vertex CW to legalize it
         RotateTrianglePair(t, p, *ot, op);
 
         // We now got one valid Delaunay Edge shared by two triangles
-        // This gives us 4 new edges to check for Delaunay
+        // This gives us 4 new edges to check for Delaunay: This function is called recursively
 
         // Make sure that triangle to node mapping is done only one time for a specific triangle
         bool not_legalized = !Legalize(t);
         if (not_legalized) {
           MapTriangleToNodes(t);
         }
-
         not_legalized = !Legalize(*ot);
-        if (not_legalized)
+        if (not_legalized) {
           MapTriangleToNodes(*ot);
-
-        // Reset the Delaunay edges, since they only are valid Delaunay edges
-        // until we add a new triangle or point.
-        // TODO: need to think about this. Can these edges be tried after we
-        //      return to previous recursive level?
-        t.SetDelaunayEdge(i, false);
-        ot->SetDelaunayEdge(oi, false);
+        }
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handles those so we can end here.
-        TRACE_OUT << "Legalized - triangle=" << t << std::endl;
+        TRACE_OUT << "Legalized - t=" << t << "; ot=" << *ot << std::endl;
         return true;
       }
     }
@@ -687,9 +677,6 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   const bool ce1 = t.IsConstrainedEdgeCCW(p);
   const bool ce2 = ot.IsConstrainedEdgeCCW(op);
 
-  const bool de1 = t.IsDelaunayEdgeCCW(p);
-  const bool de2 = ot.IsDelaunayEdgeCCW(op);
-
   t.Legalize(p, op);
   ot.Legalize(op, p);
 
@@ -701,9 +688,9 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   ot.SetConstrainedEdgeCCW(p, ce1);
   t.SetConstrainedEdgeCCW(op, ce2);
 
-  // Remap delaunay_edge
-  ot.SetDelaunayEdgeCCW(p, de1);
-  t.SetDelaunayEdgeCCW(op, de2);
+  // Except for the shared edge between both triangles, None of the edges are Delaunay
+  ot.SetDelaunayEdge(op, false);
+  t.SetDelaunayEdge(p, false);
 }
 
 void Sweep::FillBasin(Node& node)

@@ -170,12 +170,8 @@ public:
 
   bool IsDelaunayEdge(int index);
   bool IsDelaunayEdge(const Point* p);
-  bool IsDelaunayEdgeCCW(const Point* p);
-  bool IsDelaunayEdgeCW(const Point* p);
   void SetDelaunayEdge(int index, bool e);
   void SetDelaunayEdge(const Point* p, bool e);
-  void SetDelaunayEdgeCCW(const Point* p, bool e);
-  void SetDelaunayEdgeCW(const Point* p, bool e);
 
   bool Contains(const Point* p);
   bool Contains(const Edge& e);
@@ -194,8 +190,9 @@ public:
 
 private:
 
-  void ClearNeighbor(int index);
   void ClearNeighbor(const Triangle* triangle);
+
+  void SetDelaunayEdge(const Point* p1, const Point* p2, bool e);
 
   /// Triangle points
   const Point* points_[3];

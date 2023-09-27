@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest05)
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
   const auto result = p2t::GetTrianglesAsVector(cdt);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
-  // BOOST_CHECK(IsConstrainedDelaunay(result));    Fails
+  BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 5);
 }
 
@@ -377,9 +377,9 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
     { "test.dat", p2t::Policy::OuterPolygon, true, 6, 4 },
     { "test.dat", p2t::Policy::ConvexHull, true, 6, 6 },
     { "dude_sampled_1.dat", p2t::Policy::OuterPolygon, true, 109, 107 },
-    { "dude_sampled_1.dat", p2t::Policy::ConvexHull, false, 109, 199 },
-    { "dude_sampled_2.dat", p2t::Policy::OuterPolygon, false, 512, 510 },
-    { "dude_sampled_2.dat", p2t::Policy::ConvexHull, false, 512, 998 },
+    { "dude_sampled_1.dat", p2t::Policy::ConvexHull, true, 109, 199 },
+    { "dude_sampled_2.dat", p2t::Policy::OuterPolygon, true, 512, 510 },
+    { "dude_sampled_2.dat", p2t::Policy::ConvexHull, true, 512, 998 },
   };
   for (const auto& test_case : file_tests) {
     std::vector<p2t::Point> points;
