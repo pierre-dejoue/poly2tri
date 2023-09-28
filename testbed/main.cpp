@@ -60,8 +60,10 @@ void MainLoop(double initial_zoom);
 void Draw(const double zoom);
 void ConstrainedColor(bool constrained);
 double StringToDouble(const std::string& s);
-double Random(double (*fun)(double), double xmin, double xmax);
-double Fun(double x);
+double RandomDistrib(double x);
+double RandomUnit();
+double Random(double (*fun)(double), double x_min, double x_max);
+
 
 /// Default window size
 constexpr int default_window_width = 800;
@@ -78,6 +80,9 @@ constexpr bool convex_hull_triangulation = false;
 
 /// Create a random distribution of points?
 bool random_distribution = false;
+
+/// Random generator seed. If zero, will use std::time to generate the seed
+unsigned int srand_seed = 0u;
 
 /// Screen center
 double cx = 0.0;
@@ -137,6 +142,7 @@ int main(int argc, char* argv[])
 
   if (random_distribution) {
     GenerateRandomPointDistribution(num_points, min, max, polyline, holes, steiner);
+    std::cout << "Random seed = " << srand_seed << std::endl;
   } else {
     // Load pointset from file
     if (!ParseFile(filename, polyline, holes, steiner)) {
@@ -311,8 +317,8 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
   max -= (1e-4);
   min += (1e-4);
   for (int i = 0; i < num_points; i++) {
-    double x = Random(Fun, min, max);
-    double y = Random(Fun, min, max);
+    double x = Random(RandomDistrib, min, max);
+    double y = Random(RandomDistrib, min, max);
     out_steiner.push_back(p2t::Point(x, y));
   }
 }
@@ -459,40 +465,51 @@ double StringToDouble(const std::string& s)
   return x;
 }
 
-double Fun(double x)
+double RandomDistrib(double x)
 {
-  return 2.5 + sin(10 * x) / x;
+  return std::fpclassify(x) == FP_ZERO ? 12.5 : 2.5 + sin(10.0 * x) / x;
 }
 
-double Random(double (*fun)(double), double xmin = 0, double xmax = 1)
+// Return a random floating_point value r such that 0.0 <= r < 1.0
+double RandomUnit()
 {
-  static double (*Fun)(double) = nullptr, YMin, YMax;
-  static bool First = true;
+  static bool first_call = true;
 
-  // Initialises random generator for first call
-  if (First)
+  // Initialises random generator on first call
+  if (first_call)
   {
-    First = false;
-    srand((unsigned) time(nullptr));
+    first_call = false;
+    if (srand_seed == 0u) {
+      srand_seed = static_cast<unsigned>(std::time(nullptr));
+    }
+    std::srand(srand_seed);
   }
 
-  // Evaluates maximum of function
-  if (fun != Fun)
+  return static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+}
+
+double Random(double (*fun)(double), double x_min = 0.0, double x_max = 1.0)
+{
+  static double (*s_fun)(double) = nullptr;
+  static double y_min = 0.0, y_max = 0.0;
+
+  // Evaluates max of distribution function
+  if (fun != s_fun)
   {
-    Fun = fun;
-    YMin = 0, YMax = Fun(xmin);
-    for (int iX = 1; iX < RAND_MAX; iX++)
+    s_fun = fun;
+    for (double r = 0.0; r < 1.0; r+= 0.0001)
     {
-      double X = xmin + (xmax - xmin) * iX / RAND_MAX;
-      double Y = Fun(X);
-      YMax = Y > YMax ? Y : YMax;
+      double x = x_min + (x_max - x_min) * r;
+      double y = s_fun(x);
+      assert(y >= 0.0);
+      if (y > y_max) { y_max = y; }
     }
   }
 
-  // Gets random values for X & Y
-  double X = xmin + (xmax - xmin) * rand() / RAND_MAX;
-  double Y = YMin + (YMax - YMin) * rand() / RAND_MAX;
+  // Gets random values for x and y
+  double x = x_min + (x_max - x_min) * RandomUnit();
+  double y = y_min + (y_max - y_min) * RandomUnit();
 
   // Returns if valid and try again if not valid
-  return Y < fun(X) ? X : Random(Fun, xmin, xmax);
+  return y < fun(x) ? x : Random(fun, x_min, x_max);
 }

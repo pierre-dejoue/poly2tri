@@ -134,8 +134,8 @@ build/testbed/p2t testbed/data/dude.dat 350 500 3.0
 
 build/testbed/p2t testbed/data/nazca_monkey.dat
 
-build/testbed/p2t random 10 100 5.0
-build/testbed/p2t random 1000 20000 0.025
+build/testbed/p2t random 10   100 5.0
+build/testbed/p2t random 1000 100 5.0
 ```
 
 Testbed Controls
