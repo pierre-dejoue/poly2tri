@@ -32,7 +32,7 @@
 #include "sweep.h"
 
 #include "advancing_front.h"
-#include "back_front.h"
+#include "back_triangles.h"
 #include "sweep_context.h"
 #include "trace.h"
 #include "../common/utils.h"
@@ -46,7 +46,6 @@ namespace p2t {
 Sweep::Sweep(SweepContext& tcx) :
   tcx_(tcx),
   front_(),
-  back_front_(),
   nodes_(),
   basin_(),
   edge_event_()
@@ -73,7 +72,7 @@ void Sweep::Triangulate(Policy policy)
   }
 }
 
-void Sweep::CreateAdvancingFront()
+AdvancingFront* Sweep::CreateAdvancingFront()
 {
   // Initial triangle
   assert(tcx_.points_.size() > 0);
@@ -93,9 +92,11 @@ void Sweep::CreateAdvancingFront()
   front_ = std::make_unique<AdvancingFront>(*af_head, *af_tail);
 
   TRACE_OUT << "CreateAdvancingFront - advancing_front=" << *front_ << std::endl;
+
+  return front_.get();
 }
 
-void Sweep::CreateBackFront()
+BackFront* Sweep::CreateBackFront()
 {
   TRACE_OUT << "CreateBackFront" << std::endl;
 
@@ -106,8 +107,23 @@ void Sweep::CreateBackFront()
   bf_head->next = bf_tail;
   bf_tail->prev = bf_head;
 
-  assert(back_front_ == nullptr);
-  back_front_ = std::make_unique<BackFront>(*bf_head, *bf_tail);
+  assert(front_ == nullptr);
+  front_ = std::make_unique<BackFront>(*bf_head, *bf_tail);
+
+  return front_.get();
+}
+
+void Sweep::DeleteFront()
+{
+  assert(front_);
+  Node* node = front_->head();
+  while (node != nullptr) {
+    node->triangle = nullptr;
+    node->prev = nullptr;
+    std::swap(node, node->next);
+  }
+  front_.reset();
+  nodes_.clear();   // Release all nodes
 }
 
 void Sweep::SweepPoints()
@@ -145,25 +161,31 @@ namespace {
 
 void Sweep::FinalizationConvexHull()
 {
-  // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
-  MeshClearBackFrontTriangles();
-  assert(front_); assert(back_front_);
+  // Add the bordering triangles to form the convex hull of the advancing front
+  assert(front_);
   TRACE_OUT << "FinalizationConvexHull -\n"
-            << "  advancing_front=" << *front_ << ";\n"
-            << "  back_front=" << *back_front_ << std::endl;
+            << "  advancing_front=" << *front_ << std::endl;
+  ConvexHullFillOfFront(*front_);
+
+  // Tail triangle
+  assert(front_->tail()->prev);
+  Triangle* tail_triangle = front_->tail()->prev->triangle;
+
+  // Delete the advancing front and release the nodes
+  DeleteFront();
+
+  // Clean the mesh from the two artificial points (head and tail), and simultaneously build the back front
+  auto* back_front = MeshClearBackFrontTriangles(tail_triangle);
+  assert(back_front);
 
   // Remove exterior triangles from the mesh
-  assert(front_->head()->triangle && front_->head()->triangle->IsInterior() == false);
-  assert(front_->tail()->triangle == nullptr || front_->tail()->triangle->IsInterior() == false);
-  assert(front_->tail()->prev && front_->tail()->prev->triangle && front_->tail()->prev->triangle->IsInterior() == false);
-  front_->head()->triangle = nullptr;
-  front_->tail()->triangle = nullptr;
-  front_->tail()->prev->triangle = nullptr;
   tcx_.MeshCleanExteriorTriangles();
 
-  // Add the bordering triangles to form the convex hull
-  ConvexHullFillOfFront(*front_);
-  ConvexHullFillOfFront(*back_front_);
+  // Add the bordering triangles to form the convex hull of the back front
+  TRACE_OUT << "FinalizationConvexHull -\n"
+            << "  back_front=" << *back_front << std::endl;
+  ConvexHullFillOfFront(*back_front);
+  DeleteFront();
 }
 
 void Sweep::FinalizationOuterPolygon()
@@ -176,18 +198,21 @@ void Sweep::FinalizationOuterPolygon()
   }
 
   // Collect interior triangles constrained by edges
-  if (t)
-    FloodFillOfInteriorTriangles(*t);
+  if (t) { FloodFillOfInteriorTriangles(*t); }
 
   // Remove exterior triangles
   tcx_.MeshCleanExteriorTriangles();
+
+  // Delete the advancing front and release the nodes
+  DeleteFront();
 }
 
-void Sweep::MeshClearBackFrontTriangles()
+BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
 {
-  CreateBackFront();
-  Node* const h = back_front_->head();
-  Node* const t = back_front_->tail();
+  assert(tail_triangle);
+  auto* back_front = CreateBackFront();
+  Node* const h = back_front->head();
+  Node* const t = back_front->tail();
   Node* node = h;
   Node* middle_node = nullptr;
 
@@ -195,10 +220,10 @@ void Sweep::MeshClearBackFrontTriangles()
   for (auto& tri : tcx_.map_) { tri->IsInterior(true); }
 
   // Mark "exterior" the triangles of the back front and simultaneously build the back front linked list.
-  TraverseBackTriangles(*front_, [this, &node, &middle_node](Triangle* tri, int pivot, bool mid, bool last) {
+  TraverseBackTriangles(tcx_.head(), tcx_.tail(), tail_triangle, [this, &node, &middle_node](Triangle* tri, int pivot, bool mid, bool last) {
     tri->IsInterior(false);
     const Point* p = tri->PointCCW(tri->GetPoint(pivot));
-    assert(p != back_front_->head()->point && p != back_front_->tail()->point);   // Do not use variables h, t here to prevent a warning in Release
+    assert(p != front_->head()->point && p != front_->tail()->point);   // Do not use variables h, t here to prevent a warning in Release
     if (p != node->point) {
       Node* new_node = NewNode(p);
       node->next = new_node;
@@ -213,7 +238,7 @@ void Sweep::MeshClearBackFrontTriangles()
     }
     if (last && !mid) {
       const Point* q = tri->PointCW(tri->GetPoint(pivot));
-      assert(q != back_front_->head()->point && q != back_front_->tail()->point);
+      assert(q != front_->head()->point && q != front_->tail()->point);
       Node* new_node = NewNode(q);
       node->next = new_node;
       new_node->prev = node;
@@ -226,6 +251,8 @@ void Sweep::MeshClearBackFrontTriangles()
     middle_node->triangle = middle_node->next->triangle;
   }
   h->triangle = h->next->triangle;
+
+  return back_front;
 }
 
 void Sweep::ConvexHullFillOfFront(AdvancingFront& front)
@@ -240,9 +267,9 @@ void Sweep::ConvexHullFillOfFront(AdvancingFront& front)
   {
     assert(node != nullptr);
     if (Orient2d(*node->prev->point, *node->point, *node->next->point) == CCW) {
-      Fill(*node);
-      if (node->prev != min_prev_node) { node = node->prev; }  // Stay in range begin_node, end_node
-      else { node = node->next; }
+      Fill(&node);   // node is set to node->prev
+      // Move backward in the list but stay in range:  begin_node <= node < end_node
+      if (node == min_prev_node) { node = node->next; }
     }
     else
     {
@@ -269,10 +296,8 @@ Node& Sweep::PointEvent(const Point* point)
   // x value than node due to how we fetch nodes from the front
   if (point->x <= node.point->x + EPSILON) {
     TRACE_OUT << "PointEvent - Fill" << std::endl;
-    Fill(node);
+    Fill(&node_ptr);
   }
-
-  //tcx_.AddNode(new_node);
 
   FillAdvancingFront(new_node);
   return new_node;
@@ -398,20 +423,22 @@ Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
   return *new_node;
 }
 
-void Sweep::Fill(Node& node)
+void Sweep::Fill(Node** node)
 {
-  Triangle* triangle = tcx_.AddTriangleToMap(node.prev->point, node.point, node.next->point);
+  assert(node); assert(*node);
+  Node* filled_node = *node;
+  Triangle* triangle = tcx_.AddTriangleToMap(filled_node->prev->point, filled_node->point, filled_node->next->point);
 
   TRACE_OUT << "Fill - triangle=" << *triangle << std::endl;
 
   // TODO: should copy the constrained_edge value from neighbor triangles
   //       for now constrained_edge values are copied during the legalize
-  triangle->MarkNeighbor(*node.prev->triangle);
-  triangle->MarkNeighbor(*node.triangle);
+  triangle->MarkNeighbor(*filled_node->prev->triangle);
+  triangle->MarkNeighbor(*filled_node->triangle);
 
   // Update the front
-  node.prev->next = node.next;
-  node.next->prev = node.prev;
+  assert(front_);
+  front_->RemoveNode(node);
 
   // If it was legalized the triangle has already been mapped
   if (!Legalize(*triangle)) {
@@ -430,7 +457,7 @@ void Sweep::FillAdvancingFront(Node& n)
     if (LargeHole_DontFill(node))
       break;
     TRACE_OUT << "FillAdvancingFront - Fill right node->point " << *node->point << std::endl;
-    Fill(*node);
+    Fill(&node);
     node = node->next;
   }
 
@@ -442,8 +469,8 @@ void Sweep::FillAdvancingFront(Node& n)
     if (LargeHole_DontFill(node))
       break;
     TRACE_OUT << "FillAdvancingFront - Fill left node->point " << *node->point << std::endl;
-    Fill(*node);
-    node = node->prev;
+    Fill(&node);
+    // node is set to node->prev in Fill
   }
 
   // Fill right basins
@@ -735,27 +762,26 @@ void Sweep::FillBasinReq(Node* node)
     return;
   }
 
-  Fill(*node);
+  const Point* point = node->point;
 
-  if (node->prev == basin_.left_node && node->next == basin_.right_node) {
+  Fill(&node);
+
+  if (node == basin_.left_node && node->next == basin_.right_node) {
     return;
-  } else if (node->prev == basin_.left_node) {
-    Orientation o = Orient2d(*node->point, *node->next->point, *node->next->next->point);
+  } else if (node == basin_.left_node) {
+    Orientation o = Orient2d(*point, *node->next->point, *node->next->next->point);
     if (o == CW) {
       return;
     }
     node = node->next;
   } else if (node->next == basin_.right_node) {
-    Orientation o = Orient2d(*node->point, *node->prev->point, *node->prev->prev->point);
+    Orientation o = Orient2d(*point, *node->point, *node->prev->point);
     if (o == CCW) {
       return;
     }
-    node = node->prev;
   } else {
     // Continue with the neighbor node with lowest Y value
-    if (node->prev->point->y < node->next->point->y) {
-      node = node->prev;
-    } else {
+    if (node->point->y >= node->next->point->y) {
       node = node->next;
     }
   }
@@ -815,7 +841,11 @@ void Sweep::FillRightBelowEdgeEvent(Edge* edge, Node& node)
 
 void Sweep::FillRightConcaveEdgeEvent(Edge* edge, Node& node)
 {
-  Fill(*node.next);
+  {
+    Node* next = node.next;
+    assert(next);
+    Fill(&next);
+  }
   if (node.next->point != edge->p) {
     // Next above or below edge?
     if (Orient2d(*edge->q, *node.next->point, *edge->p) == CCW) {
@@ -895,7 +925,11 @@ void Sweep::FillLeftConvexEdgeEvent(Edge* edge, Node& node)
 
 void Sweep::FillLeftConcaveEdgeEvent(Edge* edge, Node& node)
 {
-  Fill(*node.prev);
+  {
+    Node* prev = node.prev;
+    assert(prev);
+    Fill(&prev);
+  }
   if (node.prev->point != edge->p) {
     // Next above or below edge?
     if (Orient2d(*edge->q, *node.prev->point, *edge->p) == CW) {
@@ -1035,7 +1069,6 @@ void Sweep::MapTriangleToNodes(Triangle& t)
 {
   assert(front_);
   front_->MapTriangleToNodes(t);
-  if (back_front_) { back_front_->MapTriangleToNodes(t); }
 }
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)

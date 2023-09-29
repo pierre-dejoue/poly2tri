@@ -77,14 +77,19 @@ private:
   /**
    * Create the advancing front
    */
-  void CreateAdvancingFront();
+  AdvancingFront* CreateAdvancingFront();
 
   /**
    * Create the back front
    *
    * Used to finalize the convex hull triangulation
    */
-  void CreateBackFront();
+  BackFront* CreateBackFront();
+
+  /**
+   * Delete the advancing ot the back front
+   */
+  void DeleteFront();
 
   /**
    * Start sweeping the Y-sorted point set from bottom to top
@@ -129,14 +134,23 @@ private:
   Node& NewFrontTriangle(const Point* point, Node& node);
 
   /**
-   * Adds a triangle to the advancing front to fill a hole.
+   * Adds a triangle to the sweepline to fill a hole.
    *
-   * @param node - middle node, that is the bottom of the hole
+   * @param node - IN/OUT. middle node, that is the bottom of the hole.
+   *                       It will be removed from the sweepline and
+   *                       the node pointer set to *node->prev
    */
-  void Fill(Node& node);
+  void Fill(Node** node);
 
   /**
-   * Returns true if triangle was legalized
+   * Perform Lawson's legalization on the triangle.
+   *
+   * Consider each neighbor of the triangle and perform the circumcirle check on the pair of triangles.
+   * If the check fails, flip both triangles. The process continues recursively until the CDT criteria
+   * is valid in the area around the initial triangle.
+   *
+   * @param t - The triangle to legalize
+   * @return a boolean, true if the triangle was flipped with at least one of its neighbors
    */
   bool Legalize(Triangle& t);
 
@@ -297,7 +311,7 @@ private:
 
   void FinalizationOuterPolygon();
 
-  void MeshClearBackFrontTriangles();
+  BackFront* MeshClearBackFrontTriangles(Triangle* tail_triangle);
 
   void ConvexHullFillOfFront(AdvancingFront& front);    // AdvancingFront or BackFront
 
@@ -344,11 +358,8 @@ private:
   // Sweep context
   SweepContext& tcx_;
 
-  // Advancing front
+  // Advancing front. Also used for the back front in the finalization phase.
   std::unique_ptr<AdvancingFront> front_;
-
-  // Back front
-  std::unique_ptr<BackFront> back_front_;
 
   // Nodes of the advancing front
   std::vector<std::unique_ptr<Node>> nodes_;

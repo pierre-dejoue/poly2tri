@@ -62,6 +62,10 @@ struct Node {
     value = p->x;
   }
 
+  ~Node() {
+    assert(triangle == nullptr);
+  }
+
 };
 
 std::ostream& operator<<(std::ostream& out, const Node& node);
@@ -82,6 +86,8 @@ public:
   Node* LocatePoint(const Point* point);
 
   void MapTriangleToNodes(Triangle& t);
+
+  void RemoveNode(Node** node);
 
 private:
 

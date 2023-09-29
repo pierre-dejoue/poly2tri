@@ -31,18 +31,11 @@
 
 #include <poly2tri/common/shapes.h>
 
-#include "advancing_front.h"
-
 #include <cassert>
 #include <cstddef>
 
 namespace p2t
 {
-
-class Sweep;
-
-using BackFront = AdvancingFront;
-
 /**
  * Traverse all the back triangles, meaning the triangles which contains at least one of the two artificial points (head and tail.)
  * The traversal starts with the tail and ends with the head.
@@ -59,27 +52,24 @@ using BackFront = AdvancingFront;
  *  - last (boolean): true iff this is the last triangle of the traversal
  */
 template <typename ACTION>
-void TraverseBackTriangles(AdvancingFront& adv_front, ACTION action)
+void TraverseBackTriangles(const Point* head, const Point* tail, Triangle* tail_triangle, ACTION action)
 {
-  const Node* head = adv_front.head();
-  const Node* tail = adv_front.tail();
-  const Node* prev_tail = tail->prev;
-  assert(prev_tail != nullptr);
-  Triangle* triangle = prev_tail->triangle;
-  assert(triangle != nullptr);
+  assert(head); assert(tail);
+  assert(tail_triangle != nullptr);
+  Triangle* triangle = tail_triangle;
   Triangle* neighbor = nullptr;
-  const Point* pivot = tail->point;
+  const Point* pivot = tail;
   while ((neighbor = triangle->NeighborCCW(pivot)) != nullptr) { triangle = neighbor; }
   while (triangle != nullptr)
   {
     bool mid = false;
     int index = triangle->Index(pivot);
     Triangle* next = triangle->NeighborCW(pivot);
-    if (next == nullptr && pivot == tail->point)
+    if (next == nullptr && pivot == tail)
     {
       mid = true;
-      assert(triangle->PointCW(pivot) == head->point);
-      pivot = head->point;
+      assert(triangle->PointCW(pivot) == head);
+      pivot = head;
       next = triangle->NeighborCW(pivot);
     }
     action(triangle, index, mid, next == nullptr);

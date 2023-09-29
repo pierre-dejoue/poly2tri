@@ -133,6 +133,24 @@ void AdvancingFront::MapTriangleToNodes(Triangle& t)
   }
 }
 
+// Remove a node from the list
+// Cannot remove the head or the tail
+// The node passed as argument is replaced by the node directly preceeding the removed one
+void AdvancingFront::RemoveNode(Node** node)
+{
+  assert(node);
+  Node* deleted_node = *node;
+  assert(deleted_node);
+  assert(deleted_node->prev);   // The node is not the head of the list
+  assert(deleted_node->next);   // The node is not the tail of the list
+  deleted_node->prev->next = deleted_node->next;
+  deleted_node->next->prev = deleted_node->prev;
+  *node = deleted_node->prev;
+  deleted_node->prev = deleted_node->next = nullptr;
+  deleted_node->triangle = nullptr;
+  if (search_node_ == deleted_node) { search_node_ = *node; }
+}
+
 std::ostream& operator<<(std::ostream& out, const AdvancingFront& front)
 {
   const Node* head = front.head();
