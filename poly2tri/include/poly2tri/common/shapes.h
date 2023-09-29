@@ -130,6 +130,8 @@ enum Orientation { CW, CCW, COLLINEAR };
 
 P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Orientation);
 
+struct Node;
+
 // Triangle-based data structures are know to have better performance than quad-edge structures
 // See: J. Shewchuk, "Triangle: Engineering a 2D Quality Mesh Generator and Delaunay Triangulator"
 //      "Triangulations in CGAL"
@@ -173,6 +175,10 @@ public:
   void SetDelaunayEdge(int index, bool e);
   void SetDelaunayEdge(const Point* p, bool e);
 
+  Node* GetNode(const Point* p);
+  void SetNode(Node& node);
+  void ResetNode(Node& node);
+
   bool Contains(const Point* p);
   bool Contains(const Edge& e);
   bool Contains(const Point* p, const Point* q);
@@ -196,6 +202,10 @@ private:
 
   /// Triangle points
   const Point* points_[3];
+
+  /// Backlink to the sweepline nodes that are associated with this triangle
+  /// Invariant: node.triangle != nullptr => For some index i, node.p == node.triangle->points_[i] && node.triangle->nodes_[i] == &node
+  Node* nodes_[3];
 
   /// Neighbor list
   Triangle* neighbors_[3];

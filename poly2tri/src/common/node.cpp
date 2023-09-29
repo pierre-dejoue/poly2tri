@@ -1,6 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
- * https://github.com/jhasse/poly2tri
+ * Poly2Tri Copyright (c) 2023, Poly2Tri Contributors
  *
  * All rights reserved.
  *
@@ -29,48 +28,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include "../common/node.h"
-
-#include <poly2tri/common/shapes.h>
-
-#include <cassert>
-#include <ostream>
-#include <utility>
-
+#include "node.h"
 
 namespace p2t {
 
-// Advancing front
-class AdvancingFront {
-public:
-
-  AdvancingFront(Node& head, Node& tail);
-  ~AdvancingFront();
-
-  Node* head() const { return head_; }
-  Node* tail() const { return tail_; }
-
-  // Locate insertion point along the advancing front
-  Node* LocateNode(double x);
-
-  void RemoveNode(Node** node);
-
-private:
-
-  Node* const head_;
-  Node* const tail_;
-  Node* search_node_;
-
-  Node* FindSearchNode(double x);
-
-};
-
-std::ostream& operator<<(std::ostream& out, const AdvancingFront& front);
-
-// Return a range (begin, end) of the inner nodes of the advancing front
-// That is, the range of all nodes from head()->next->next to tail()->prev->prev
-std::pair<Node*, Node*> GetInnerRange(AdvancingFront& front);
+std::ostream& operator<<(std::ostream& out, const Node& node)
+{
+  out << "{ point=" << *node.point << "; triangle=";
+  if (node.triangle) {
+    out << *node.triangle;
+    if (!node.triangle->IsInterior()) {
+       out << "; EXTERIOR";
+    }
+  } else {
+    out << "NULL";
+  }
+  return out << " }";
+}
 
 }

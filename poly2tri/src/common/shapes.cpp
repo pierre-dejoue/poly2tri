@@ -29,6 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <poly2tri/common/shapes.h>
+#include "node.h"
 #include "utils.h"
 
 #include <cassert>
@@ -87,6 +88,7 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
 {
   assert(a); assert(b); assert(c);
   points_[0] = a; points_[1] = b; points_[2] = c;
+  nodes_[0] = nullptr; nodes_[1] = nullptr; nodes_[2] = nullptr;
   neighbors_[0] = nullptr; neighbors_[1] = nullptr; neighbors_[2] = nullptr;
   constrained_edge_[0] = constrained_edge_[1] = constrained_edge_[2] = false;
   delaunay_edge_[0] = delaunay_edge_[1] = delaunay_edge_[2] = false;
@@ -165,7 +167,7 @@ const Point* Triangle::OppositePoint(Triangle& t, const Point* p)
   return PointCW(cw);
 }
 
-// Legalize triangle by rotating clockwise around point
+// Legalize triangle by rotating clockwise around point p
 // The indices of the opposing points after the legalization are the same as before (although those are not the same points)
 void Triangle::Legalize(const Point* p, const Point* op)
 {
@@ -173,16 +175,20 @@ void Triangle::Legalize(const Point* p, const Point* op)
 
   if (p == points_[0]) {
     points_[0] = points_[2];
+    // nodes_[0] to be set by the caller
     // neighbors_[0] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[0] is false;
     // delaunay_edge_[0] remains the same
 
     points_[2] = op;
+    assert(nodes_[2] == nullptr);
     neighbors_[2] = neighbors_[1];
     constrained_edge_[2] = constrained_edge_[1];
     // delaunay_edge_[2] set below after all points are shifted
 
     points_[1] = p;
+    assert(nodes_[1] == nullptr);
+    std::swap(nodes_[1], nodes_[0]);
     neighbors_[1] = nullptr;      // To be set by the caller
     // constrained_edge[1] to be set by the caller
     // delaunay_edge[1] to be set false by the caller
@@ -191,16 +197,20 @@ void Triangle::Legalize(const Point* p, const Point* op)
 
   } else if (p == points_[1]) {
     points_[1] = points_[0];
+    // nodes_[1] to be set by the caller
     // neighbors_[1] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[1] is false;
     // delaunay_edge_[1] remains the same
 
     points_[0] = op;
+    assert(nodes_[0] == nullptr);
     neighbors_[0] = neighbors_[2];
     constrained_edge_[0] = constrained_edge_[2];
     // delaunay_edge_[0] set below after all points are shifted
 
     points_[2] = p;
+    assert(nodes_[2] == nullptr);
+    std::swap(nodes_[2], nodes_[1]);
     neighbors_[2] = nullptr;      // To be set by the caller
     // constrained_edge[2] to be set by the caller
     // delaunay_edge[2] to be set false by the caller
@@ -210,16 +220,20 @@ void Triangle::Legalize(const Point* p, const Point* op)
   } else {
     assert(p == points_[2]);
     points_[2] = points_[1];
+    // nodes_[2] to be set by the caller
     // neighbors_[2] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[2] is false;
     // delaunay_edge_[2] remains the same
 
     points_[1] = op;
+    assert(nodes_[1] == nullptr);
     neighbors_[1] = neighbors_[0];
     constrained_edge_[1] = constrained_edge_[0];
     // delaunay_edge_[1] set below after all points are shifted
 
     points_[0] = p;
+    assert(nodes_[0] == nullptr);
+    std::swap(nodes_[0], nodes_[2]);
     neighbors_[0] = nullptr;      // To be set by the caller
     // constrained_edge[0] to be set by the caller
     // delaunay_edge[0] to be set false by the caller
@@ -434,7 +448,6 @@ void Triangle::SetConstrainedEdgeCW(const Point* p, bool ce)
   }
 }
 
-
 bool Triangle::IsDelaunayEdge(int index)
 {
   assert(0 <= index && index < 3);
@@ -490,6 +503,44 @@ void Triangle::SetDelaunayEdge(const Point* p1, const Point* p2, bool e)
     delaunay_edge_[2] = e;
   else
     assert(0);
+}
+
+Node* Triangle::GetNode(const Point* p)
+{
+  if (p == points_[0]) {
+    return nodes_[0];
+  } else if (p == points_[1]) {
+    return nodes_[1];
+  } else {
+    assert(p == points_[2]);
+    return nodes_[2];
+  }
+}
+
+void Triangle::SetNode(Node& node)
+{
+  assert(node.triangle == this);
+  if (node.point == points_[0]) {
+    nodes_[0] = &node;
+  } else if (node.point == points_[1]) {
+    nodes_[1] = &node;
+  } else {
+    assert(node.point == points_[2]);
+    nodes_[2] = &node;
+  }
+}
+
+void Triangle::ResetNode(Node& node)
+{
+  assert(node.triangle == this);
+  if (node.point == points_[0]) {
+    nodes_[0] = nullptr;
+  } else if (node.point == points_[1]) {
+    nodes_[1] = nullptr;
+  } else {
+    assert(node.point == points_[2]);
+    nodes_[2] = nullptr;
+  }
 }
 
 bool Triangle::CircumcircleContains(const Point& point) const

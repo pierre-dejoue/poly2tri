@@ -44,20 +44,6 @@ AdvancingFront::AdvancingFront(Node& head, Node& tail) :
 {
 }
 
-std::ostream& operator<<(std::ostream& out, const Node& node)
-{
-  out << "{ point=" << *node.point << "; triangle=";
-  if (node.triangle) {
-    out << *node.triangle;
-    if (!node.triangle->IsInterior()) {
-       out << "; EXTERIOR";
-    }
-  } else {
-    out << "NULL";
-  }
-  return out << " }";
-}
-
 AdvancingFront::~AdvancingFront() = default;
 
 Node* AdvancingFront::LocateNode(double x)
@@ -82,57 +68,6 @@ Node* AdvancingFront::LocateNode(double x)
   return nullptr;
 }
 
-Node* AdvancingFront::FindSearchNode(double x)
-{
-  UNUSED(x);
-
-  // TODO: implement BST index
-  return search_node_;
-}
-
-Node* AdvancingFront::LocatePoint(const Point* point)
-{
-  const double x_dir = (head_->point->x < tail_->point->x) ? 1.0 : -1.0;
-  const double px = point->x;
-  Node* node = FindSearchNode(px);
-  const double nx = node->point->x;
-
-  if (px == nx) {
-    if (point != node->point) {
-      // We might have two nodes with same x value for a short time
-      if (point == node->prev->point) {
-        node = node->prev;
-      } else if (point == node->next->point) {
-        node = node->next;
-      } else {
-        assert(0);
-      }
-    }
-  } else if (x_dir * px < x_dir * nx) {
-    while ((node = node->prev) != nullptr) {
-      if (point == node->point)
-        break;
-    }
-  } else {
-    while ((node = node->next) != nullptr) {
-      if (point == node->point)
-        break;
-    }
-  }
-  if(node) { search_node_ = node; }
-  return node;
-}
-
-void AdvancingFront::MapTriangleToNodes(Triangle& t)
-{
-  for (int i = 0; i < 3; i++) {
-    if (!t.GetNeighbor(i)) {
-      Node* node = LocatePoint(t.PointCW(t.GetPoint(i)));
-      if (node) { node->triangle = &t; }
-    }
-  }
-}
-
 // Remove a node from the list
 // Cannot remove the head or the tail
 // The node passed as argument is replaced by the node directly preceeding the removed one
@@ -147,7 +82,7 @@ void AdvancingFront::RemoveNode(Node** node)
   deleted_node->next->prev = deleted_node->prev;
   *node = deleted_node->prev;
   deleted_node->prev = deleted_node->next = nullptr;
-  deleted_node->triangle = nullptr;
+  deleted_node->ResetTriangle();
   if (search_node_ == deleted_node) { search_node_ = *node; }
 }
 

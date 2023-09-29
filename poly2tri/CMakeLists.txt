@@ -4,6 +4,7 @@
 include(compiler_options)
 
 set(SOURCES
+    src/common/node.cpp
     src/common/shapes.cpp
     src/sweep/advancing_front.cpp
     src/sweep/cdt.cpp

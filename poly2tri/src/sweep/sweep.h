@@ -186,13 +186,13 @@ private:
    * Rotates a triangle pair one vertex CW
    *<pre>
    *
-   *  P +-----+             P +-----+
-   *    | t  /|               |\  t |
-   *    |   / |               | \   |
-   *  n1|  /  |n2           n1|  \  |n2
-   *    | /   |    after CW   |   \ |
-   *    |/ ot |               | ot \|
-   *    +-----+ op            +-----+ op
+   *  P +-----+ q               P +-----+ q
+   *    | t  /|                   |\  t |
+   *    |   / |                   | \   |
+   *  t1|  /  |t2               t1|  \  |t2
+   *    | /   |     after CW:     |   \ |
+   *    |/ ot |                   | ot \|
+   * oq +-----+ op             oq +-----+ op
    *
    * </pre>
    */
@@ -314,9 +314,6 @@ private:
   BackFront* MeshClearBackFrontTriangles(Triangle* tail_triangle);
 
   void ConvexHullFillOfFront(AdvancingFront& front);    // AdvancingFront or BackFront
-
-  /// Try to map a node to all sides of this triangle that don't have a neighbor
-  void MapTriangleToNodes(Triangle& t);
 
   struct Basin {
     Node* left_node;

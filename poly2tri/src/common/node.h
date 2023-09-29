@@ -1,6 +1,5 @@
 /*
  * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
- * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
  *
@@ -31,46 +30,53 @@
 
 #pragma once
 
-#include "../common/node.h"
-
 #include <poly2tri/common/shapes.h>
 
 #include <cassert>
 #include <ostream>
-#include <utility>
-
 
 namespace p2t {
 
-// Advancing front
-class AdvancingFront {
-public:
+// Advancing front node
+struct Node {
 
-  AdvancingFront(Node& head, Node& tail);
-  ~AdvancingFront();
+  const Point* point;
+  Triangle* triangle;     // This triangle (if set) should contain the edge between this node and the next one.
 
-  Node* head() const { return head_; }
-  Node* tail() const { return tail_; }
+  Node* next;
+  Node* prev;
 
-  // Locate insertion point along the advancing front
-  Node* LocateNode(double x);
+  double value;
 
-  void RemoveNode(Node** node);
+  Node(const Point* p, Triangle* t = nullptr) :
+    point(p),
+    triangle(t),
+    next(nullptr),
+    prev(nullptr),
+    value()
+  {
+    assert(p);
+    value = p->x;
+  }
 
-private:
+  ~Node() {
+    assert(triangle == nullptr);
+  }
 
-  Node* const head_;
-  Node* const tail_;
-  Node* search_node_;
+  void SetTriangle(Triangle* t) {
+    // Set the triangle and the backlink
+    assert(triangle == nullptr);
+    triangle = t;
+    if (triangle) { triangle->SetNode(*this); }
+  }
 
-  Node* FindSearchNode(double x);
+  void ResetTriangle() {
+    if (triangle) { triangle->ResetNode(*this); }
+    triangle = nullptr;
+  }
 
 };
 
-std::ostream& operator<<(std::ostream& out, const AdvancingFront& front);
-
-// Return a range (begin, end) of the inner nodes of the advancing front
-// That is, the range of all nodes from head()->next->next to tail()->prev->prev
-std::pair<Node*, Node*> GetInnerRange(AdvancingFront& front);
+std::ostream& operator<<(std::ostream& out, const Node& node);
 
 }

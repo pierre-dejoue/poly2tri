@@ -118,7 +118,7 @@ void Sweep::DeleteFront()
   assert(front_);
   Node* node = front_->head();
   while (node != nullptr) {
-    node->triangle = nullptr;
+    node->ResetTriangle();
     node->prev = nullptr;
     std::swap(node, node->next);
   }
@@ -200,11 +200,11 @@ void Sweep::FinalizationOuterPolygon()
   // Collect interior triangles constrained by edges
   if (t) { FloodFillOfInteriorTriangles(*t); }
 
-  // Remove exterior triangles
-  tcx_.MeshCleanExteriorTriangles();
-
   // Delete the advancing front and release the nodes
   DeleteFront();
+
+  // Remove exterior triangles
+  tcx_.MeshCleanExteriorTriangles();
 }
 
 BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
@@ -214,14 +214,15 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
   Node* const h = back_front->head();
   Node* const t = back_front->tail();
   Node* node = h;
-  Node* middle_node = nullptr;
 
   // Mark "interior" all triangles
   for (auto& tri : tcx_.map_) { tri->IsInterior(true); }
 
   // Mark "exterior" the triangles of the back front and simultaneously build the back front linked list.
-  TraverseBackTriangles(tcx_.head(), tcx_.tail(), tail_triangle, [this, &node, &middle_node](Triangle* tri, int pivot, bool mid, bool last) {
+  TraverseBackTriangles(tcx_.head(), tcx_.tail(), tail_triangle, [this, &node](Triangle* tri, int pivot, bool mid, bool last) {
     tri->IsInterior(false);
+    if (mid && !last)
+      return;
     const Point* p = tri->PointCCW(tri->GetPoint(pivot));
     assert(p != front_->head()->point && p != front_->tail()->point);   // Do not use variables h, t here to prevent a warning in Release
     if (p != node->point) {
@@ -230,10 +231,8 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
       new_node->prev = node;
       node = new_node;
     }
-    if (mid) {
-      middle_node = node;
-    } else {
-      node->triangle = tri->GetNeighbor(pivot);
+    if (!mid) {
+      node->SetTriangle(tri->GetNeighbor(pivot));
       assert(node->triangle == nullptr || node->triangle->IsInterior());
     }
     if (last && !mid) {
@@ -247,11 +246,6 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
   });
   node->next = t;
   t->prev = node;
-  if (middle_node != nullptr) {
-    middle_node->triangle = middle_node->next->triangle;
-  }
-  h->triangle = h->next->triangle;
-
   return back_front;
 }
 
@@ -416,9 +410,11 @@ Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
   node.next->prev = new_node;
   node.next = new_node;
 
-  if (!Legalize(*triangle)) {
-    MapTriangleToNodes(*triangle);
-  }
+  node.ResetTriangle();
+  node.SetTriangle(triangle);
+  new_node->SetTriangle(triangle);
+
+  Legalize(*triangle);
 
   return *new_node;
 }
@@ -440,10 +436,10 @@ void Sweep::Fill(Node** node)
   assert(front_);
   front_->RemoveNode(node);
 
-  // If it was legalized the triangle has already been mapped
-  if (!Legalize(*triangle)) {
-    MapTriangleToNodes(*triangle);
-  }
+  (*node)->ResetTriangle();
+  (*node)->SetTriangle(triangle);
+
+  Legalize(*triangle);
 }
 
 void Sweep::FillAdvancingFront(Node& n)
@@ -638,16 +634,8 @@ bool Sweep::Legalize(Triangle& t)
 
         // We now got one valid Delaunay Edge shared by two triangles
         // This gives us 4 new edges to check for Delaunay: This function is called recursively
-
-        // Make sure that triangle to node mapping is done only one time for a specific triangle
-        bool not_legalized = !Legalize(t);
-        if (not_legalized) {
-          MapTriangleToNodes(t);
-        }
-        not_legalized = !Legalize(*ot);
-        if (not_legalized) {
-          MapTriangleToNodes(*ot);
-        }
+        Legalize(t);
+        Legalize(*ot);
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handles those so we can end here.
@@ -698,8 +686,16 @@ bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Po
 
 void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op)
 {
-  Triangle* n1 = t.NeighborCCW(p);
-  Triangle* n2 = ot.NeighborCCW(op);
+  const Point* q = t.PointCW(p);
+  const Point* oq = ot.PointCW(op);
+
+  Node* n1 = t.GetNode(oq);
+  if (n1) { n1->ResetTriangle(); }
+  Node* n2 = ot.GetNode(q);
+  if (n2) { n2->ResetTriangle(); }
+
+  Triangle* t1 = t.NeighborCCW(p);
+  Triangle* t2 = ot.NeighborCCW(op);
 
   const bool ce1 = t.IsConstrainedEdgeCCW(p);
   const bool ce2 = ot.IsConstrainedEdgeCCW(op);
@@ -708,8 +704,12 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   ot.Legalize(op, p);
 
   // Remap remaining neighbors
-  if (n1) ot.MarkNeighbor(*n1);
-  if (n2) t.MarkNeighbor(*n2);
+  if (t1) { ot.MarkNeighbor(*t1); }
+  if (t2) { t.MarkNeighbor(*t2); }
+
+  // Remap nodes
+  if (n1) { n1->SetTriangle(&ot); }
+  if (n2) { n2->SetTriangle(&t); }
 
   // Remap constrained_edge
   ot.SetConstrainedEdgeCCW(p, ce1);
@@ -964,8 +964,6 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
   if (InScanArea(*p, *t->PointCCW(p), *t->PointCW(p), *op)) {
     // Lets rotate shared edge one vertex CW
     RotateTrianglePair(*t, p, ot, op);
-    MapTriangleToNodes(*t);
-    MapTriangleToNodes(ot);
 
     if (p == eq && op == ep) {
       if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
@@ -1065,15 +1063,10 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
   }
 }
 
-void Sweep::MapTriangleToNodes(Triangle& t)
-{
-  assert(front_);
-  front_->MapTriangleToNodes(t);
-}
-
 Node* Sweep::NewNode(const Point* p, Triangle* t)
 {
   nodes_.emplace_back(std::make_unique<Node>(p, t));
+  if (t) { t->SetNode(*nodes_.back()); }
   return nodes_.back().get();
 }
 
