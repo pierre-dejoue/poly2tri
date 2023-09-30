@@ -167,7 +167,8 @@ const Point* Triangle::OppositePoint(Triangle& t, const Point* p)
 
 // Legalize triangle by rotating clockwise around point p
 // The indices of the opposing points after the legalization are the same as before (although those are not the same points)
-void Triangle::Legalize(const Point* p, const Point* op)
+// Set delaunay_edge to true iff the edge common to t and ot will be Delaunay after the legalization.
+void Triangle::Legalize(const Point* p, const Point* op, bool delaunay_edge)
 {
   assert(!IsConstrainedEdge(p));
 
@@ -176,7 +177,7 @@ void Triangle::Legalize(const Point* p, const Point* op)
     // nodes_[0] to be set by the caller
     // neighbors_[0] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[0] is false;
-    delaunay_edge_[0] = true;
+    delaunay_edge_[0] = delaunay_edge;
 
     points_[2] = op;
     assert(nodes_[2] == nullptr);
@@ -196,7 +197,7 @@ void Triangle::Legalize(const Point* p, const Point* op)
     // nodes_[1] to be set by the caller
     // neighbors_[1] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[1] is false;
-    delaunay_edge_[1] = true;
+    delaunay_edge_[1] = delaunay_edge;
 
     points_[0] = op;
     assert(nodes_[0] == nullptr);
@@ -217,7 +218,7 @@ void Triangle::Legalize(const Point* p, const Point* op)
     // nodes_[2] to be set by the caller
     // neighbors_[2] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[2] is false;
-    delaunay_edge_[2] = true;
+    delaunay_edge_[2] = delaunay_edge;
 
     points_[1] = op;
     assert(nodes_[1] == nullptr);

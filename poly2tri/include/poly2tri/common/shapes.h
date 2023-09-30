@@ -181,7 +181,7 @@ public:
   bool Contains(const Edge& e);
   bool Contains(const Point* p, const Point* q);
 
-  void Legalize(const Point* p, const Point* op);
+  void Legalize(const Point* p, const Point* op, bool delaunay_edge);
 
   void ClearDelaunayEdges();
 

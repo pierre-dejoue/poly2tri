@@ -622,8 +622,8 @@ bool Sweep::Legalize(Triangle& t)
       bool inside = Incircle(*p, *t.GetPoint((i + 1) % 3), *t.GetPoint((i + 2) % 3), *op);
 
       if (inside) {
-        // Lets rotate shared edge one vertex CW to legalize it
-        RotateTrianglePair(t, p, *ot, op);
+        // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
+        RotateTrianglePair(t, p, *ot, op, true);
 
         // We now got one valid Delaunay Edge shared by two triangles
         // This gives us 4 new edges to check for Delaunay: This function is called recursively
@@ -681,7 +681,7 @@ bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Po
   return det > 0;
 }
 
-void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op)
+void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op, bool delaunay_pair)
 {
   const Point* q = t.PointCW(p);
   const Point* oq = ot.PointCW(op);
@@ -697,8 +697,8 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   const bool ce1 = t.IsConstrainedEdgeCCW(p);
   const bool ce2 = ot.IsConstrainedEdgeCCW(op);
 
-  t.Legalize(p, op);
-  ot.Legalize(op, p);
+  t.Legalize(p, op, delaunay_pair);
+  ot.Legalize(op, p, delaunay_pair);
 
   // Remap remaining neighbors
   if (t1) { ot.MarkNeighbor(*t1); }
@@ -946,55 +946,40 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
             << "p=" << *p
             << std::endl;
 
-  Triangle* ot_ptr = t->NeighborAcross(p);
-  if (ot_ptr == nullptr)
+  Triangle* ot = t->NeighborAcross(p);
+  if (ot == nullptr)
   {
     throw std::runtime_error("FlipEdgeEvent - null neighbor across");
   }
-  Triangle& ot = *ot_ptr;
-  const Point* op = ot.OppositePoint(*t, p);
+  const Point* op = ot->OppositePoint(*t, p);
 
   if (InScanArea(*p, *t->PointCCW(p), *t->PointCW(p), *op)) {
     // Lets rotate shared edge one vertex CW
-    RotateTrianglePair(*t, p, ot, op);
+    RotateTrianglePair(*t, p, *ot, op);
 
     if (p == eq && op == ep) {
       if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
         t->SetConstrainedEdge(ep, eq);
-        ot.SetConstrainedEdge(ep, eq);
+        ot->SetConstrainedEdge(ep, eq);
         Legalize(*t);
-        Legalize(ot);
+        Legalize(*ot);
       } else {
         // TODO: I think one of the triangles should be legalized here?
       }
     } else {
-      const Orientation o = Orient2d(*eq, *op, *ep);
-      t = &NextFlipTriangle(o, *t, ot, p, op);
+      // Select next flip triangle
+      if (Orient2d(*eq, *op, *ep) == CW) {
+        std::swap(t, ot);
+      }
+      // t is the next flip triangle
+      // ot is not crossing the edge {ep, eq} and will be legalized in post-order
       FlipEdgeEvent(ep, eq, t, p);
+      Legalize(*ot);
     }
   } else {
-    const Point* new_p = NextFlipPoint(ep, eq, ot, op);
-    FlipScanEdgeEvent(ep, eq, *t, ot, new_p);
+    const Point* new_p = NextFlipPoint(ep, eq, *ot, op);
+    FlipScanEdgeEvent(ep, eq, *t, *ot, new_p);
     EdgeEvent(ep, eq, t, p);
-  }
-}
-
-Triangle& Sweep::NextFlipTriangle(Orientation o, Triangle& t, Triangle& ot, const Point* p, const Point* op)
-{
-  if (o == CCW) {
-    // ot is not crossing edge after flip
-    const int edge_index = ot.EdgeIndex(p, op);
-    ot.SetDelaunayEdge(edge_index, true);
-    Legalize(ot);
-    ot.ClearDelaunayEdges();
-    return t;
-  } else {
-    // t is not crossing edge after flip
-    const int edge_index = t.EdgeIndex(p, op);
-    t.SetDelaunayEdge(edge_index, true);
-    Legalize(t);
-    t.ClearDelaunayEdges();
-    return ot;
   }
 }
 

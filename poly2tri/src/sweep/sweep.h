@@ -181,7 +181,7 @@ private:
   static bool Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd);
 
   /**
-   * Rotates a triangle pair one vertex CW
+   * Rotates a triangle pair one vertex CW.
    *<pre>
    *
    *  P +-----+ q               P +-----+ q
@@ -193,8 +193,10 @@ private:
    * oq +-----+ op             oq +-----+ op
    *
    * </pre>
+   * Flag delaunay_pair is set to true if the caller is confident the triangle rotation creates a Delaunay pair.
+   * Else, it must be set to false, that is for example the case during a FlipScan during an EdgeEvent.
    */
-  static void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op);
+  static void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op, bool delaunay_pair = false);
 
   /**
    * Fills holes in the Advancing Front
@@ -264,19 +266,6 @@ private:
   void FillLeftConvexEdgeEvent(Edge* edge, Node& node);
 
   void FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const Point* p);
-
-  /**
-   * After a flip we have two triangles and know that only one will still be
-   * intersecting the edge. So decide which to contiune with and legalize the other
-   *
-   * @param o - should be the result of an Orient2d( eq, op, ep )
-   * @param t - triangle 1
-   * @param ot - triangle 2
-   * @param p - a point shared by both triangles
-   * @param op - another point shared by both triangles
-   * @return returns the triangle still intersecting the edge
-   */
-  Triangle& NextFlipTriangle(Orientation o, Triangle&  t, Triangle& ot, const Point* p, const Point* op);
 
    /**
      * When we need to traverse from one triangle to the next we need
