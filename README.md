@@ -1,5 +1,15 @@
-﻿Foreword
+﻿Poly2tri
 ========
+
+## About this fork of the library
+
+This fork of [jhasse/poly2tri](https://github.com/jhasse/poly2tri) was created by Pierre Dejoue [:email:](mailto:pierre.dejoue@gmail.com).
+
+In this repository I share a number of changes I made to the library for my own purpose. Some of thoses changes impact the API and are listed below.
+
+There is no intent to provide any level of maintainance or support of this repository. It is open source and closed to contributions. That being stated, feel free to [submit an issue](https://github.com/pierre-dejoue/poly2tri/issues/new) for a bug report, or a question.
+
+## Foreword of the original poly2tri library
 
 Since there are no Input validation of the data given for triangulation you need
 to think about this. Poly2Tri does not support repeat points within epsilon.
@@ -31,7 +41,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 ### Breaking
 
 - Renamed method Triangle::CircumcircleContains to fix a typo in the name
-- Renamed methods Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name and aldo change the 'Get' prefix to 'Is'.
+- Renamed methods Triangle::{Get/Set}DelaunayEdge{CW/CCW} to fix a typo in their name and also change the 'Get' prefix to 'Is'.
 - Removed methods Triangle::MarkConstrainedEdge and use Triangle::SetContrainedEdge instead. Those are very unlikely to be used in client code.
 - Members Triangle::contrained_edge[] and Triangle::delaunay_edge[] are now private
 - Removed function IsDelaunay
