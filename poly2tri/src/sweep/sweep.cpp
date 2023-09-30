@@ -608,7 +608,6 @@ bool Sweep::Legalize(Triangle& t)
       const Point* p = t.GetPoint(i);
       const Point* op = ot->OppositePoint(t, p);
       int oi = ot->Index(op);
-      assert(!ot->IsDelaunayEdge(oi));
 
       // The constrained edge flag is not always symmetrical
       if (t.IsConstrainedEdge(i)) {
@@ -620,11 +619,7 @@ bool Sweep::Legalize(Triangle& t)
         continue;
       }
 
-      bool inside = Incircle(*p, *t.PointCCW(p), *t.PointCW(p), *op);
-
-      // Lets mark this shared edge as Delaunay
-      t.SetDelaunayEdge(i, true);
-      assert(ot->IsDelaunayEdge(oi));
+      bool inside = Incircle(*p, *t.GetPoint((i + 1) % 3), *t.GetPoint((i + 2) % 3), *op);
 
       if (inside) {
         // Lets rotate shared edge one vertex CW to legalize it
@@ -639,6 +634,10 @@ bool Sweep::Legalize(Triangle& t)
         // the recursive legalization will handles those so we can end here.
         TRACE_OUT << "Legalized - t=" << t << "; ot=" << *ot << std::endl;
         return true;
+      } else {
+        // The shared edge is Delaunay
+        t.SetDelaunayEdge(i, true);
+        ot->SetDelaunayEdge(oi, true);
       }
     }
   }
@@ -712,10 +711,6 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   // Remap constrained_edge
   ot.SetConstrainedEdgeCCW(p, ce1);
   t.SetConstrainedEdgeCCW(op, ce2);
-
-  // Except for the shared edge between both triangles, None of the edges are Delaunay
-  ot.SetDelaunayEdge(op, false);
-  t.SetDelaunayEdge(p, false);
 }
 
 void Sweep::FillBasin(Node& node)
@@ -988,19 +983,19 @@ Triangle& Sweep::NextFlipTriangle(Orientation o, Triangle& t, Triangle& ot, cons
 {
   if (o == CCW) {
     // ot is not crossing edge after flip
-    int edge_index = ot.EdgeIndex(p, op);
+    const int edge_index = ot.EdgeIndex(p, op);
     ot.SetDelaunayEdge(edge_index, true);
     Legalize(ot);
     ot.ClearDelaunayEdges();
     return t;
+  } else {
+    // t is not crossing edge after flip
+    const int edge_index = t.EdgeIndex(p, op);
+    t.SetDelaunayEdge(edge_index, true);
+    Legalize(t);
+    t.ClearDelaunayEdges();
+    return ot;
   }
-
-  // t is not crossing edge after flip
-  int edge_index = t.EdgeIndex(p, op);
-  t.SetDelaunayEdge(edge_index, true);
-  Legalize(t);
-  t.ClearDelaunayEdges();
-  return ot;
 }
 
 const Point* Sweep::NextFlipPoint(const Point* ep, const Point* eq, Triangle& ot, const Point* op)

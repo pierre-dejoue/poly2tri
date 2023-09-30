@@ -176,44 +176,40 @@ void Triangle::Legalize(const Point* p, const Point* op)
     // nodes_[0] to be set by the caller
     // neighbors_[0] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[0] is false;
-    // delaunay_edge_[0] remains the same
+    delaunay_edge_[0] = true;
 
     points_[2] = op;
     assert(nodes_[2] == nullptr);
     neighbors_[2] = neighbors_[1];
     constrained_edge_[2] = constrained_edge_[1];
-    // delaunay_edge_[2] set below after all points are shifted
+    delaunay_edge_[2] = false;
 
     points_[1] = p;
     assert(nodes_[1] == nullptr);
     std::swap(nodes_[1], nodes_[0]);
     neighbors_[1] = nullptr;      // To be set by the caller
     // constrained_edge[1] to be set by the caller
-    // delaunay_edge[1] to be set false by the caller
-
-    SetDelaunayEdge(2, false);
+    delaunay_edge_[1] = false;
 
   } else if (p == points_[1]) {
     points_[1] = points_[0];
     // nodes_[1] to be set by the caller
     // neighbors_[1] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[1] is false;
-    // delaunay_edge_[1] remains the same
+    delaunay_edge_[1] = true;
 
     points_[0] = op;
     assert(nodes_[0] == nullptr);
     neighbors_[0] = neighbors_[2];
     constrained_edge_[0] = constrained_edge_[2];
-    // delaunay_edge_[0] set below after all points are shifted
+    delaunay_edge_[0] = false;
 
     points_[2] = p;
     assert(nodes_[2] == nullptr);
     std::swap(nodes_[2], nodes_[1]);
     neighbors_[2] = nullptr;      // To be set by the caller
     // constrained_edge[2] to be set by the caller
-    // delaunay_edge[2] to be set false by the caller
-
-    SetDelaunayEdge(0, false);
+    delaunay_edge_[2] = false;
 
   } else {
     assert(p == points_[2]);
@@ -221,22 +217,21 @@ void Triangle::Legalize(const Point* p, const Point* op)
     // nodes_[2] to be set by the caller
     // neighbors_[2] remains the same (it is the opposite triangle 'ot')
     // constrained_edge_[2] is false;
-    // delaunay_edge_[2] remains the same
+    delaunay_edge_[2] = true;
 
     points_[1] = op;
     assert(nodes_[1] == nullptr);
     neighbors_[1] = neighbors_[0];
     constrained_edge_[1] = constrained_edge_[0];
-    // delaunay_edge_[1] set below after all points are shifted
+    delaunay_edge_[1] = false;
 
     points_[0] = p;
     assert(nodes_[0] == nullptr);
     std::swap(nodes_[0], nodes_[2]);
     neighbors_[0] = nullptr;      // To be set by the caller
     // constrained_edge[0] to be set by the caller
-    // delaunay_edge[0] to be set false by the caller
+    delaunay_edge_[0] = false;
 
-    SetDelaunayEdge(1, false);
   }
 }
 
@@ -464,43 +459,28 @@ bool Triangle::IsDelaunayEdge(const Point* p)
   }
 }
 
+// Does not set the flag of the neighbor triangle: responsability of the caller
 void Triangle::SetDelaunayEdge(int index, bool e)
 {
   assert(0 <= index && index < 3);
   assert(!e || neighbors_[index]);
   delaunay_edge_[index] = e;
-  if (neighbors_[index]) { neighbors_[index]->SetDelaunayEdge(points_[(index + 1) % 3], points_[(index + 2) % 3], e); }
 }
 
+// Does not set the flag of the neighbor triangle: responsability of the caller
 void Triangle::SetDelaunayEdge(const Point* p, bool e)
 {
   if (p == points_[0]) {
     assert(!e || neighbors_[0]);
     delaunay_edge_[0] = e;
-    if (neighbors_[0]) { neighbors_[0]->SetDelaunayEdge(points_[1], points_[2], e); }
   } else if (p == points_[1]) {
     assert(!e || neighbors_[1]);
     delaunay_edge_[1] = e;
-    if (neighbors_[1]) { neighbors_[1]->SetDelaunayEdge(points_[2], points_[0], e); }
   } else {
     assert(p == points_[2]);
     assert(!e || neighbors_[2]);
     delaunay_edge_[2] = e;
-    if (neighbors_[2]) { neighbors_[2]->SetDelaunayEdge(points_[0], points_[1], e); }
   }
-}
-
-// Does not set the flag of the neighbor triangle: responsability of the caller
-void Triangle::SetDelaunayEdge(const Point* p1, const Point* p2, bool e)
-{
-  if ((p1 == points_[2] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[2]))
-    delaunay_edge_[0] = e;
-  else if ((p1 == points_[0] && p2 == points_[2]) || (p1 == points_[2] && p2 == points_[0]))
-    delaunay_edge_[1] = e;
-  else if ((p1 == points_[0] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[0]))
-    delaunay_edge_[2] = e;
-  else
-    assert(0);
 }
 
 Node* Triangle::GetNode(const Point* p)

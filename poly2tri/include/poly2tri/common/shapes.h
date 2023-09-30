@@ -196,8 +196,6 @@ private:
 
   void ClearNeighbor(const Triangle* triangle);
 
-  void SetDelaunayEdge(const Point* p1, const Point* p2, bool e);
-
   /// Triangle points
   const Point* points_[3];
 
