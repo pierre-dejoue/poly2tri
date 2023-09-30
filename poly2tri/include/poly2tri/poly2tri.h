@@ -1,6 +1,5 @@
 /*
  * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
- * https://github.com/jhasse/poly2tri
  *
  * All rights reserved.
  *

@@ -1,6 +1,5 @@
 /*
  * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
- *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
