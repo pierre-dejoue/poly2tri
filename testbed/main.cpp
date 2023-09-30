@@ -55,6 +55,7 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
 void Init(int window_width, int window_height);
 void ShutDown(int return_code);
 void MainLoop(double initial_zoom);
+bool MainFrame(double initial_zoom, double& zoom);
 void Draw(const double zoom);
 double StringToDouble(const std::string& s);
 double RandomDistrib(double x);
@@ -138,10 +139,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (random_distribution) {
-    GenerateRandomPointDistribution(num_points, min, max, polyline, holes, steiner);
-    std::cout << "Random seed = " << srand_seed << std::endl;
-  } else {
+  if (!random_distribution) {
     // Load pointset from file
     if (!ParseFile(filename, polyline, holes, steiner)) {
       return 2;
@@ -164,62 +162,75 @@ int main(int argc, char* argv[])
 
   Init(default_window_width, default_window_height);
 
-  /*
-   * Perform triangulation!
-   */
+  double current_zoom = zoom;
+  bool running = true;
+  while (running) {
 
-  double init_time = glfwGetTime();
-
-  /*
-   * STEP 1: Create CDT and add primary polyline
-   * NOTE: polyline must be a simple polygon. The polyline's points
-   * constitute constrained edges. No repeat points!!!
-   */
-  p2t::CDT cdt;
-
-  /*
-   * STEP 2: Add holes or Steiner points
-   */
-  if (convex_hull_triangulation) {
-    cdt.AddPoints(polyline.data(), polyline.size());
-    for (const auto& hole : holes) {
-      assert(!hole.empty());
-      cdt.AddPoints(hole.data(), hole.size());
+    if (random_distribution) {
+      polyline.clear();
+      holes.clear();
+      steiner.clear();
+      GenerateRandomPointDistribution(num_points, min, max, polyline, holes, steiner);
     }
-    cdt.AddPoints(steiner.data(), steiner.size());
-  } else {
-    cdt.AddPolyline(polyline.data(), polyline.size());
-    for (const auto& hole : holes) {
-      assert(!hole.empty());
-      cdt.AddHole(hole.data(), hole.size());
+
+    /*
+    * Perform triangulation!
+    */
+
+    double init_time = glfwGetTime();
+
+    /*
+    * STEP 1: Create CDT and add primary polyline
+    * NOTE: polyline must be a simple polygon. The polyline's points
+    * constitute constrained edges. No repeat points!!!
+    */
+    p2t::CDT cdt;
+
+    /*
+    * STEP 2: Add holes or Steiner points
+    */
+    if (convex_hull_triangulation) {
+      cdt.AddPoints(polyline.data(), polyline.size());
+      for (const auto& hole : holes) {
+        assert(!hole.empty());
+        cdt.AddPoints(hole.data(), hole.size());
+      }
+      cdt.AddPoints(steiner.data(), steiner.size());
+    } else {
+      cdt.AddPolyline(polyline.data(), polyline.size());
+      for (const auto& hole : holes) {
+        assert(!hole.empty());
+        cdt.AddHole(hole.data(), hole.size());
+      }
+      cdt.AddPoints(steiner.data(), steiner.size());
     }
-    cdt.AddPoints(steiner.data(), steiner.size());
-  }
 
-  /*
-   * STEP 3: Triangulate!
-   */
-  const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
-  cdt.Triangulate(policy);
+    /*
+    * STEP 3: Triangulate!
+    */
+    const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
+    cdt.Triangulate(policy);
 
-  double dt = glfwGetTime() - init_time;
+    double dt = glfwGetTime() - init_time;
 
-  triangles.reserve(cdt.GetTrianglesCount());
-  cdt.GetTriangles(std::back_inserter(triangles));
-  const size_t points_in_holes =
-      std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
-                      [](size_t cumul, const std::vector<p2t::Point>& hole) { return cumul + hole.size(); });
+    triangles.clear();
+    triangles.reserve(cdt.GetTrianglesCount());
+    cdt.GetTriangles(std::back_inserter(triangles));
+    const size_t points_in_holes =
+        std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
+                        [](size_t cumul, const std::vector<p2t::Point>& hole) { return cumul + hole.size(); });
 
-  std::cout << "Number of primary constrained edges = " << polyline.size() << std::endl;
-  std::cout << "Number of holes = " << holes.size() << std::endl;
-  std::cout << "Number of constrained edges in holes = " << points_in_holes << std::endl;
-  std::cout << "Number of Steiner points = " << steiner.size() << std::endl;
-  std::cout << "Total number of points = " << (polyline.size() + points_in_holes + steiner.size()) << std::endl;
-  std::cout << "Number of triangles = " << triangles.size() << std::endl;
-  std::cout << "Elapsed time (ms) = " << dt * 1000.0 << std::endl;
+    std::cout << "Number of primary constrained edges = " << polyline.size() << std::endl;
+    std::cout << "Number of holes = " << holes.size() << std::endl;
+    std::cout << "Number of constrained edges in holes = " << points_in_holes << std::endl;
+    std::cout << "Number of Steiner points = " << steiner.size() << std::endl;
+    std::cout << "Total number of points = " << (polyline.size() + points_in_holes + steiner.size()) << std::endl;
+    std::cout << "Number of triangles = " << triangles.size() << std::endl;
+    std::cout << "Elapsed time (ms) = " << dt * 1000.0 << std::endl;
   std::cout << cdt.LastTriangulationInfo() << std::endl;
 
-  MainLoop(zoom);
+    running = MainFrame(zoom, current_zoom);
+  }
 
   ShutDown(0);
   return 0;
@@ -390,27 +401,34 @@ void MainLoop(double initial_zoom)
 
   bool running = true;
   while (running) {
-    glfwPollEvents();
-    glfwGetFramebufferSize(window, &window_width, &window_height);
-    glViewport(0, 0, window_width, window_height);
-
-    // Check if the ESCAPE key was pressed or the window was closed
-    running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
-
-    // Press the UP and DOWN keys to zoom in/out. Press BACKSPACE to reset zoom.
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-      zoom *= 1.05;
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-      zoom *= 0.95;
-    if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS)
-      zoom = initial_zoom;
-
-    // Draw the scene
-    Draw(zoom);
-
-    // Swap back and front buffers
-    glfwSwapBuffers(window);
+    running = MainFrame(initial_zoom, zoom);
   }
+}
+
+bool MainFrame(double initial_zoom, double& zoom)
+{
+  glfwPollEvents();
+  glfwGetFramebufferSize(window, &window_width, &window_height);
+  glViewport(0, 0, window_width, window_height);
+
+  // Check if the ESCAPE key was pressed or the window was closed
+  bool running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
+
+  // Press the UP and DOWN keys to zoom in/out. Press BACKSPACE to reset zoom.
+  if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    zoom *= 1.05;
+  if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    zoom *= 0.95;
+  if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS)
+    zoom = initial_zoom;
+
+  // Draw the scene
+  Draw(zoom);
+
+  // Swap back and front buffers
+  glfwSwapBuffers(window);
+
+  return running;
 }
 
 void ResetZoom(double zoom, double cx, double cy, double width, double height, bool flag_flip_y)
