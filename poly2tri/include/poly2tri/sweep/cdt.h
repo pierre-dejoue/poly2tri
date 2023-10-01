@@ -79,7 +79,7 @@ public:
    *  - Must be unique
    *  - Must have no repeating points
    *  - It is closed (the first and last points form a constrained edge)
-   *  - Call this before the other methods: AddHole, AddPoint
+   *  - Call this before the other methods: AddHole, AddOpenPolyline, AddPoint
    *
    * @param polyline
    * @param num_points
@@ -99,6 +99,16 @@ public:
   void AddHole(const std::vector<Point*>& polyline);      // Kept for backward compatibility
   void AddHole(const Point* const* polyline, std::size_t num_points);
   void AddHole(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
+
+  /**
+   * Add an open polyline
+   *
+   * @param polyline
+   * @param num_points
+   * @param stride (in bytes) If zero, assume a contiguous array of Points
+   */
+  void AddOpenPolyline(const Point* const* polyline, std::size_t num_points);
+  void AddOpenPolyline(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
 
   /**
    * Add a steiner point

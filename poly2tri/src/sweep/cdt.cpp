@@ -33,9 +33,16 @@
 #include "sweep.h"
 
 #include <algorithm>
+#include <exception>
+#include <stdexcept>
 #include <iterator>
 
 namespace p2t {
+
+namespace {
+  constexpr bool CLOSED_POLYLINE = true;
+  constexpr bool OPEN_POLYLINE = false;
+}
 
 CDT::CDT() :
   sweep_context_(std::make_unique<SweepContext>())
@@ -52,32 +59,51 @@ CDT::~CDT() = default;
 
 void CDT::AddPolyline(const std::vector<Point*>& polyline)
 {
-  sweep_context_->AddPolyline(polyline.data(), polyline.size());
+  if (sweep_context_->point_count() > 0) {
+    throw std::invalid_argument("The outer polyline must be added first and only once");
+  }
+  sweep_context_->AddPolyline(polyline.data(), polyline.size(), CLOSED_POLYLINE);
 }
 
 void CDT::AddPolyline(const Point* const* polyline, std::size_t num_points)
 {
-  sweep_context_->AddPolyline(polyline, num_points);
+  if (sweep_context_->point_count() > 0) {
+    throw std::invalid_argument("The outer polyline must be added first and only once");
+  }
+  sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE);
 }
 
 void CDT::AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
 {
-  sweep_context_->AddPolyline(polyline, num_points, stride);
+  if (sweep_context_->point_count() > 0) {
+    throw std::invalid_argument("The outer polyline must be added first and only once");
+  }
+  sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE, stride);
 }
 
 void CDT::AddHole(const std::vector<Point*>& polyline)
 {
-  sweep_context_->AddHole(polyline.data(), polyline.size());
+  sweep_context_->AddPolyline(polyline.data(), polyline.size(), CLOSED_POLYLINE);
 }
 
 void CDT::AddHole(const Point* const* polyline, std::size_t num_points)
 {
-  sweep_context_->AddHole(polyline, num_points);
+  sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE);
 }
 
 void CDT::AddHole(const Point* polyline, std::size_t num_points, std::size_t stride)
 {
-  sweep_context_->AddHole(polyline, num_points, stride);
+  sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE, stride);
+}
+
+void CDT::AddOpenPolyline(const Point* const* polyline, std::size_t num_points)
+{
+  sweep_context_->AddPolyline(polyline, num_points, OPEN_POLYLINE);
+}
+
+void CDT::AddOpenPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
+{
+  sweep_context_->AddPolyline(polyline, num_points, OPEN_POLYLINE, stride);
 }
 
 void CDT::AddPoint(const Point* point)

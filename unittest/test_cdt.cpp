@@ -228,8 +228,7 @@ BOOST_AUTO_TEST_CASE(ConcaveBoundaryTest)
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
-namespace assets
-{
+namespace assets {
   std::vector<p2t::Point>& polygon_test_01()
   {
     // Reported in issue #10
@@ -249,7 +248,7 @@ namespace assets
     };
     return points;
   }
-}
+} // namespace assets
 
 BOOST_AUTO_TEST_CASE(PolygonTest01)
 {
@@ -377,6 +376,91 @@ BOOST_AUTO_TEST_CASE(PolygonTest05)
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 5);
+}
+
+namespace assets {
+  std::vector<p2t::Point>& wavy_line()
+  {
+    static std::vector<p2t::Point> points {
+      p2t::Point(401.15995152590949, 2.5053475482118301),
+      p2t::Point(410.16662617780162, 17.270662776009431),
+      p2t::Point(419.17332095751101, 32.036002863748990),
+      p2t::Point(428.17999267578125, 46.801330566406250),
+      p2t::Point(436.84804989727274, 61.263621915466842),
+      p2t::Point(445.02004811036909, 76.010577151077314),
+      p2t::Point(452.25342660665638, 91.236749191325998),
+      p2t::Point(458.01225656235124, 107.07472583751746),
+      p2t::Point(461.64973074721024, 123.52260505815084),
+      p2t::Point(462.50531005859375, 140.33868408203125),
+      p2t::Point(460.11581070403435, 157.70633963277308),
+      p2t::Point(454.99565790092311, 174.48500610671999),
+      p2t::Point(448.07518559972414, 190.61363696800072),
+      p2t::Point(440.18489398711336, 206.29529570498016),
+      p2t::Point(432.03607177734375, 221.84536743164062),
+      p2t::Point(424.42463680717765, 237.65366111768546),
+      p2t::Point(418.07214153119912, 254.00409074140316),
+      p2t::Point(413.69684453908076, 270.98256618320261),
+      p2t::Point(412.24510344656170, 288.44153751137412),
+      p2t::Point(414.70538330078125, 305.77069091796875),
+      p2t::Point(420.46156446287364, 320.59940607346948),
+      p2t::Point(428.22786234750356, 334.50267741057746),
+      p2t::Point(436.63321511421054, 348.03577234163731),
+      p2t::Point(444.46611253001652, 361.90211653439542),
+      p2t::Point(450.24195952386771, 376.72003964358720),
+      p2t::Point(452.06939697265625, 392.48269653320312),
+      p2t::Point(448.27310352469021, 409.42717564103714),
+      p2t::Point(439.65798952164755, 424.55024261857318),
+      p2t::Point(428.01873779296875, 437.52001953125000),
+      p2t::Point(414.62341937267684, 448.70653659891650),
+      p2t::Point(400.57632614128829, 459.07455910582212),
+      p2t::Point(386.73602294921875, 469.71334838867188),
+      p2t::Point(374.56233041482585, 480.81085246114424),
+      p2t::Point(363.48344964792227, 493.00179063955875),
+      p2t::Point(353.58105447115668, 506.16639598127131),
+      p2t::Point(344.93440453844391, 520.18777249177572),
+      p2t::Point(337.62332807852556, 534.94953152461972),
+      p2t::Point(331.72930908203125, 550.33178710937500),
+      p2t::Point(327.64024877079913, 564.27598675533295),
+      p2t::Point(324.02377906389802, 578.35220682341105),
+      p2t::Point(320.20061155933956, 592.37288271372699),
+      p2t::Point(315.49603271484375, 606.11883544921875),
+      p2t::Point(309.06802817859591, 620.10105318281865),
+      p2t::Point(301.52470812013962, 633.51915309171090),
+      p2t::Point(293.41170990285127, 646.60315997383395),
+      p2t::Point(285.23134054601928, 659.64542999720902),
+      p2t::Point(277.47735595703125, 672.94378662109375),
+      p2t::Point(270.74953478199785, 686.77273580487781),
+      p2t::Point(265.55216795161709, 701.24273774196627),
+      p2t::Point(262.40670276470973, 716.28597580680525),
+      p2t::Point(262.01081370798067, 731.63863848110520),
+      p2t::Point(265.05865478515625, 746.67871093750000)
+    };
+    return points;
+  }
+} // namespace assets
+
+BOOST_AUTO_TEST_CASE(AddOpenPolyline_ConvexHull)
+{
+  auto& points = assets::wavy_line();
+  const auto polyline = MakePointerVector(points);
+  p2t::CDT cdt;
+  cdt.AddOpenPolyline(polyline.data(), polyline.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
+  const auto result = p2t::GetTrianglesAsVector(cdt);
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+  BOOST_CHECK_EQUAL(result.size(), 88);
+}
+
+BOOST_AUTO_TEST_CASE(AddOpenPolyline_OuterPolygon)
+{
+  auto& points = assets::wavy_line();
+  const auto polyline = MakePointerVector(points);
+  p2t::CDT cdt;
+  cdt.AddOpenPolyline(polyline.data(), polyline.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::OuterPolygon));
+  const auto result = p2t::GetTrianglesAsVector(cdt);
+  // BOOST_CHECK(result.empty());
 }
 
 struct FileTest

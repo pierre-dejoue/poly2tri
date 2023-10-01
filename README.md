@@ -65,6 +65,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
     - Never modify the user's Point data (const Point*)
 - Add CDT::GetTrianglesCount()
 - Add CDT::GetTriangles(output_iterator)
+- Add CDT::AddOpenPolyline(...)
 - Neighbor triangles in the triangulation result are now consistent (no links to triangles exterior to the CDT)
 
 Dependencies

@@ -54,11 +54,8 @@ public:
   SweepContext();
   ~SweepContext();
 
-  void AddPolyline(const Point* const* polyline, std::size_t num_points);
-  void AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride = 0u);
-
-  void AddHole(const Point* const* polyline, std::size_t num_points);
-  void AddHole(const Point* polyline, std::size_t num_points, std::size_t stride = 0);
+  void AddPolyline(const Point* const* polyline, std::size_t num_points, bool closed);
+  void AddPolyline(const Point* polyline, std::size_t num_points, bool closed, std::size_t stride = 0u);
 
   void AddPoint(const Point* point);
 
@@ -92,12 +89,12 @@ private:
   friend class Sweep;
 
   template <typename GenPointPtr>
-  void AddClosedPolylineGen(GenPointPtr generator, std::size_t num_points);
+  void  AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed);
 
   template <typename GenPointPtr>
   void AddPointsGen(GenPointPtr generator, std::size_t num_points);
 
-  void InitEdges(std::size_t polyline_begin_index, std::size_t num_points);
+  void InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed);
 
   Edge* NewEdge(const Point* a, const Point* b);
 

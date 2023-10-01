@@ -51,50 +51,18 @@ SweepContext::SweepContext() :
 }
 
 template <typename GenPointPtr>
-void SweepContext::AddClosedPolylineGen(GenPointPtr generator, std::size_t num_points)
+void SweepContext::AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed)
 {
-  if (num_points < 3) {
-    throw std::invalid_argument("A polyline must have at least 3 vertices");
+  if (closed && num_points < 3) {
+    throw std::invalid_argument("A closed polyline must have at least 3 vertices");
+  }
+  if (!closed && num_points < 2) {
+    throw std::invalid_argument("An open polyline must have at least 2 vertices");
   }
   const std::size_t begin_index = points_.size();
   points_.reserve(begin_index + num_points);
   std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
-  InitEdges(begin_index, num_points);
-}
-
-void SweepContext::AddPolyline(const Point* const* polyline, std::size_t num_points)
-{
-  if (!points_.empty()) {
-    throw std::invalid_argument("The outer polyline must be added first and only once");
-  }
-  AddClosedPolylineGen([&polyline]() { return *polyline++; }, num_points);
-}
-
-void SweepContext::AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
-{
-  if (!points_.empty()) {
-    throw std::invalid_argument("The outer polyline must be added first and only once");
-  }
-  if (stride == 0u) { stride = sizeof(Point); }
-  auto mem_ptr = reinterpret_cast<const char*>(polyline);
-  AddClosedPolylineGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
-}
-
-void SweepContext::AddHole(const Point* const* polyline, std::size_t num_points)
-{
-  AddClosedPolylineGen([&polyline]() { return *polyline++; }, num_points);
-}
-
-void SweepContext::AddHole(const Point* polyline, std::size_t num_points, std::size_t stride)
-{
-  if (stride == 0u) { stride = sizeof(Point); }
-  auto mem_ptr = reinterpret_cast<const char*>(polyline);
-  AddClosedPolylineGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
-}
-
-void SweepContext::AddPoint(const Point* point)
-{
-  points_.emplace_back(point);
+  InitEdges(begin_index, num_points, closed);
 }
 
 template <typename GenPointPtr>
@@ -103,6 +71,23 @@ void SweepContext::AddPointsGen(GenPointPtr generator, std::size_t num_points)
   const std::size_t begin_index = points_.size();
   points_.reserve(begin_index + num_points);
   std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
+}
+
+void SweepContext::AddPolyline(const Point* const* polyline, std::size_t num_points, bool closed)
+{
+  AddPolylineGen([&polyline]() { return *polyline++; }, num_points, closed);
+}
+
+void SweepContext::AddPolyline(const Point* polyline, std::size_t num_points, bool closed, std::size_t stride)
+{
+  if (stride == 0u) { stride = sizeof(Point); }
+  auto mem_ptr = reinterpret_cast<const char*>(polyline);
+  AddPolylineGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points, closed);
+}
+
+void SweepContext::AddPoint(const Point* point)
+{
+  points_.emplace_back(point);
 }
 
 void SweepContext::AddPoints(const Point* const* points, std::size_t num_points)
@@ -169,13 +154,16 @@ void SweepContext::InitTriangulation()
   map_.clear();
 }
 
-void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points)
+void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed)
 {
-  assert(num_points > 1);
+  if (num_points == 0) {
+    return;
+  }
   const std::size_t begin = polyline_begin_index;
   const std::size_t end   = polyline_begin_index + num_points;
+  const std::size_t last  = end - (closed ? 0 : 1);
   assert(end <= points_.size());
-  for (std::size_t i = begin; i < end; i++) {
+  for (std::size_t i = begin; i < last; i++) {
     std::size_t j = i < (end - 1) ? i + 1 : begin;
     Edge* edge = NewEdge(points_[i].p, points_[j].p);
     std::size_t upper_endpoint = (edge->q == points_[i].p ? i : j);
