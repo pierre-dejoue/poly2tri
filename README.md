@@ -72,6 +72,7 @@ Dependencies
 
 Core poly2tri lib:
 
+* C++17
 * Standard Template Library (STL)
 
 Unit tests:

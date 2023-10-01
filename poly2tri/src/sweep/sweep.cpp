@@ -1043,9 +1043,9 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)
 {
-  nodes_.emplace_back(std::make_unique<Node>(p, t));
-  if (t) { t->SetNode(*nodes_.back()); }
-  return nodes_.back().get();
+  auto& new_node = nodes_.emplace_back(std::make_unique<Node>(p, t));
+  if (t) { t->SetNode(*new_node); }
+  return new_node.get();
 }
 
 Sweep::~Sweep() = default;

@@ -202,8 +202,8 @@ const std::vector<Edge*>& SweepContext::GetUpperEdges(size_t index)
 
 Triangle* SweepContext::AddTriangleToMap(const Point* a, const Point* b, const Point* c)
 {
-  map_.emplace_back(std::make_unique<Triangle>(a, b, c));
-  return map_.back().get();
+  auto& new_triangle = map_.emplace_back(std::make_unique<Triangle>(a, b, c));
+  return new_triangle.get();
 }
 
 void SweepContext::MeshCleanExteriorTriangles()
