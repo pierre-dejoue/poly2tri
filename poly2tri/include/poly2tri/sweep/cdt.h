@@ -171,9 +171,25 @@ public:
    */
   std::vector<Edge*> GetInputEdges() const;
 
+  struct Info {
+    unsigned int nb_input_points = 0;
+    unsigned int nb_input_edges = 0;
+    unsigned int nb_output_triangles = 0;
+    unsigned int nb_triangles_pre_finalization = 0;
+    unsigned int nb_triangle_flips = 0;
+    unsigned int max_legalize_depth = 0;
+  };
+
+  /**
+   * Return some debug info with respect to the last triangulation
+   */
+  const Info& LastTriangulationInfo() const;
+
 private:
 
   std::unique_ptr<SweepContext> sweep_context_;
+
+  Info info_;
 
 };
 

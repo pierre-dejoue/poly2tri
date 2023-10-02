@@ -61,6 +61,7 @@ double RandomDistrib(double x);
 double RandomUnit();
 double Random(double (*fun)(double), double x_min, double x_max);
 
+std::ostream& operator<<(std::ostream&, const p2t::CDT::Info&);
 
 /// Default window size
 constexpr int default_window_width = 800;
@@ -216,11 +217,24 @@ int main(int argc, char* argv[])
   std::cout << "Total number of points = " << (polyline.size() + points_in_holes + steiner.size()) << std::endl;
   std::cout << "Number of triangles = " << triangles.size() << std::endl;
   std::cout << "Elapsed time (ms) = " << dt * 1000.0 << std::endl;
+  std::cout << cdt.LastTriangulationInfo() << std::endl;
 
   MainLoop(zoom);
 
   ShutDown(0);
   return 0;
+}
+
+std::ostream& operator<<(std::ostream& out, const p2t::CDT::Info& info)
+{
+  out << "CDT Info:" << std::endl;
+  out << "  Number of input points = "                << info.nb_input_points << std::endl;
+  out << "  Number of input edges = "                 << info.nb_input_edges << std::endl;
+  out << "  Number of output triangles = "            << info.nb_output_triangles << std::endl;
+  out << "  Number of triangles, pre-finalization = " << info.nb_triangles_pre_finalization << std::endl;
+  out << "  Number of triangle flips = "              << info.nb_triangle_flips << std::endl;
+  out << "  Max Legalize depth = "                    << info.max_legalize_depth << std::endl;
+  return out;
 }
 
 bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std::vector<std::vector<p2t::Point>>& out_holes,

@@ -41,12 +41,13 @@
 
 namespace p2t {
 
-Sweep::Sweep(SweepContext& tcx) :
+Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   tcx_(tcx),
   front_(),
   nodes_(),
   basin_(),
-  edge_event_()
+  edge_event_(),
+  info_(info)
 {
 }
 
@@ -55,6 +56,8 @@ void Sweep::Triangulate(Policy policy)
 {
   CreateAdvancingFront();
   SweepPoints();
+
+  info_.nb_triangles_pre_finalization = static_cast<unsigned int>(tcx_.map_.size());
 
   // Finalize the triangulation
   switch (policy)
@@ -68,6 +71,8 @@ void Sweep::Triangulate(Policy policy)
       FinalizationOuterPolygon();
       break;
   }
+
+  info_.nb_output_triangles = static_cast<unsigned int>(tcx_.map_.size());
 }
 
 AdvancingFront* Sweep::CreateAdvancingFront()
@@ -594,8 +599,10 @@ double Sweep::HoleAngle(const Node& node)
   return atan2(ax * by - ay * bx, ax * bx + ay * by);
 }
 
-bool Sweep::Legalize(Triangle& t)
+bool Sweep::Legalize(Triangle& t, unsigned int depth)
 {
+  info_.max_legalize_depth = std::max(info_.max_legalize_depth, depth);
+
   // To legalize a triangle we start by finding if any of the three edges
   // violate the Delaunay condition
   for (int i = 0; i < 3; i++) {
@@ -622,14 +629,16 @@ bool Sweep::Legalize(Triangle& t)
       bool inside = Incircle(*p, *t.GetPoint((i + 1) % 3), *t.GetPoint((i + 2) % 3), *op);
 
       if (inside) {
+
         // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
         RotateTrianglePair(t, p, *ot, op, true);
-        TRACE_OUT << "Legalized - t=" << t << "; ot=" << *ot << std::endl;
+        info_.nb_triangle_flips++;
+        TRACE_OUT << "Legalized - depth=" << depth << "; t=" << t << "; ot=" << *ot << std::endl;
 
         // We now got one valid Delaunay Edge shared by two triangles
         // This gives us 4 new edges to check for Delaunay: This function is called recursively
-        Legalize(t);
-        Legalize(*ot);
+        Legalize(t, depth + 1);
+        Legalize(*ot, depth + 1);
 
         // If triangle have been legalized no need to check the other edges since
         // the recursive legalization will handle those so we can end here
@@ -956,6 +965,7 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
   if (InScanArea(*p, *t->PointCCW(p), *t->PointCW(p), *op)) {
     // Lets rotate shared edge one vertex CW
     RotateTrianglePair(*t, p, *ot, op);
+    info_.nb_triangle_flips++;
 
     if (p == eq && op == ep) {
       if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {

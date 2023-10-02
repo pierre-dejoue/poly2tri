@@ -129,9 +129,12 @@ void CDT::AddPoints(const Point* polyline, std::size_t num_points, std::size_t s
 void CDT::Triangulate(Policy triangulation_policy)
 {
   SweepContext& tcx = *sweep_context_;
+  info_ = Info{};
   if (tcx.point_count() > 0) {
     tcx.InitTriangulation();
-    Sweep(tcx).Triangulate(triangulation_policy);
+    info_.nb_input_points = static_cast<unsigned int>(tcx.GetPoints().size());
+    info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdges().size());
+    Sweep(tcx, info_).Triangulate(triangulation_policy);
   }
 }
 
@@ -179,6 +182,11 @@ std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)
   result.reserve(cdt.GetTrianglesCount());
   cdt.GetTriangles(std::back_inserter(result));
   return result;
+}
+
+const CDT::Info& CDT::LastTriangulationInfo() const
+{
+  return info_;
 }
 
 } // namespace p2t

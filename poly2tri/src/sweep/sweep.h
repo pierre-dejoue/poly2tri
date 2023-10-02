@@ -37,6 +37,7 @@
 #pragma once
 
 #include <poly2tri/common/shapes.h>
+#include <poly2tri/sweep/cdt.h>
 #include <poly2tri/sweep/policy.h>
 
 #include <memory>
@@ -58,7 +59,7 @@ public:
   /**
    * Constructor
    */
-  Sweep(SweepContext& tcx);
+  Sweep(SweepContext& tcx, CDT::Info& info);
 
   /**
    * Destructor - clean up memory
@@ -148,9 +149,10 @@ private:
    * is valid in the area around the initial triangle.
    *
    * @param t - The triangle to legalize
+   * @param depth - recursion depth
    * @return a boolean, true if the triangle was flipped with at least one of its neighbors
    */
-  bool Legalize(Triangle& t);
+  bool Legalize(Triangle& t, unsigned int depth = 0);
 
   /**
    * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
@@ -351,6 +353,8 @@ private:
   Basin basin_;
 
   EdgeEventData edge_event_;
+
+  CDT::Info& info_;
 
 };
 
