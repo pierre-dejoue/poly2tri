@@ -624,6 +624,7 @@ bool Sweep::Legalize(Triangle& t)
       if (inside) {
         // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
         RotateTrianglePair(t, p, *ot, op, true);
+        TRACE_OUT << "Legalized - t=" << t << "; ot=" << *ot << std::endl;
 
         // We now got one valid Delaunay Edge shared by two triangles
         // This gives us 4 new edges to check for Delaunay: This function is called recursively
@@ -631,8 +632,7 @@ bool Sweep::Legalize(Triangle& t)
         Legalize(*ot);
 
         // If triangle have been legalized no need to check the other edges since
-        // the recursive legalization will handles those so we can end here.
-        TRACE_OUT << "Legalized - t=" << t << "; ot=" << *ot << std::endl;
+        // the recursive legalization will handle those so we can end here
         return true;
       } else {
         // The shared edge is Delaunay
