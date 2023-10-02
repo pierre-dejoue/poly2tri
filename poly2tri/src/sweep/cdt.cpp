@@ -136,6 +136,7 @@ void CDT::Triangulate(Policy triangulation_policy)
     info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdgesCount());
     info_.triangles_memory_footprint_in_bytes = tcx.TriangleStorageFootprint();
     Sweep(tcx, info_).Triangulate(triangulation_policy);
+    info_.nb_output_triangles = static_cast<unsigned int>(tcx.GetTriangles().size());
   }
 }
 

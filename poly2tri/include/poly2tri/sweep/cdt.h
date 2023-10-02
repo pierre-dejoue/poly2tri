@@ -154,6 +154,10 @@ public:
     unsigned int nb_triangle_flips = 0;
     unsigned int max_legalize_depth = 0;
     std::size_t triangles_memory_footprint_in_bytes;
+    unsigned int max_legalize_begin_stack_sz = 0;
+    unsigned int max_legalize_max_stack_sz = 0;
+    unsigned int max_legalize_visited_triangles = 0;
+    unsigned int max_legalize_triangle_flips = 0;
   };
 
   /**

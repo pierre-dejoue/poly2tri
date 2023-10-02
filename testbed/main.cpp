@@ -235,6 +235,9 @@ std::ostream& operator<<(std::ostream& out, const p2t::CDT::Info& info)
   out << "  Triangles memory footprint = "            << (static_cast<double>(info.triangles_memory_footprint_in_bytes) / 1024.0) << " kB" << std::endl;
   out << "  Number of triangle flips = "              << info.nb_triangle_flips << std::endl;
   out << "  Max Legalize depth = "                    << info.max_legalize_depth << std::endl;
+  out << "  Max Legalize stack size (begin/max) = "   << info.max_legalize_begin_stack_sz << "/" << info.max_legalize_max_stack_sz << std::endl;
+  out << "  Max Legalize visited triangles = "        << info.max_legalize_visited_triangles << std::endl;
+  out << "  Max Legalize triangle flips = "           << info.max_legalize_triangle_flips << std::endl;
   return out;
 }
 

@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 
 namespace p2t {
@@ -594,19 +595,28 @@ void Sweep::LegalizePush(Triangle& triangle)
 }
 
 void Sweep::Legalize() {
-  std::size_t nb_flips = 0;
   const std::size_t max_nb_flips = 4 * tcx_.points_.size() * tcx_.points_.size();
+  struct {
+    unsigned int max_depth = 0;
+    unsigned int begin_stack_sz = 0;
+    unsigned int max_stack_sz = 0;
+    unsigned int visited_triangles = 0;
+    std::size_t  triangle_flips = 0;
+  } local_info;
+  local_info.begin_stack_sz = static_cast<unsigned int>(legalize_stack_.size());
   while (!legalize_stack_.empty()) {
-    if (nb_flips > max_nb_flips) {
+    if (local_info.triangle_flips > max_nb_flips) {
       // Note that this criteria for detecting an infinite loop is completely arbitrary!
       // We set a maximum number of flips equal to the square of the maximum number of triangles for this point set.
       // Actually the maximum number of triangulations (i.e. the space explored by the Legalization process) is
       // bounded by the Catalan numbers, which grows exponentially.
       HandleError("Legalize - Potential infinite loop was catched in Legalize");
     }
+    local_info.visited_triangles++;
+    local_info.max_stack_sz = std::max(local_info.max_stack_sz, static_cast<unsigned int>(legalize_stack_.size()));
     const PendingLegalization legalize = legalize_stack_.back();
     legalize_stack_.pop_back();
-    info_.max_legalize_depth = std::max(info_.max_legalize_depth, legalize.depth);
+    local_info.max_depth = std::max(local_info.max_depth, legalize.depth);
     Triangle* t = legalize.triangle;
 
     // To legalize a triangle we start by finding if any of the three edges violate the Delaunay condition
@@ -634,7 +644,7 @@ void Sweep::Legalize() {
 
           // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
           RotateTrianglePair(*t, i, *ot, oi, true);
-          nb_flips++;
+          local_info.triangle_flips++;
           TRACE_OUT << "Legalized - depth=" << legalize.depth << "; t=" << *t << "; ot=" << *ot << std::endl;
 
           // We now got one valid Delaunay Edge shared by two triangles
@@ -645,6 +655,7 @@ void Sweep::Legalize() {
           // If triangle have been legalized no need to check the other edges since
           // the recursive legalization will handle those so we can end here
           break;
+        break;
         } else {
           // The shared edge is Delaunay
           t->SetDelaunayEdge(i, true);
@@ -653,7 +664,15 @@ void Sweep::Legalize() {
       }
     }
   }
-  info_.nb_triangle_flips += static_cast<unsigned int>(nb_flips);
+  if (local_info.visited_triangles > 0) {
+    TRACE_OUT << "Legalized - max_depth=" << local_info.max_depth << "; stack_size (begin/max)=" << local_info.begin_stack_sz << "/" << local_info.max_stack_sz << "; visited_triangles=" << local_info.visited_triangles << "; flips=" << local_info.triangle_flips << std::endl;
+    info_.max_legalize_depth = std::max(info_.max_legalize_depth, local_info.max_depth);
+    info_.max_legalize_begin_stack_sz = std::max(info_.max_legalize_begin_stack_sz, local_info.begin_stack_sz);
+    info_.max_legalize_max_stack_sz = std::max(info_.max_legalize_max_stack_sz, local_info.max_stack_sz);
+    info_.max_legalize_visited_triangles = std::max(info_.max_legalize_visited_triangles, local_info.visited_triangles);
+    info_.max_legalize_triangle_flips = std::max(info_.max_legalize_triangle_flips, static_cast<unsigned int>(local_info.triangle_flips));
+  }
+  info_.nb_triangle_flips += static_cast<unsigned int>(local_info.triangle_flips);
 }
 
 struct Basin {
