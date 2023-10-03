@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <exception>
@@ -42,9 +43,13 @@
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
+using namespace std::chrono_literals;
+
+std::vector<std::string> GetInputFiles(std::string list_file);
 bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline,
                std::vector<std::vector<p2t::Point>>& out_holes, std::vector<p2t::Point>& out_steiner);
 std::pair<p2t::Point, p2t::Point> BoundingBox(const std::vector<p2t::Point>& polyline);
@@ -54,8 +59,8 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
                                      std::vector<p2t::Point>& out_steiner);
 void Init(int window_width, int window_height);
 void ShutDown(int return_code);
-void MainLoop(double initial_zoom);
-void Draw(const double zoom);
+void MainLoop(double initial_zoom, bool, bool&);
+void Draw(const double zoom, bool);
 double StringToDouble(const std::string& s);
 double RandomDistrib(double x);
 double RandomUnit();
@@ -72,9 +77,6 @@ const double autozoom_border = 0.05;
 
 /// Flip Y axis
 constexpr bool flag_flip_y = false;
-
-/// Convex hull triangulation
-constexpr bool convex_hull_triangulation = false;
 
 /// Create a random distribution of points?
 bool random_distribution = false;
@@ -102,124 +104,116 @@ int window_height = default_window_height;
 
 int main(int argc, char* argv[])
 {
-  std::string filename;
   size_t num_points = 0u;
-  double max, min;
   double zoom;
 
-  if (argc != 2 && argc != 5) {
+  if (argc != 2) {
     std::cout << "-== USAGE ==-" << std::endl;
-    std::cout << "Load Data File: p2t <filename> <center_x> <center_y> <zoom>" << std::endl;
-    std::cout << "  Example: build/testbed/p2t testbed/data/dude.dat 350 500 3" << std::endl;
-    std::cout << "Load Data File with Auto-Zoom: p2t <filename>" << std::endl;
-    std::cout << "  Example: build/testbed/p2t testbed/data/nazca_monkey.dat" << std::endl;
-    std::cout << "Generate Random Polygon: p2t random <num_points> <box_radius> <zoom>" << std::endl;
-    std::cout << "  Example: build/testbed/p2t random 100 1 500" << std::endl;
+    std::cout << "Load Data Files: p2t <list_file>" << std::endl;
+    std::cout << "  Example: build/testbed/p2t misc/bench/list.txt" << std::endl;
     return 1;
   }
 
   // If true, adjust the zoom settings to fit the input geometry to the window
-  const bool autozoom = (argc == 2);
 
-  if (!autozoom && std::string(argv[1]) == "random") {
-    num_points = atoi(argv[2]);
-    random_distribution = true;
-    char* pEnd;
-    max = strtod(argv[3], &pEnd);
-    min = -max;
-    cx = cy = 0.0;
-    zoom = atof(argv[4]);
-  } else {
-    filename = std::string(argv[1]);
-    if (!autozoom) {
-      cx = atof(argv[2]);
-      cy = atof(argv[3]);
-      zoom = atof(argv[4]);
-    }
-  }
+  const auto list_filename = std::string(argv[1]);
+  const auto list = GetInputFiles(list_filename);
+  bool must_exit = false;
 
-  if (random_distribution) {
-    GenerateRandomPointDistribution(num_points, min, max, polyline, holes, steiner);
-    std::cout << "Random seed = " << srand_seed << std::endl;
-  } else {
-    // Load pointset from file
-    if (!ParseFile(filename, polyline, holes, steiner)) {
-      return 2;
-    }
-  }
-
-  if (autozoom) {
-    assert(0.0 <= autozoom_border && autozoom_border < 1.0);
-    const auto bbox = BoundingBox(polyline);
-    p2t::Point center = bbox.first + bbox.second;
-    center *= 0.5;
-    cx = center.x;
-    cy = center.y;
-    p2t::Point sides = bbox.second - bbox.first;
-    zoom = 2.0 * (1.0 - autozoom_border) * std::min((double)default_window_width / sides.x, (double)default_window_height / sides.y);
-    std::cout << "center_x = " << cx << std::endl;
-    std::cout << "center_y = " << cy << std::endl;
-    std::cout << "zoom = " << zoom << std::endl;
-  }
-
+  // GLFW init
   Init(default_window_width, default_window_height);
 
-  /*
-   * Perform triangulation!
-   */
+  std::cout << "Policy,Filename,Points,Edges,Triangles,Triangles_Pre_Finalization,Flips,Max_Legalize_Depth,Input_Footprint_kB,Triangles_Footprint_kB,Nodes_Footprint_kB,Duration_ms" << std::endl;
 
-  double init_time = glfwGetTime();
+  for (const auto policy : std::vector<p2t::Policy> { p2t::Policy::OuterPolygon, p2t::Policy::ConvexHull }) {
+    for (const auto& filename: list) {
+      const bool convex_hull_triangulation = (policy == p2t::Policy::ConvexHull);
 
-  /*
-   * STEP 1: Create CDT and add primary polyline
-   * NOTE: polyline must be a simple polygon. The polyline's points
-   * constitute constrained edges. No repeat points!!!
-   */
-  p2t::CDT cdt;
+      if ((filename.find("random") != std::string::npos) && !convex_hull_triangulation)
+        continue;
 
-  /*
-   * STEP 2: Add holes or Steiner points
-   */
-  if (convex_hull_triangulation) {
-    cdt.AddPoints(polyline.data(), polyline.size());
-    for (const auto& hole : holes) {
-      assert(!hole.empty());
-      cdt.AddPoints(hole.data(), hole.size());
+      polyline.clear(); holes.clear(); steiner.clear();
+      if (!ParseFile(filename, polyline, holes, steiner))
+        return 2;
+
+      // autozoom
+      assert(0.0 <= autozoom_border && autozoom_border < 1.0);
+      const auto bbox = BoundingBox(polyline);
+      p2t::Point center = bbox.first + bbox.second;
+      center *= 0.5;
+      cx = center.x;
+      cy = center.y;
+      p2t::Point sides = bbox.second - bbox.first;
+      zoom = 2.0 * (1.0 - autozoom_border) * std::min((double)default_window_width / sides.x, (double)default_window_height / sides.y);
+
+      /*
+       * Perform triangulation!
+       */
+
+      double init_time = glfwGetTime();
+
+      /*
+       * STEP 1: Create CDT and add primary polyline
+       * NOTE: polyline must be a simple polygon. The polyline's points
+       * constitute constrained edges. No repeat points!!!
+       */
+      p2t::CDT cdt;
+
+      /*
+       * STEP 2: Add holes or Steiner points
+       */
+      if (convex_hull_triangulation) {
+        cdt.AddPoints(polyline.data(), polyline.size());
+        for (const auto& hole : holes) {
+          assert(!hole.empty());
+          cdt.AddPoints(hole.data(), hole.size());
+        }
+        cdt.AddPoints(steiner.data(), steiner.size());
+      } else {
+        cdt.AddPolyline(polyline.data(), polyline.size());
+        for (const auto& hole : holes) {
+          assert(!hole.empty());
+          cdt.AddHole(hole.data(), hole.size());
+        }
+        cdt.AddPoints(steiner.data(), steiner.size());
+      }
+
+      /*
+       * STEP 3: Triangulate!
+       */
+      cdt.Triangulate(policy);
+
+      double dt = glfwGetTime() - init_time;
+
+      triangles.clear();
+      triangles.reserve(cdt.GetTrianglesCount());
+      cdt.GetTriangles(std::back_inserter(triangles));
+      const size_t points_in_holes =
+          std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
+                          [](size_t cumul, const std::vector<p2t::Point>& hole) { return cumul + hole.size(); });
+
+      // Policy,Filename,Points,Edges,Triangles,Triangles_Pre_Finalization,Flips,Max_Legalize_Depth,Input_Footprin_kB,Triangles_Footprint_kB,Nodes_Footprint_kB,Duration_ms
+      const auto& info = cdt.LastTriangulationInfo();
+      std::cout << policy << ",\"" << filename << "\","
+                << info.nb_input_points << ','
+                << info.nb_input_edges << ','
+                << info.nb_output_triangles << ','
+                << info.nb_triangles_pre_finalization << ','
+                << info.nb_triangle_flips << ','
+                << info.max_legalize_depth << ','
+                << (static_cast<double>(info.input_memory_footprint) / 1024.0) << ','
+                << (static_cast<double>(info.triangles_memory_footprint_in_bytes) / 1024.0) << ','
+                << (static_cast<double>(info.nodes_memory_footprint_in_bytes) / 1024.0) << ','
+                << (dt * 1000.0) << std::endl;
+
+      MainLoop(zoom, convex_hull_triangulation, must_exit);
+
+      if (must_exit)
+        break;
     }
-    cdt.AddPoints(steiner.data(), steiner.size());
-  } else {
-    cdt.AddPolyline(polyline.data(), polyline.size());
-    for (const auto& hole : holes) {
-      assert(!hole.empty());
-      cdt.AddHole(hole.data(), hole.size());
-    }
-    cdt.AddPoints(steiner.data(), steiner.size());
+    if (must_exit)
+      break;
   }
-
-  /*
-   * STEP 3: Triangulate!
-   */
-  const p2t::Policy policy = convex_hull_triangulation ? p2t::Policy::ConvexHull : p2t::Policy::OuterPolygon;
-  cdt.Triangulate(policy);
-
-  double dt = glfwGetTime() - init_time;
-
-  triangles.reserve(cdt.GetTrianglesCount());
-  cdt.GetTriangles(std::back_inserter(triangles));
-  const size_t points_in_holes =
-      std::accumulate(holes.cbegin(), holes.cend(), size_t(0),
-                      [](size_t cumul, const std::vector<p2t::Point>& hole) { return cumul + hole.size(); });
-
-  std::cout << "Number of primary constrained edges = " << polyline.size() << std::endl;
-  std::cout << "Number of holes = " << holes.size() << std::endl;
-  std::cout << "Number of constrained edges in holes = " << points_in_holes << std::endl;
-  std::cout << "Number of Steiner points = " << steiner.size() << std::endl;
-  std::cout << "Total number of points = " << (polyline.size() + points_in_holes + steiner.size()) << std::endl;
-  std::cout << "Number of triangles = " << triangles.size() << std::endl;
-  std::cout << "Elapsed time (ms) = " << dt * 1000.0 << std::endl;
-  std::cout << cdt.LastTriangulationInfo() << std::endl;
-
-  MainLoop(zoom);
 
   ShutDown(0);
   return 0;
@@ -238,6 +232,30 @@ std::ostream& operator<<(std::ostream& out, const p2t::CDT::Info& info)
   out << "  Number of triangle flips = "              << info.nb_triangle_flips << std::endl;
   out << "  Max Legalize depth = "                    << info.max_legalize_depth << std::endl;
   return out;
+}
+
+std::vector<std::string> GetInputFiles(std::string list_file)
+{
+  std::vector<std::string> result;
+  try {
+    std::string line;
+    std::ifstream myfile(list_file);
+    if (myfile.is_open()) {
+      while (!myfile.eof()) {
+        getline(myfile, line);
+        if (line.empty())
+          continue;
+        if (line.at(0) == '#')
+          continue;
+        result.emplace_back(line);
+      }
+    } else {
+      throw std::runtime_error("File not opened");
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Error parsing list file: " << e.what() << std::endl;
+  }
+  return result;
 }
 
 bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std::vector<std::vector<p2t::Point>>& out_holes,
@@ -308,7 +326,7 @@ bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std:
       throw std::runtime_error("File not opened");
     }
   } catch (std::exception& e) {
-    std::cerr << "Error parsing file: " << e.what() << std::endl;
+    std::cerr << "Error parsing file [" << filename << "]: " << e.what() << std::endl;
     return false;
   }
   return true;
@@ -369,7 +387,7 @@ void Init(int window_width, int window_height)
   glfwSwapInterval(1);
 
   // Display the backend info
-  BackendInfo(std::cout);
+  //BackendInfo(std::cout);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -383,19 +401,22 @@ void ShutDown(int return_code)
   exit(return_code);
 }
 
-void MainLoop(double initial_zoom)
+void MainLoop(double initial_zoom, bool convex_hull_triangulation, bool& must_exit)
 {
   // Zoom can be changed with the arrow keys
   double zoom = initial_zoom;
 
   bool running = true;
-  while (running) {
+  while (running && !must_exit) {
     glfwPollEvents();
     glfwGetFramebufferSize(window, &window_width, &window_height);
     glViewport(0, 0, window_width, window_height);
 
     // Check if the ESCAPE key was pressed or the window was closed
-    running = !glfwGetKey(window, GLFW_KEY_ESCAPE) && !glfwWindowShouldClose(window);
+    must_exit = glfwGetKey(window, GLFW_KEY_ESCAPE) || glfwWindowShouldClose(window);
+
+    // Check if the SPACE key was pressed (pass to the next file)
+    running = !glfwGetKey(window, GLFW_KEY_SPACE);
 
     // Press the UP and DOWN keys to zoom in/out. Press BACKSPACE to reset zoom.
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
@@ -406,11 +427,13 @@ void MainLoop(double initial_zoom)
       zoom = initial_zoom;
 
     // Draw the scene
-    Draw(zoom);
+    Draw(zoom, convex_hull_triangulation);
 
     // Swap back and front buffers
     glfwSwapBuffers(window);
   }
+
+  std::this_thread::sleep_for(200ms);
 }
 
 void ResetZoom(double zoom, double cx, double cy, double width, double height, bool flag_flip_y)
@@ -438,7 +461,7 @@ void ResetZoom(double zoom, double cx, double cy, double width, double height, b
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void Draw(const double zoom)
+void Draw(const double zoom, bool convex_hull_triangulation)
 {
   // reset zoom
   p2t::Point center = p2t::Point(cx, cy);
