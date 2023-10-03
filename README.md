@@ -161,6 +161,8 @@ References
 ==========
 
 - Domiter V. and Zalik B. (2008) Sweep‐line algorithm for constrained Delaunay triangulation
-- FlipScan by library author Thomas Åhlén
+- Zalik B. (2005) An efficient sweep-line Delaunay triangulation algorithm
+- https://gemma.feri.um.si/delaunay-triangulation/
+- FlipScan by library author Thomas Åhlén:
 
 ![FlipScan](doc/FlipScan.png)
