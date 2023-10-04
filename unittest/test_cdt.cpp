@@ -182,6 +182,28 @@ BOOST_AUTO_TEST_CASE(NarrowQuadTest)
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
 
+BOOST_AUTO_TEST_CASE(Pyramide)
+{
+  // Test case with PointEvents where the new point's projection on the advancing front coincides exactly with a node
+  std::vector<p2t::Point> outer_points {
+    p2t::Point(0.0, 0.0),
+    p2t::Point(2.0, 0.0),
+    p2t::Point(1.0, 3.0)
+  };
+  std::vector<p2t::Point> points {
+    p2t::Point(1.0, 1.0),
+    p2t::Point(1.0, 2.0)
+  };
+  p2t::CDT cdt;
+  cdt.AddPolyline(outer_points.data(), outer_points.size());
+  cdt.AddPoints(points.data(), points.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate());
+  const auto result = p2t::GetTrianglesAsVector(cdt);
+  BOOST_REQUIRE_EQUAL(result.size(), 5);
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+}
+
 BOOST_AUTO_TEST_CASE(ConcaveBoundaryTest)
 {
   // Concave-by-less-than-epsilon boundaries used to potentially fail
