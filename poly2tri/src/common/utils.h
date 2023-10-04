@@ -1,5 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2009-2018, Poly2Tri Contributors
+ * Poly2Tri Copyright (c) 2009-2023, Poly2Tri Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -35,6 +35,7 @@
 #include <poly2tri/common/shapes.h>
 
 #include <cmath>
+#include <limits>
 
 // C99 removes M_PI from math.h
 #ifndef M_PI
@@ -46,9 +47,10 @@
 
 namespace p2t {
 
-constexpr double PI_3div4 = 3 * M_PI / 4;
-constexpr double PI_div2 = 1.57079632679489661923;
 constexpr double EPSILON = 1e-12;
+
+constexpr double LEFT_DIRECTION = -1.0;
+constexpr double RIGHT_DIRECTION = 1.0;
 
 /**
  * <b>Determines the orientation of triangle abc</b><br>
@@ -92,5 +94,40 @@ inline bool InScanArea(const Point& pa, const Point& pb, const Point& pc, const 
   }
   return true;
 }
+
+class Angle {
+public:
+  // Quadrants: ONE = [0, PI/2), TWO = [PI/2, PI), THREE = [PI, 3*PI/2), FOUR = [3*PI/2, 2*PI)
+  enum class Quadrant {
+    ONE = 0,
+    TWO = 1,
+    FOUR = 2,
+    THREE = 3
+  };
+
+  Angle(double x, double y) : x_(x), y_(y), q_(Quadrant::ONE)
+  {
+    const unsigned int q = (std::signbit(x) ? 1u : 0u) ^ (std::signbit(y) ? 2u : 0u);
+    q_ = static_cast<Quadrant>(q);
+  }
+
+  Quadrant quadrant() const
+  {
+    return q_;
+  }
+
+  double tan() const
+  {
+    if (std::fpclassify(x_) == FP_ZERO) {
+      return (std::signbit(y_) ? -1.0 : 1.0) * std::numeric_limits<double>::max();
+    } else {
+      return y_ / x_;
+    }
+  }
+
+private:
+  double x_, y_;
+  Quadrant q_;
+};
 
 }

@@ -286,8 +286,6 @@ Node& Sweep::PointEvent(const Point* point)
   Node& node = *node_ptr;
   Node& new_node = NewFrontTriangle(point, node);
 
-  TRACE_OUT << "PointEvent - new_node=" << new_node << std::endl;
-
   // Only need to check +epsilon since point never have smaller
   // x value than node due to how we fetch nodes from the front
   if (point->x <= node.point->x + EPSILON) {
@@ -403,6 +401,8 @@ Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
 {
   Triangle* triangle = tcx_.AddTriangleToMap(point, node.point, node.next->point);
 
+  TRACE_OUT << "NewFrontTriangle - triangle=" << *triangle << std::endl;
+
   triangle->MarkNeighbor(*node.triangle);
 
   Node* new_node = NewNode(point);
@@ -446,94 +446,12 @@ void Sweep::Fill(Node** node)
 
 namespace {
 
-// Decision-making about when to Fill hole.
-// Contributed by ToolmakerSteve2
-bool IsShallowHole(const Node* node);
-bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb);
-bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb);
-bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb);
-double Angle(const Point* origin, const Point* pa, const Point* pb);
-double RightBasinAngle(const Node& node);
-double LeftBasinAngle(const Node& node);
-
-// True if HoleAngle exceeds 90 degrees.
-// IsShallowHole checks if the advancing front has a large hole.
-// A "Large hole" is a triangle formed by a sequence of points in the advancing
-// front where three neighbor points form a triangle.
-// And angle between left-top, bottom, and right-top points is more than 90 degrees.
-// The first part of the algorithm reviews only three neighbor points, e.g. named A, B, C.
-// Additional part of this logic reviews a sequence of 5 points -
-// additionally reviews one point before and one after the sequence of three (A, B, C),
-// e.g. named X and Y.
-// In this case, angles are XBC and ABY and this if angles are negative or more
-// than 90 degrees IsShallowHole returns true.
-// But there is a configuration when ABC has a negative angle but XBC or ABY is less
-// than 90 degrees and positive.
-// Then function IsShallowHole return false and initiates filling.
-// This filling creates a triangle ABC and adds it to the advancing front.
-// But in the case when angle ABC is negative this triangle goes inside the advancing front
-// and can intersect previously created triangles.
-// This triangle leads to making wrong advancing front and problems in triangulation in the future.
-// Looks like such a triangle should not be created.
-// The simplest way to check and fix it is to check an angle ABC.
-// If it is negative IsShallowHole should return true and
-// not initiate creating the ABC triangle in the advancing front.
-// X______A         Y
-//        \        /
-//         \      /
-//          \ B  /
-//           |  /
-//           | /
-//           |/
-//           C
-bool IsShallowHole(const Node* node)
-{
-  const Node* nextNode = node->next;
-  const Node* prevNode = node->prev;
-  if (!AngleExceeds90Degrees(node->point, nextNode->point, prevNode->point))
-          return false;
-
-  if (AngleIsNegative(node->point, nextNode->point, prevNode->point))
-          return true;
-
-  // Check additional points on front.
-  const Node* next2Node = nextNode->next;
-  // "..Plus.." because only want angles on same side as point being added.
-  if ((next2Node != nullptr) && !AngleExceedsPlus90DegreesOrIsNegative(node->point, next2Node->point, prevNode->point))
-          return false;
-
-  const Node* prev2Node = prevNode->prev;
-  // "..Plus.." because only want angles on same side as point being added.
-  if ((prev2Node != nullptr) && !AngleExceedsPlus90DegreesOrIsNegative(node->point, nextNode->point, prev2Node->point))
-          return false;
-
-  return true;
-}
-
-bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb)
-{
-    const double angle = Angle(origin, pa, pb);
-    return angle < 0;
-}
-
-bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb)
-{
-  const double angle = Angle(origin, pa, pb);
-  return ((angle > PI_div2) || (angle < -PI_div2));
-}
-
-bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb)
-{
-  const double angle = Angle(origin, pa, pb);
-  return (angle > PI_div2) || (angle < 0);
-}
-
-// Compute the angle formed by half lines OA and OB, where O = origin
-double Angle(const Point* origin, const Point* pa, const Point* pb)
+// Compute the angle formed by half lines OA and OB
+Angle OABAngle(const Point* origin, const Point* pa, const Point* pb)
 {
   /* In the complex plane: a = ax + i*ay; b = bx + i*by
    *
-   * The angle is the argument of complex number b/a:
+   * The angle is the argument of the complex number b/a:
    * b/a = (bx + by*i)/(ax + ay*i) = [(ax*bx + ay*by) + i*(ax*by - ay*bx)] / norm(a)^2
    * atan2(y,x) computes the principal value of the argument function
    * applied to the complex number x+iy
@@ -548,68 +466,98 @@ double Angle(const Point* origin, const Point* pa, const Point* pb)
   const double by = pb->y - py;
   const double x = ax * bx + ay * by;
   const double y = ax * by - ay * bx;
-  return atan2(y, x);
+  return Angle(x, y);
+}
+
+// In [Zalik 2005] the criteria to fill a hole after a point event is to find
+// if the angle the node forms with its neighbors is less that PI/2
+// This can be evaluated like this:
+//   const Angle node_angle = OABAngle(node->point, node->next->point, node->prev->point);
+//   return node_angle.quadrant() == Angle::Quadrant::ONE;
+//
+// In the following function the criteria is refined. In case the hole is fillable but does
+// not meet the criteria above, we also test the neighbor nodes on the same criteria,
+// assuming the initial node was filled.
+bool NodeFillCriteria(const Node* node, double fill_direction)
+{
+  // Copy of the NodeFillCriteria
+  const Angle node_angle = OABAngle(node->point, node->next->point, node->prev->point);
+
+  switch (node_angle.quadrant())
+  {
+    case Angle::Quadrant::ONE:
+      return true;
+
+    case Angle::Quadrant::TWO:
+      // The hole could be filled. Assuming it is filled, evaluate if it the next neighbor node
+      // (in the fill direction) will meet the fill hole criteria
+      if (std::signbit(fill_direction) && node->prev->prev) {
+        const Angle left_fill_angle = OABAngle(node->prev->point, node->next->point, node->prev->prev->point);
+        return left_fill_angle.quadrant() == Angle::Quadrant::ONE;
+      }
+      if (!std::signbit(fill_direction) && node->next->next) {
+        const Angle right_fill_angle = OABAngle(node->next->point, node->next->next->point, node->prev->point);
+        return right_fill_angle.quadrant() == Angle::Quadrant::ONE;
+      }
+      return false;
+
+    case Angle::Quadrant::THREE:
+      // Not fillable
+      return false;
+
+    case Angle::Quadrant::FOUR:
+    default:
+      assert(0);
+      return false;
+  }
 }
 
 // The basin angle is decided against the horizontal line
-double RightBasinAngle(const Node& node)
+bool LeftBasinCriteria(const Node& node)
 {
+  static const double TAN_PI_DIV_4 = std::tan(M_PI / 4.0);
+  assert(node.prev && node.prev->prev);
+  const Point v = *node.point - *node.prev->prev->point;
+  const Angle slope(v.x, v.y);
+  return slope.quadrant() == Angle::Quadrant::ONE && slope.tan() > TAN_PI_DIV_4;
+}
+
+// The basin angle is decided against the horizontal line
+bool RightBasinCriteria(const Node& node)
+{
+  static const double TAN_3_PI_DIV_4 = std::tan(3.0 * M_PI / 4.0);
+  assert(node.next && node.next->next);
   const Point v = *node.point - *node.next->next->point;
-  return atan2(v.y, v.x);
-}
-
-// The basin angle is decided against the horizontal line
-double LeftBasinAngle(const Node& node)
-{
-  const Point v = *node.prev->prev->point - *node.point;
-  return atan2(v.y, v.x);
+  const Angle slope(v.x, v.y);
+  return slope.quadrant() == Angle::Quadrant::TWO && slope.tan() < TAN_3_PI_DIV_4;
 }
 
 } // namespace
 
 void Sweep::FillAdvancingFront(Node& n)
 {
-
   // Fill right holes
   Node* node = n.next;
-
-  while (node && node->next) {
-    // if node angle exceeds 90 degrees then break.
-    if (IsShallowHole(node))
-      break;
-    TRACE_OUT << "FillAdvancingFront - Fill right node " << *node << std::endl;
+  while (node && node->next && NodeFillCriteria(node, RIGHT_DIRECTION)) {
     Fill(&node);
     node = node->next;
   }
 
   // Fill left holes
   node = n.prev;
-
-  while (node && node->prev) {
-    // if node hangle exceeds 90 degrees then break.
-    if (IsShallowHole(node))
-      break;
-    TRACE_OUT << "FillAdvancingFront - Fill left node " << *node << std::endl;
+  while (node && node->prev && NodeFillCriteria(node, LEFT_DIRECTION)) {
     Fill(&node);
     // node is set to node->prev in Fill
   }
 
   // Fill right basin
-  if (n.next && n.next->next) {
-    const double angle = RightBasinAngle(n);
-    if (angle < PI_3div4) {
-      TRACE_OUT << "FillAdvancingFront - Fill right bassin" << std::endl;
-      FillRightBasin(n);
-    }
+  if (n.next && n.next->next && RightBasinCriteria(n)) {
+    FillRightBasin(n);
   }
 
   // Fill left basin
-  if (n.prev && n.prev->prev) {
-    const double angle = LeftBasinAngle(n);
-    if (angle > -PI_3div4) {
-      TRACE_OUT << "FillAdvancingFront - Fill left bassin" << std::endl;
-      FillLeftBasin(n);
-    }
+  if (n.prev && n.prev->prev && LeftBasinCriteria(n)) {
+    FillLeftBasin(n);
   }
 }
 
@@ -833,6 +781,8 @@ void Sweep::FillBasin(Basin& basin)
 {
   if (basin.IsShallow())
     return;
+
+  TRACE_OUT << "FillBasin - left_node->point=" << *basin.left_node->point << "; bottom_node->point=" << *basin.bottom_node->point << "; right_node->point=" << *basin.right_node->point << std::endl;
 
   Node*& bottom = basin.bottom_node;
   assert(bottom);
