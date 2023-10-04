@@ -207,26 +207,6 @@ private:
    */
   void FillAdvancingFront(Node& n);
 
-  // Decision-making about when to Fill hole.
-  // Contributed by ToolmakerSteve2
-  static bool LargeHole_DontFill(const Node* node);
-  static bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb);
-  static bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb);
-  static bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb);
-  static double Angle(const Point* origin, const Point* pa, const Point* pb);
-
-  /**
-   *
-   * @param node - middle node
-   * @return the angle between 3 front nodes
-   */
-  static double HoleAngle(const Node& node);
-
-  /**
-   * The basin angle is decided against the horizontal line [1,0]
-   */
-  static double BasinAngle(const Node& node);
-
   /**
    * Fills a basin that has formed on the Advancing Front to the right
    * of given node.<br>

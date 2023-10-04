@@ -445,45 +445,19 @@ void Sweep::Fill(Node** node)
   Legalize(*triangle);
 }
 
-void Sweep::FillAdvancingFront(Node& n)
-{
+namespace {
 
-  // Fill right holes
-  Node* node = n.next;
-
-  while (node && node->next) {
-    // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node))
-      break;
-    TRACE_OUT << "FillAdvancingFront - Fill right node->point " << *node->point << std::endl;
-    Fill(&node);
-    node = node->next;
-  }
-
-  // Fill left holes
-  node = n.prev;
-
-  while (node && node->prev) {
-    // if HoleAngle exceeds 90 degrees then break.
-    if (LargeHole_DontFill(node))
-      break;
-    TRACE_OUT << "FillAdvancingFront - Fill left node->point " << *node->point << std::endl;
-    Fill(&node);
-    // node is set to node->prev in Fill
-  }
-
-  // Fill right basins
-  if (n.next && n.next->next) {
-    const double angle = BasinAngle(n);
-    if (angle < PI_3div4) {
-      TRACE_OUT << "FillAdvancingFront - Fill right bassin" << std::endl;
-      FillBasin(n);
-    }
-  }
-}
+// Decision-making about when to Fill hole.
+// Contributed by ToolmakerSteve2
+bool IsShallowHole(const Node* node);
+bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb);
+bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb);
+bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb);
+double Angle(const Point* origin, const Point* pa, const Point* pb);
+double RightBasinAngle(const Node& node);
 
 // True if HoleAngle exceeds 90 degrees.
-// LargeHole_DontFill checks if the advancing front has a large hole.
+// IsShallowHole checks if the advancing front has a large hole.
 // A "Large hole" is a triangle formed by a sequence of points in the advancing
 // front where three neighbor points form a triangle.
 // And angle between left-top, bottom, and right-top points is more than 90 degrees.
@@ -492,17 +466,17 @@ void Sweep::FillAdvancingFront(Node& n)
 // additionally reviews one point before and one after the sequence of three (A, B, C),
 // e.g. named X and Y.
 // In this case, angles are XBC and ABY and this if angles are negative or more
-// than 90 degrees LargeHole_DontFill returns true.
+// than 90 degrees IsShallowHole returns true.
 // But there is a configuration when ABC has a negative angle but XBC or ABY is less
 // than 90 degrees and positive.
-// Then function LargeHole_DontFill return false and initiates filling.
+// Then function IsShallowHole return false and initiates filling.
 // This filling creates a triangle ABC and adds it to the advancing front.
 // But in the case when angle ABC is negative this triangle goes inside the advancing front
 // and can intersect previously created triangles.
 // This triangle leads to making wrong advancing front and problems in triangulation in the future.
 // Looks like such a triangle should not be created.
 // The simplest way to check and fix it is to check an angle ABC.
-// If it is negative LargeHole_DontFill should return true and
+// If it is negative IsShallowHole should return true and
 // not initiate creating the ABC triangle in the advancing front.
 // X______A         Y
 //        \        /
@@ -512,7 +486,7 @@ void Sweep::FillAdvancingFront(Node& n)
 //           | /
 //           |/
 //           C
-bool Sweep::LargeHole_DontFill(const Node* node)
+bool IsShallowHole(const Node* node)
 {
   const Node* nextNode = node->next;
   const Node* prevNode = node->prev;
@@ -536,29 +510,31 @@ bool Sweep::LargeHole_DontFill(const Node* node)
   return true;
 }
 
-bool Sweep::AngleIsNegative(const Point* origin, const Point* pa, const Point* pb)
+bool AngleIsNegative(const Point* origin, const Point* pa, const Point* pb)
 {
     const double angle = Angle(origin, pa, pb);
     return angle < 0;
 }
 
-bool Sweep::AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb)
+bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb)
 {
   const double angle = Angle(origin, pa, pb);
   return ((angle > PI_div2) || (angle < -PI_div2));
 }
 
-bool Sweep::AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb)
+bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb)
 {
   const double angle = Angle(origin, pa, pb);
   return (angle > PI_div2) || (angle < 0);
 }
 
-double Sweep::Angle(const Point* origin, const Point* pa, const Point* pb)
+// Compute the angle formed by half lines OA and OB, where O = origin
+double Angle(const Point* origin, const Point* pa, const Point* pb)
 {
-  /* Complex plane
-   * ab = cosA +i*sinA
-   * ab = (ax + ay*i)(bx + by*i) = (ax*bx + ay*by) + i(ax*by-ay*bx)
+  /* In the complex plane: a = ax + i*ay; b = bx + i*by
+   *
+   * The angle is the argument of complex number b/a:
+   * b/a = (bx + by*i)/(ax + ay*i) = [(ax*bx + ay*by) + i*(ax*by - ay*bx)] / norm(a)^2
    * atan2(y,x) computes the principal value of the argument function
    * applied to the complex number x+iy
    * Where x = ax*bx + ay*by
@@ -570,33 +546,55 @@ double Sweep::Angle(const Point* origin, const Point* pa, const Point* pb)
   const double ay = pa->y - py;
   const double bx = pb->x - px;
   const double by = pb->y - py;
-  const double x = ax * by - ay * bx;
-  const double y = ax * bx + ay * by;
-  return atan2(x, y);
+  const double x = ax * bx + ay * by;
+  const double y = ax * by - ay * bx;
+  return atan2(y, x);
 }
 
-double Sweep::BasinAngle(const Node& node)
+// The basin angle is decided against the horizontal line
+double RightBasinAngle(const Node& node)
 {
-  const double ax = node.point->x - node.next->next->point->x;
-  const double ay = node.point->y - node.next->next->point->y;
-  return atan2(ay, ax);
+  const Point v = *node.point - *node.next->next->point;
+  return atan2(v.y, v.x);
 }
 
-double Sweep::HoleAngle(const Node& node)
+} // namespace
+
+void Sweep::FillAdvancingFront(Node& n)
 {
-  /* Complex plane
-   * ab = cosA +i*sinA
-   * ab = (ax + ay*i)(bx + by*i) = (ax*bx + ay*by) + i(ax*by-ay*bx)
-   * atan2(y,x) computes the principal value of the argument function
-   * applied to the complex number x+iy
-   * Where x = ax*bx + ay*by
-   *       y = ax*by - ay*bx
-   */
-  const double ax = node.next->point->x - node.point->x;
-  const double ay = node.next->point->y - node.point->y;
-  const double bx = node.prev->point->x - node.point->x;
-  const double by = node.prev->point->y - node.point->y;
-  return atan2(ax * by - ay * bx, ax * bx + ay * by);
+
+  // Fill right holes
+  Node* node = n.next;
+
+  while (node && node->next) {
+    // if node angle exceeds 90 degrees then break.
+    if (IsShallowHole(node))
+      break;
+    TRACE_OUT << "FillAdvancingFront - Fill right node->point " << *node->point << std::endl;
+    Fill(&node);
+    node = node->next;
+  }
+
+  // Fill left holes
+  node = n.prev;
+
+  while (node && node->prev) {
+    // if node hangle exceeds 90 degrees then break.
+    if (IsShallowHole(node))
+      break;
+    TRACE_OUT << "FillAdvancingFront - Fill left node->point " << *node->point << std::endl;
+    Fill(&node);
+    // node is set to node->prev in Fill
+  }
+
+  // Fill right basins
+  if (n.next && n.next->next) {
+    const double angle = RightBasinAngle(n);
+    if (angle < PI_3div4) {
+      TRACE_OUT << "FillAdvancingFront - Fill right bassin" << std::endl;
+      FillBasin(n);
+    }
+  }
 }
 
 bool Sweep::Legalize(Triangle& t, unsigned int depth)
