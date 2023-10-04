@@ -52,6 +52,7 @@ struct Node;
 struct Point;
 struct Edge;
 class Triangle;
+struct Basin;
 
 class Sweep {
 public:
@@ -211,21 +212,25 @@ private:
    * Fills a basin that has formed on the Advancing Front to the right
    * of given node.<br>
    * First we decide a left,bottom and right node that forms the
-   * boundaries of the basin. Then we do a reqursive fill.
+   * boundaries of the basin. Then we fill the basin.
    *
-   * @param node - starting node, this or next node will be left node
+   * @param node - starting node
    */
-  void FillBasin(Node& node);
+  void FillRightBasin(Node& node);
 
   /**
-   * Recursive algorithm to fill a Basin with triangles
+   * Equivalent of FillRightBasin but on the left side of the starting node
    *
-   * @param node - bottom_node
-   * @param cnt - counter used to alternate on even and odd numbers
+   * @param node - starting node
    */
-  void FillBasinReq(Node* node);
+  void FillLeftBasin(Node& node);
 
-  bool IsShallow(Node& node) const;
+  /**
+   * Fill a Basin delimited by two monotone chains of vertices
+   *
+   * @param basin - The description of the basin
+   */
+  void FillBasin(Basin& basin);
 
   bool IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq) const;
 
@@ -284,32 +289,6 @@ private:
 
   void ConvexHullFillOfFront(AdvancingFront& front);    // AdvancingFront or BackFront
 
-  struct Basin {
-    Node* left_node;
-    Node* bottom_node;
-    Node* right_node;
-    double width;
-    bool left_highest;
-
-    Basin() :
-      left_node(nullptr),
-      bottom_node(nullptr),
-      right_node(nullptr),
-      width(0.0),
-      left_highest(false)
-    {
-    }
-
-    void Clear()
-    {
-      left_node = nullptr;
-      bottom_node = nullptr;
-      right_node = nullptr;
-      width = 0.0;
-      left_highest = false;
-    }
-  };
-
   struct EdgeEventData {
     Edge* constrained_edge;
     bool right;
@@ -329,8 +308,6 @@ private:
 
   // Nodes of the advancing front
   std::vector<std::unique_ptr<Node>> nodes_;
-
-  Basin basin_;
 
   EdgeEventData edge_event_;
 

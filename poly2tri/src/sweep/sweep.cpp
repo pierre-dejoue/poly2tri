@@ -45,7 +45,6 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   tcx_(tcx),
   front_(),
   nodes_(),
-  basin_(),
   edge_event_(),
   info_(info)
 {
@@ -455,6 +454,7 @@ bool AngleExceeds90Degrees(const Point* origin, const Point* pa, const Point* pb
 bool AngleExceedsPlus90DegreesOrIsNegative(const Point* origin, const Point* pa, const Point* pb);
 double Angle(const Point* origin, const Point* pa, const Point* pb);
 double RightBasinAngle(const Node& node);
+double LeftBasinAngle(const Node& node);
 
 // True if HoleAngle exceeds 90 degrees.
 // IsShallowHole checks if the advancing front has a large hole.
@@ -558,6 +558,13 @@ double RightBasinAngle(const Node& node)
   return atan2(v.y, v.x);
 }
 
+// The basin angle is decided against the horizontal line
+double LeftBasinAngle(const Node& node)
+{
+  const Point v = *node.prev->prev->point - *node.point;
+  return atan2(v.y, v.x);
+}
+
 } // namespace
 
 void Sweep::FillAdvancingFront(Node& n)
@@ -570,7 +577,7 @@ void Sweep::FillAdvancingFront(Node& n)
     // if node angle exceeds 90 degrees then break.
     if (IsShallowHole(node))
       break;
-    TRACE_OUT << "FillAdvancingFront - Fill right node->point " << *node->point << std::endl;
+    TRACE_OUT << "FillAdvancingFront - Fill right node " << *node << std::endl;
     Fill(&node);
     node = node->next;
   }
@@ -582,17 +589,26 @@ void Sweep::FillAdvancingFront(Node& n)
     // if node hangle exceeds 90 degrees then break.
     if (IsShallowHole(node))
       break;
-    TRACE_OUT << "FillAdvancingFront - Fill left node->point " << *node->point << std::endl;
+    TRACE_OUT << "FillAdvancingFront - Fill left node " << *node << std::endl;
     Fill(&node);
     // node is set to node->prev in Fill
   }
 
-  // Fill right basins
+  // Fill right basin
   if (n.next && n.next->next) {
     const double angle = RightBasinAngle(n);
     if (angle < PI_3div4) {
       TRACE_OUT << "FillAdvancingFront - Fill right bassin" << std::endl;
-      FillBasin(n);
+      FillRightBasin(n);
+    }
+  }
+
+  // Fill left basin
+  if (n.prev && n.prev->prev) {
+    const double angle = LeftBasinAngle(n);
+    if (angle > -PI_3div4) {
+      TRACE_OUT << "FillAdvancingFront - Fill left bassin" << std::endl;
+      FillLeftBasin(n);
     }
   }
 }
@@ -720,87 +736,110 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   t.SetConstrainedEdgeCCW(op, ce2);
 }
 
-void Sweep::FillBasin(Node& node)
-{
-  if (Orient2d(*node.point, *node.next->point, *node.next->next->point) == CCW) {
-    basin_.left_node = node.next->next;
-  } else {
-    basin_.left_node = node.next;
+struct Basin {
+  Node* left_node;
+  Node* bottom_node;
+  Node* right_node;
+
+  static constexpr double shallow_height_to_width_ratio = 0.5;
+
+  Basin() :
+    left_node(nullptr),
+    bottom_node(nullptr),
+    right_node(nullptr)
+  {
   }
 
-  // Find the bottom and right node
-  basin_.bottom_node = basin_.left_node;
-  while (basin_.bottom_node->next
-         && basin_.bottom_node->point->y >= basin_.bottom_node->next->point->y) {
-    basin_.bottom_node = basin_.bottom_node->next;
+  bool IsShallow() const
+  {
+    assert(left_node); assert(bottom_node); assert(right_node);
+    const double width = right_node->point->x - left_node->point->x;
+    const double height = std::max(left_node->point->y, right_node->point->y) - bottom_node->point->y;
+    return shallow_height_to_width_ratio * width > height;
   }
-  if (basin_.bottom_node == basin_.left_node) {
+};
+
+void Sweep::FillRightBasin(Node& node)
+{
+  Basin basin;
+
+  if (Orient2d(*node.point, *node.next->point, *node.next->next->point) == CCW) {
+    basin.left_node = node.next->next;
+  } else {
+    basin.left_node = node.next;
+  }
+
+  // Find the bottom node
+  basin.bottom_node = basin.left_node;
+  while (basin.bottom_node->next
+         && basin.bottom_node->point->y >= basin.bottom_node->next->point->y) {
+    basin.bottom_node = basin.bottom_node->next;
+  }
+  if (basin.bottom_node == basin.left_node) {
     // No valid basin
     return;
   }
 
-  basin_.right_node = basin_.bottom_node;
-  while (basin_.right_node->next
-         && basin_.right_node->point->y < basin_.right_node->next->point->y) {
-    basin_.right_node = basin_.right_node->next;
+  // Find the right node
+  basin.right_node = basin.bottom_node;
+  while (basin.right_node->next
+         && basin.right_node->point->y < basin.right_node->next->point->y) {
+    basin.right_node = basin.right_node->next;
   }
-  if (basin_.right_node == basin_.bottom_node) {
-    // No valid basins
+  if (basin.right_node == basin.bottom_node) {
+    // No valid basin
     return;
   }
 
-  basin_.width = basin_.right_node->point->x - basin_.left_node->point->x;
-  basin_.left_highest = basin_.left_node->point->y > basin_.right_node->point->y;
-
-  FillBasinReq(basin_.bottom_node);
+  FillBasin(basin);
 }
 
-void Sweep::FillBasinReq(Node* node)
+void Sweep::FillLeftBasin(Node& node)
 {
-  // if shallow stop filling
-  if (IsShallow(*node)) {
-    return;
-  }
+  Basin basin;
 
-  const Point* point = node->point;
-
-  Fill(&node);
-
-  if (node == basin_.left_node && node->next == basin_.right_node) {
-    return;
-  } else if (node == basin_.left_node) {
-    Orientation o = Orient2d(*point, *node->next->point, *node->next->next->point);
-    if (o == CW) {
-      return;
-    }
-    node = node->next;
-  } else if (node->next == basin_.right_node) {
-    Orientation o = Orient2d(*point, *node->point, *node->prev->point);
-    if (o == CCW) {
-      return;
-    }
+  if (Orient2d(*node.point, *node.prev->point, *node.prev->prev->point) == CW) {
+    basin.right_node = node.prev->prev;
   } else {
-    // Continue with the neighbor node with lowest Y value
-    if (node->point->y >= node->next->point->y) {
-      node = node->next;
-    }
+    basin.right_node = node.prev;
   }
 
-  FillBasinReq(node);
+  // Find the bottom node
+  basin.bottom_node = basin.right_node;
+  while (basin.bottom_node->prev
+         && basin.bottom_node->point->y >= basin.bottom_node->prev->point->y) {
+    basin.bottom_node = basin.bottom_node->prev;
+  }
+  if (basin.bottom_node == basin.right_node) {
+    // No valid basin
+    return;
+  }
+
+  // Find the left node
+  basin.left_node = basin.bottom_node;
+  while (basin.left_node->prev
+         && basin.left_node->point->y < basin.left_node->prev->point->y) {
+    basin.left_node = basin.left_node->prev;
+  }
+  if (basin.left_node == basin.bottom_node) {
+    // No valid basin
+    return;
+  }
+
+  FillBasin(basin);
 }
 
-bool Sweep::IsShallow(Node& node) const
+void Sweep::FillBasin(Basin& basin)
 {
-  double height;
+  if (basin.IsShallow())
+    return;
 
-  if (basin_.left_highest) {
-    height = basin_.left_node->point->y - node.point->y;
-  } else {
-    height = basin_.right_node->point->y - node.point->y;
+  Node*& bottom = basin.bottom_node;
+  assert(bottom);
+  while (bottom != basin.left_node && bottom != basin.right_node) {
+    Fill(&bottom);
+    bottom = (bottom->point->y >= bottom->next->point->y) ? bottom->next : bottom;
   }
-
-  // if shallow stop filling
-  return basin_.width > height;
 }
 
 void Sweep::FillEdgeEvent(Edge* edge, Node* node)
