@@ -143,15 +143,20 @@ private:
   void Fill(Node** node);
 
   /**
-   * Perform Lawson's legalization on the triangle.
+   * Stack the Lawson's legalization of a triangle
+   *
+   * @param t - The triangle to legalize
+   */
+  void LegalizePush(Triangle& triangle);
+
+  /**
+   * Perform the Lawson's legalization of the triangles on the stack.
    *
    * Consider each neighbor of the triangle and perform the circumcirle check on the pair of triangles.
    * If the check fails, flip both triangles. The process continues recursively until the CDT criteria
    * is valid in the area around the initial triangle.
-   *
-   * @param t - The triangle to legalize
    */
-  void Legalize(Triangle& triangle);
+  void Legalize();
 
   /**
    * <b>Determines if d is inside the circumcircle of triangle abc</b><br>

@@ -133,8 +133,10 @@ void Sweep::SweepPoints()
 {
   for (size_t i = 1; i < tcx_.point_count(); i++) {
     Node* node = &PointEvent(tcx_.GetPoint(i));
+    Legalize();
     for (auto* e : tcx_.GetUpperEdges(i)) {
       EdgeEvent(e, node);
+      Legalize();
     }
   }
 }
@@ -273,6 +275,7 @@ void Sweep::ConvexHullFillOfFront(AdvancingFront& front)
       node = node->next;
     }
   }
+  Legalize();
 }
 
 Node& Sweep::PointEvent(const Point* point)
@@ -417,7 +420,7 @@ Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
   node.SetTriangle(triangle);
   new_node->SetTriangle(triangle);
 
-  Legalize(*triangle);
+  LegalizePush(*triangle);
 
   return *new_node;
 }
@@ -442,7 +445,7 @@ void Sweep::Fill(Node** node)
   (*node)->ResetTriangle();
   (*node)->SetTriangle(triangle);
 
-  Legalize(*triangle);
+  LegalizePush(*triangle);
 }
 
 namespace {
@@ -562,10 +565,12 @@ void Sweep::FillAdvancingFront(Node& n)
   }
 }
 
-void Sweep::Legalize(Triangle& triangle)
+void Sweep::LegalizePush(Triangle& triangle)
 {
   legalize_stack_.emplace_back(&triangle, 0u);
+}
 
+void Sweep::Legalize() {
   unsigned int nb_flips = 0;
   while (!legalize_stack_.empty()) {
     const PendingLegalization legalize = legalize_stack_.back();
@@ -965,8 +970,8 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
       if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
         t->SetConstrainedEdge(ep, eq);
         ot->SetConstrainedEdge(ep, eq);
-        Legalize(*t);
-        Legalize(*ot);
+        LegalizePush(*t);
+        LegalizePush(*ot);
       } else {
         // TODO: I think one of the triangles should be legalized here?
       }
@@ -978,7 +983,7 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
       // t is the next flip triangle
       // ot is not crossing the edge {ep, eq} and will be legalized in post-order
       FlipEdgeEvent(ep, eq, t, p);
-      Legalize(*ot);
+      LegalizePush(*ot);
     }
   } else {
     const Point* new_p = NextFlipPoint(ep, eq, *ot, op);
@@ -1052,6 +1057,9 @@ Node* Sweep::NewNode(const Point* p, Triangle* t)
   return new_node.get();
 }
 
-Sweep::~Sweep() = default;
+Sweep::~Sweep()
+{
+  assert(legalize_stack_.empty());
+}
 
 } // namespace p2t
