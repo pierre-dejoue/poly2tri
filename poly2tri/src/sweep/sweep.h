@@ -187,25 +187,6 @@ private:
   static bool Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd);
 
   /**
-   * Rotates a triangle pair one vertex CW.
-   *<pre>
-   *
-   *  P +-----+ q               P +-----+ q
-   *    | t  /|                   |\  t |
-   *    |   / |                   | \   |
-   *  t1|  /  |t2               t1|  \  |t2
-   *    | /   |     after CW:     |   \ |
-   *    |/ ot |                   | ot \|
-   * oq +-----+ op             oq +-----+ op
-   *
-   * </pre>
-   * Flag delaunay_pair is set to true if the caller is confident the triangle rotation creates a Delaunay pair.
-   * Else, it must be set to false, that is for example the case during a FlipScan during an EdgeEvent.
-   */
-  static void RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op, bool delaunay_pair = false);
-  static void RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_pair = false);
-
-  /**
    * Fills holes in the Advancing Front
    *
    * @param n

@@ -221,6 +221,25 @@ private:
 
 P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Triangle&);
 
+/**
+ * Rotates a triangle pair one vertex CW.
+ *<pre>
+ *
+ *  P +-----+ q               P +-----+ q
+ *    | t  /|                   |\  t |
+ *    |   / |                   | \   |
+ *  t1|  /  |t2               t1|  \  |t2
+ *    | /   |     after CW:     |   \ |
+ *    |/ ot |                   | ot \|
+ * oq +-----+ op             oq +-----+ op
+ *
+ * </pre>
+ * Flag delaunay_pair is set to true if the caller is confident the triangle rotation creates a Delaunay pair.
+ * Else, it must be set to false, that is for example the case during a FlipScan during an EdgeEvent.
+ */
+void RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_pair = false);
+
+
 inline bool cmp(const Point* a, const Point* b)
 {
   if (a->y < b->y) {

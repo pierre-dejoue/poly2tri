@@ -517,4 +517,43 @@ Orientation Triangle::GetOrientation() const
   return Orient2d(*points_[0], *points_[1], *points_[2]);
 }
 
+void RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_pair)
+{
+  assert(0 <= p && p < 3);
+  assert(0 <= op && op < 3);
+
+  int s = (p + 1) % 3;
+  int q = (p + 2) % 3;
+  int os = (op + 1) % 3;          assert(ot.GetPoint(os) == t.GetPoint(q));
+  int oq = (op + 2) % 3;          assert(ot.GetPoint(oq) == t.GetPoint(s));
+
+  Node* n1 = t.GetNode(s);
+  if (n1) { n1->ResetTriangle(); }
+  Node* n2 = ot.GetNode(os);
+  if (n2) { n2->ResetTriangle(); }
+
+  Triangle* t1 = t.Neighbor(q);
+  Triangle* t2 = ot.Neighbor(oq);
+
+  const bool ce1 = t.IsConstrainedEdge(q);
+  const bool ce2 = ot.IsConstrainedEdge(oq);
+
+  const Point* point_p = t.GetPoint(p);
+  const Point* point_op = ot.GetPoint(op);
+  t.Legalize(p, point_op, delaunay_pair);
+  ot.Legalize(op, point_p, delaunay_pair);
+
+  // Remap remaining neighbors
+  if (t1) { ot.MarkNeighbor(*t1); }
+  if (t2) { t.MarkNeighbor(*t2); }
+
+  // Remap nodes
+  if (n1) { n1->SetTriangle(&ot); }
+  if (n2) { n2->SetTriangle(&t); }
+
+  // Remap constrained_edge
+  ot.SetConstrainedEdge(os, ce1);
+  t.SetConstrainedEdge(s, ce2);
+}
+
 } // namespace p2t
