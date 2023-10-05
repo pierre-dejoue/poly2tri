@@ -94,33 +94,31 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
   assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
 }
 
-// Update neighbor pointers
-void Triangle::MarkNeighbor(const Point* p1, const Point* p2, Triangle* t)
-{
-  if ((p1 == points_[2] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[2]))
-    neighbors_[0] = t;
-  else if ((p1 == points_[0] && p2 == points_[2]) || (p1 == points_[2] && p2 == points_[0]))
-    neighbors_[1] = t;
-  else if ((p1 == points_[0] && p2 == points_[1]) || (p1 == points_[1] && p2 == points_[0]))
-    neighbors_[2] = t;
-  else
-    assert(0);
-}
-
-// Exhaustive search to update neighbor pointers
 void Triangle::MarkNeighbor(Triangle& t)
 {
-  if (t.Contains(points_[1], points_[2])) {
-    neighbors_[0] = &t;
-    t.MarkNeighbor(points_[1], points_[2], this);
-  } else if (t.Contains(points_[0], points_[2])) {
-    neighbors_[1] = &t;
-    t.MarkNeighbor(points_[0], points_[2], this);
-  } else if (t.Contains(points_[0], points_[1])) {
-    neighbors_[2] = &t;
-    t.MarkNeighbor(points_[0], points_[1], this);
+  // This is the triangle ABC
+  const Point* a = points_[0];
+  const Point* b = points_[1];
+  int tai = t.Index(a);
+  int tbi = t.Index(b);
+  if (tai != -1) {
+    if (tbi != -1) {
+      // AB is the common edge
+      assert((tbi + 1) % 3 == tai);
+      neighbors_[2] = &t;
+      t.neighbors_[(tai + 1) % 3] = this;
+    } else {
+      // CA is the common edge
+      assert(t.points_[(tai + 1) % 3] == points_[2]);
+      neighbors_[1] = &t;
+      t.neighbors_[(tai + 2) % 3] = this;
+    }
   } else {
-    assert(0);
+    // BC is the common edge
+    assert(tbi != -1);
+    assert(t.points_[(tbi + 2) % 3] == points_[2]);
+    neighbors_[0] = &t;
+    t.neighbors_[(tbi + 1) % 3] = this;
   }
 }
 
@@ -245,7 +243,6 @@ int Triangle::Index(const Point* p)
   } else if (p == points_[2]) {
     return 2;
   }
-  assert(0);
   return -1;
 }
 
