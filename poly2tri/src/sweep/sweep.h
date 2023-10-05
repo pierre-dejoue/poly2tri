@@ -150,10 +150,8 @@ private:
    * is valid in the area around the initial triangle.
    *
    * @param t - The triangle to legalize
-   * @param depth - recursion depth
-   * @return a boolean, true if the triangle was flipped with at least one of its neighbors
    */
-  bool Legalize(Triangle& t, unsigned int depth = 0);
+  void Legalize(Triangle& triangle);
 
   /**
    * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
@@ -297,6 +295,12 @@ private:
   };
 
 private:
+  struct PendingLegalization {
+    PendingLegalization(Triangle* t, unsigned int d) : triangle(t), depth(d) {}
+
+    Triangle* triangle;
+    unsigned int depth;
+  };
 
   Node* NewNode(const Point* p, Triangle* t = nullptr);
 
@@ -310,6 +314,8 @@ private:
   std::vector<std::unique_ptr<Node>> nodes_;
 
   EdgeEventData edge_event_;
+
+  std::vector<PendingLegalization> legalize_stack_;
 
   CDT::Info& info_;
 

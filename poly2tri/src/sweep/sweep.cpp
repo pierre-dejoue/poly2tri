@@ -46,6 +46,7 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   front_(),
   nodes_(),
   edge_event_(),
+  legalize_stack_(),
   info_(info)
 {
 }
@@ -561,58 +562,64 @@ void Sweep::FillAdvancingFront(Node& n)
   }
 }
 
-bool Sweep::Legalize(Triangle& t, unsigned int depth)
+void Sweep::Legalize(Triangle& triangle)
 {
-  info_.max_legalize_depth = std::max(info_.max_legalize_depth, depth);
+  legalize_stack_.emplace_back(&triangle, 0u);
 
-  // To legalize a triangle we start by finding if any of the three edges
-  // violate the Delaunay condition
-  for (int i = 0; i < 3; i++) {
-    if (t.IsDelaunayEdge(i))
-      continue;
+  unsigned int nb_flips = 0;
+  while (!legalize_stack_.empty()) {
+    const PendingLegalization legalize = legalize_stack_.back();
+    legalize_stack_.pop_back();
+    info_.max_legalize_depth = std::max(info_.max_legalize_depth, legalize.depth);
+    Triangle* t = legalize.triangle;
 
-    Triangle* ot = t.GetNeighbor(i);
-
-    if (ot) {
-      const Point* p = t.GetPoint(i);
-      const Point* op = ot->OppositePoint(t, p);
-      int oi = ot->Index(op);
-
-      // The constrained edge flag is not always symmetrical
-      if (t.IsConstrainedEdge(i)) {
-        ot->SetConstrainedEdge(oi, true);
+    // To legalize a triangle we start by finding if any of the three edges violate the Delaunay condition
+    for (int i = 0; i < 3; i++) {
+      if (t->IsDelaunayEdge(i))
         continue;
-      }
-      if (ot->IsConstrainedEdge(oi)) {
-        t.SetConstrainedEdge(i, true);
-        continue;
-      }
 
-      bool inside = Incircle(*p, *t.GetPoint((i + 1) % 3), *t.GetPoint((i + 2) % 3), *op);
+      Triangle* ot = t->GetNeighbor(i);
 
-      if (inside) {
+      if (ot) {
+        const Point* p = t->GetPoint(i);
+        const Point* op = ot->OppositePoint(*t, p);
+        int oi = ot->Index(op);
 
-        // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
-        RotateTrianglePair(t, p, *ot, op, true);
-        info_.nb_triangle_flips++;
-        TRACE_OUT << "Legalized - depth=" << depth << "; t=" << t << "; ot=" << *ot << std::endl;
+        // The constrained edge flag is not always symmetrical
+        if (t->IsConstrainedEdge(i)) {
+          ot->SetConstrainedEdge(oi, true);
+          continue;
+        }
+        if (ot->IsConstrainedEdge(oi)) {
+          t->SetConstrainedEdge(i, true);
+          continue;
+        }
 
-        // We now got one valid Delaunay Edge shared by two triangles
-        // This gives us 4 new edges to check for Delaunay: This function is called recursively
-        Legalize(t, depth + 1);
-        Legalize(*ot, depth + 1);
+        bool inside = Incircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
+        if (inside) {
 
-        // If triangle have been legalized no need to check the other edges since
-        // the recursive legalization will handle those so we can end here
-        return true;
-      } else {
-        // The shared edge is Delaunay
-        t.SetDelaunayEdge(i, true);
-        ot->SetDelaunayEdge(oi, true);
+          // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
+          RotateTrianglePair(*t, p, *ot, op, true);
+          nb_flips++;
+          TRACE_OUT << "Legalized - depth=" << legalize.depth << "; t=" << *t << "; ot=" << *ot << std::endl;
+
+          // We now got one valid Delaunay Edge shared by two triangles
+          // This gives us 4 new edges to check for Delaunay: This function is called recursively
+          legalize_stack_.emplace_back(t, legalize.depth + 1);
+          legalize_stack_.emplace_back(ot, legalize.depth + 1);
+
+          // If triangle have been legalized no need to check the other edges since
+          // the recursive legalization will handle those so we can end here
+          break;
+        } else {
+          // The shared edge is Delaunay
+          t->SetDelaunayEdge(i, true);
+          ot->SetDelaunayEdge(oi, true);
+        }
       }
     }
   }
-  return false;
+  info_.nb_triangle_flips += nb_flips;
 }
 
 bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd)
