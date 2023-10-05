@@ -154,6 +154,7 @@ public:
   int Index(const Point* p);
   int EdgeIndex(const Point* p1, const Point* p2);
 
+  Triangle* Neighbor(int index);
   Triangle* NeighborAcross(const Point* point);
   Triangle* NeighborCW(const Point* point);
   Triangle* NeighborCCW(const Point* point);
@@ -172,6 +173,7 @@ public:
   void SetDelaunayEdge(int index, bool e);
   void SetDelaunayEdge(const Point* p, bool e);
 
+  Node* GetNode(int index);
   Node* GetNode(const Point* p);
   void SetNode(Node& node);
   void ResetNode(Node& node);
@@ -181,6 +183,7 @@ public:
   bool Contains(const Point* p, const Point* q);
 
   void Legalize(const Point* p, const Point* op, bool delaunay_edge);
+  void Legalize(int index, const Point* op, bool delaunay_edge);
 
   void ClearDelaunayEdges();
 

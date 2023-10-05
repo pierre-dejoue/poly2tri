@@ -168,70 +168,35 @@ const Point* Triangle::OppositePoint(Triangle& t, const Point* p)
 // Set delaunay_edge to true iff the edge common to t and ot will be Delaunay after the legalization.
 void Triangle::Legalize(const Point* p, const Point* op, bool delaunay_edge)
 {
-  assert(!IsConstrainedEdge(p));
+  Legalize(Index(p), op, delaunay_edge);
+}
 
-  if (p == points_[0]) {
-    points_[0] = points_[2];
-    // nodes_[0] to be set by the caller
-    // neighbors_[0] remains the same (it is the opposite triangle 'ot')
-    // constrained_edge_[0] is false;
-    delaunay_edge_[0] = delaunay_edge;
+void Triangle::Legalize(int index, const Point* op, bool delaunay_edge)
+{
+  assert(0 <= index && index< 3);
+  assert(!IsConstrainedEdge(index));
+  const Point* p = points_[index];
+  int ccw = (index + 1) % 3;
+  int cw = (index + 2) % 3;
 
-    points_[2] = op;
-    assert(nodes_[2] == nullptr);
-    neighbors_[2] = neighbors_[1];
-    constrained_edge_[2] = constrained_edge_[1];
-    delaunay_edge_[2] = false;
+  points_[index] = points_[cw];
+  // nodes_[index] to be set by the caller
+  // neighbors_[index] remains the same (it is the opposite triangle 'ot')
+  // constrained_edge_[index] is false;
+  delaunay_edge_[index] = delaunay_edge;
 
-    points_[1] = p;
-    assert(nodes_[1] == nullptr);
-    std::swap(nodes_[1], nodes_[0]);
-    neighbors_[1] = nullptr;      // To be set by the caller
-    // constrained_edge[1] to be set by the caller
-    delaunay_edge_[1] = false;
+  points_[cw] = op;
+  assert(nodes_[cw] == nullptr);
+  neighbors_[cw] = neighbors_[ccw];
+  constrained_edge_[cw] = constrained_edge_[ccw];
+  delaunay_edge_[cw] = false;
 
-  } else if (p == points_[1]) {
-    points_[1] = points_[0];
-    // nodes_[1] to be set by the caller
-    // neighbors_[1] remains the same (it is the opposite triangle 'ot')
-    // constrained_edge_[1] is false;
-    delaunay_edge_[1] = delaunay_edge;
-
-    points_[0] = op;
-    assert(nodes_[0] == nullptr);
-    neighbors_[0] = neighbors_[2];
-    constrained_edge_[0] = constrained_edge_[2];
-    delaunay_edge_[0] = false;
-
-    points_[2] = p;
-    assert(nodes_[2] == nullptr);
-    std::swap(nodes_[2], nodes_[1]);
-    neighbors_[2] = nullptr;      // To be set by the caller
-    // constrained_edge[2] to be set by the caller
-    delaunay_edge_[2] = false;
-
-  } else {
-    assert(p == points_[2]);
-    points_[2] = points_[1];
-    // nodes_[2] to be set by the caller
-    // neighbors_[2] remains the same (it is the opposite triangle 'ot')
-    // constrained_edge_[2] is false;
-    delaunay_edge_[2] = delaunay_edge;
-
-    points_[1] = op;
-    assert(nodes_[1] == nullptr);
-    neighbors_[1] = neighbors_[0];
-    constrained_edge_[1] = constrained_edge_[0];
-    delaunay_edge_[1] = false;
-
-    points_[0] = p;
-    assert(nodes_[0] == nullptr);
-    std::swap(nodes_[0], nodes_[2]);
-    neighbors_[0] = nullptr;      // To be set by the caller
-    // constrained_edge[0] to be set by the caller
-    delaunay_edge_[0] = false;
-
-  }
+  points_[ccw] = p;
+  assert(nodes_[ccw] == nullptr);
+  std::swap(nodes_[ccw], nodes_[index]);
+  neighbors_[ccw] = nullptr;      // To be set by the caller
+  // constrained_edge[ccw] to be set by the caller
+  delaunay_edge_[ccw] = false;
 }
 
 int Triangle::Index(const Point* p)
@@ -315,6 +280,12 @@ const Point* Triangle::PointCCW(const Point* point)
   return nullptr;
 }
 
+Triangle* Triangle::Neighbor(int index)
+{
+  assert(0 <= index && index < 3);
+  return neighbors_[index];
+}
+
 // The neighbor across to given point
 Triangle* Triangle::NeighborAcross(const Point* point)
 {
@@ -395,7 +366,6 @@ bool Triangle::IsConstrainedEdgeCW(const Point* p)
     return constrained_edge_[0];
   }
 }
-
 
 void Triangle::SetConstrainedEdge(int index, bool ce)
 {
@@ -479,6 +449,12 @@ void Triangle::SetDelaunayEdge(const Point* p, bool e)
     assert(!e || neighbors_[2]);
     delaunay_edge_[2] = e;
   }
+}
+
+Node* Triangle::GetNode(int index)
+{
+  assert(0 <= index && index < 3);
+  return nodes_[index];
 }
 
 Node* Triangle::GetNode(const Point* p)

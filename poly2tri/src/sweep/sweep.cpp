@@ -589,6 +589,7 @@ void Sweep::Legalize() {
         const Point* p = t->GetPoint(i);
         const Point* op = ot->OppositePoint(*t, p);
         int oi = ot->Index(op);
+        assert(0 <= oi && oi < 3);
 
         // The constrained edge flag is not always symmetrical
         if (t->IsConstrainedEdge(i)) {
@@ -604,7 +605,7 @@ void Sweep::Legalize() {
         if (inside) {
 
           // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
-          RotateTrianglePair(*t, p, *ot, op, true);
+          RotateTrianglePair(*t, i, *ot, oi, true);
           nb_flips++;
           TRACE_OUT << "Legalized - depth=" << legalize.depth << "; t=" << *t << "; ot=" << *ot << std::endl;
 
@@ -666,22 +667,34 @@ bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Po
 
 void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const Point* op, bool delaunay_pair)
 {
-  const Point* q = t.PointCW(p);
-  const Point* oq = ot.PointCW(op);
+  RotateTrianglePair(t, t.Index(p), ot, ot.Index(op), delaunay_pair);
+}
 
-  Node* n1 = t.GetNode(oq);
+void Sweep::RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_pair)
+{
+  assert(0 <= p && p < 3);
+  assert(0 <= op && op < 3);
+
+  int s = (p + 1) % 3;
+  int q = (p + 2) % 3;
+  int os = (op + 1) % 3;          assert(ot.GetPoint(os) == t.GetPoint(q));
+  int oq = (op + 2) % 3;          assert(ot.GetPoint(oq) == t.GetPoint(s));
+
+  Node* n1 = t.GetNode(s);
   if (n1) { n1->ResetTriangle(); }
-  Node* n2 = ot.GetNode(q);
+  Node* n2 = ot.GetNode(os);
   if (n2) { n2->ResetTriangle(); }
 
-  Triangle* t1 = t.NeighborCCW(p);
-  Triangle* t2 = ot.NeighborCCW(op);
+  Triangle* t1 = t.Neighbor(q);
+  Triangle* t2 = ot.Neighbor(oq);
 
-  const bool ce1 = t.IsConstrainedEdgeCCW(p);
-  const bool ce2 = ot.IsConstrainedEdgeCCW(op);
+  const bool ce1 = t.IsConstrainedEdge(q);
+  const bool ce2 = ot.IsConstrainedEdge(oq);
 
-  t.Legalize(p, op, delaunay_pair);
-  ot.Legalize(op, p, delaunay_pair);
+  const Point* point_p = t.GetPoint(p);
+  const Point* point_op = ot.GetPoint(op);
+  t.Legalize(p, point_op, delaunay_pair);
+  ot.Legalize(op, point_p, delaunay_pair);
 
   // Remap remaining neighbors
   if (t1) { ot.MarkNeighbor(*t1); }
@@ -692,8 +705,8 @@ void Sweep::RotateTrianglePair(Triangle& t, const Point* p, Triangle& ot, const 
   if (n2) { n2->SetTriangle(&t); }
 
   // Remap constrained_edge
-  ot.SetConstrainedEdgeCCW(p, ce1);
-  t.SetConstrainedEdgeCCW(op, ce2);
+  ot.SetConstrainedEdge(os, ce1);
+  t.SetConstrainedEdge(s, ce2);
 }
 
 struct Basin {
