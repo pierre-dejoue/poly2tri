@@ -94,13 +94,23 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
   assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
 }
 
+void Triangle::MarkNeighbor(int index, Triangle& ot)
+{
+  const Point* p = points_[(index + 1) % 3];
+  const int otpi = ot.Index(p);
+  assert(ot.GetPoint((otpi + 2) % 3) == points_[(index + 2) % 3]);    // Point q, where edge pq is shared with ot
+  const int oi =(otpi + 1) % 3;
+  neighbors_[index] = &ot;
+  ot.neighbors_[oi] = this;
+}
+
 void Triangle::MarkNeighbor(Triangle& ot, int& i, int& oi)
 {
   // This is the triangle ABC
   const Point* a = points_[0];
   const Point* b = points_[1];
-  int otai = ot.Index(a);
-  int otbi = ot.Index(b);
+  const int otai = ot.Index(a);
+  const int otbi = ot.Index(b);
   if (otai != -1) {
     if (otbi != -1) {
       // AB is the common edge
@@ -531,9 +541,8 @@ void RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_
   ot.Legalize(op, point_p, delaunay_pair);
 
   // Remap remaining neighbors
-  int i, oi;
-  if (t1) { ot.MarkNeighbor(*t1, i, oi); }
-  if (t2) { t.MarkNeighbor(*t2, i, oi); }
+  if (t1) { ot.MarkNeighbor(os, *t1); }
+  if (t2) { t.MarkNeighbor(s, *t2); }
 
   // Remap nodes
   if (n1) { n1->SetTriangle(&ot); }

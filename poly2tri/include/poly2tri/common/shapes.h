@@ -145,6 +145,7 @@ public:
   const Point* OppositePoint(Triangle& t, const Point* p);
 
   Triangle* GetNeighbor(int index);
+  void MarkNeighbor(int index, Triangle& ot);
   void MarkNeighbor(Triangle& ot, int& i, int& oi);
   void ClearNeighbors();
 
