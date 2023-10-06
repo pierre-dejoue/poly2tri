@@ -94,32 +94,34 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
   assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
 }
 
-void Triangle::MarkNeighbor(Triangle& t)
+void Triangle::MarkNeighbor(Triangle& ot, int& i, int& oi)
 {
   // This is the triangle ABC
   const Point* a = points_[0];
   const Point* b = points_[1];
-  int tai = t.Index(a);
-  int tbi = t.Index(b);
-  if (tai != -1) {
-    if (tbi != -1) {
+  int otai = ot.Index(a);
+  int otbi = ot.Index(b);
+  if (otai != -1) {
+    if (otbi != -1) {
       // AB is the common edge
-      assert((tbi + 1) % 3 == tai);
-      neighbors_[2] = &t;
-      t.neighbors_[(tai + 1) % 3] = this;
+      assert((otbi + 1) % 3 == otai);
+      i = 2;
+      oi = (otai + 1) % 3;
     } else {
       // CA is the common edge
-      assert(t.points_[(tai + 1) % 3] == points_[2]);
-      neighbors_[1] = &t;
-      t.neighbors_[(tai + 2) % 3] = this;
+      assert(ot.points_[(otai + 1) % 3] == points_[2]);
+      i = 1;
+      oi = (otai + 2) % 3;
     }
   } else {
     // BC is the common edge
-    assert(tbi != -1);
-    assert(t.points_[(tbi + 2) % 3] == points_[2]);
-    neighbors_[0] = &t;
-    t.neighbors_[(tbi + 1) % 3] = this;
+    assert(otbi != -1);
+    assert(ot.points_[(otbi + 2) % 3] == points_[2]);
+    i = 0;
+    oi = (otbi + 1) % 3;
   }
+  neighbors_[i] = &ot;
+  ot.neighbors_[oi] = this;
 }
 
 // The caller MUST clear the link in the other direction
@@ -233,23 +235,6 @@ int Triangle::EdgeIndex(const Point* p1, const Point* p2)
     }
   }
   return -1;
-}
-
-void Triangle::SetConstrainedEdge(Edge& edge)
-{
-  SetConstrainedEdge(edge.p, edge.q);
-}
-
-// Mark edge as constrained
-void Triangle::SetConstrainedEdge(const Point* p, const Point* q)
-{
-  if ((q == points_[0] && p == points_[1]) || (q == points_[1] && p == points_[0])) {
-    constrained_edge_[2] = true;
-  } else if ((q == points_[0] && p == points_[2]) || (q == points_[2] && p == points_[0])) {
-    constrained_edge_[1] = true;
-  } else if ((q == points_[1] && p == points_[2]) || (q == points_[2] && p == points_[1])) {
-    constrained_edge_[0] = true;
-  }
 }
 
 // The point clockwise to given point
@@ -373,39 +358,41 @@ void Triangle::SetConstrainedEdge(int index, bool ce)
   constrained_edge_[index] = ce;
 }
 
-void Triangle::SetConstrainedEdge(const Point* p, bool ce)
+int Triangle::SetConstrainedEdge(const Point* p, bool ce)
 {
   if (p == points_[0]) {
     constrained_edge_[0] = ce;
+    return 0;
   } else if (p == points_[1]) {
     constrained_edge_[1] = ce;
+    return 1;
   } else {
     assert(p == points_[2]);
     constrained_edge_[2] = ce;
+    return 2;
   }
 }
 
-void Triangle::SetConstrainedEdgeCCW(const Point* p, bool ce)
+int Triangle::SetConstrainedEdge(Edge& edge)
 {
-  if (p == points_[0]) {
-    constrained_edge_[2] = ce;
-  } else if (p == points_[1]) {
-    constrained_edge_[0] = ce;
-  } else {
-    assert(p == points_[2]);
-    constrained_edge_[1] = ce;
-  }
+  return SetConstrainedEdge(edge.p, edge.q);
 }
 
-void Triangle::SetConstrainedEdgeCW(const Point* p, bool ce)
+// Mark edge as constrained
+int Triangle::SetConstrainedEdge(const Point* p, const Point* q)
 {
-  if (p == points_[0]) {
-    constrained_edge_[1] = ce;
-  } else if (p == points_[1]) {
-    constrained_edge_[2] = ce;
+  if ((q == points_[0] && p == points_[1]) || (q == points_[1] && p == points_[0])) {
+    constrained_edge_[2] = true;
+    return 2;
+  } else if ((q == points_[0] && p == points_[2]) || (q == points_[2] && p == points_[0])) {
+    constrained_edge_[1] = true;
+    return 1;
+  } else if ((q == points_[1] && p == points_[2]) || (q == points_[2] && p == points_[1])) {
+    constrained_edge_[0] = true;
+    return 0;
   } else {
-    assert(p == points_[2]);
-    constrained_edge_[0] = ce;
+    assert(0);
+    return -1;
   }
 }
 
@@ -544,8 +531,9 @@ void RotateTrianglePair(Triangle& t, int p, Triangle& ot, int op, bool delaunay_
   ot.Legalize(op, point_p, delaunay_pair);
 
   // Remap remaining neighbors
-  if (t1) { ot.MarkNeighbor(*t1); }
-  if (t2) { t.MarkNeighbor(*t2); }
+  int i, oi;
+  if (t1) { ot.MarkNeighbor(*t1, i, oi); }
+  if (t2) { t.MarkNeighbor(*t2, i, oi); }
 
   // Remap nodes
   if (n1) { n1->SetTriangle(&ot); }

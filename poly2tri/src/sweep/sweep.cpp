@@ -162,7 +162,20 @@ namespace {
     }
   }
 
-}
+  bool SetConstrainedEdgeIfSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq)
+  {
+    assert(ep); assert(eq);
+    const int index = triangle.EdgeIndex(ep, eq);
+    const bool is_side_of_triangle = index != -1;
+    if (is_side_of_triangle) {
+      triangle.SetConstrainedEdge(index, true);
+      Triangle* t = triangle.GetNeighbor(index);
+      if (t) { t->SetConstrainedEdge(ep, eq); }
+    }
+    return is_side_of_triangle;
+  }
+
+} // namespace
 
 void Sweep::FinalizationConvexHull()
 {
@@ -311,7 +324,7 @@ void Sweep::EdgeEvent(Edge* edge, Node* node)
   edge_event_.constrained_edge = edge;
   edge_event_.right = (edge->p->x > edge->q->x);
 
-  if (IsEdgeSideOfTriangle(*node->triangle, edge->p, edge->q)) {
+  if (SetConstrainedEdgeIfSideOfTriangle(*node->triangle, edge->p, edge->q)) {
     return;
   }
 
@@ -332,7 +345,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
             << "triangle=" << *triangle << "; "
             << "point=" << *point
             << std::endl;
-  if (IsEdgeSideOfTriangle(*triangle, ep, eq)) {
+  if (SetConstrainedEdgeIfSideOfTriangle(*triangle, ep, eq)) {
     return;
   }
 
@@ -340,8 +353,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   const Orientation o1 = Orient2d(*eq, *p1, *ep);
   if (o1 == COLLINEAR) {
     TRACE_OUT << "EdgeEvent - o1=" << o1 << std::endl;
-    if (triangle->Contains(eq, p1)) {
-      triangle->SetConstrainedEdge(eq, p1);
+    if (SetConstrainedEdgeIfSideOfTriangle(*triangle, eq, p1)) {
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
       edge_event_.constrained_edge->q = p1;
@@ -357,8 +369,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   const Orientation o2 = Orient2d(*eq, *p2, *ep);
   TRACE_OUT << "EdgeEvent - o1=" << o1 << "; o2=" << o2 << std::endl;
   if (o2 == COLLINEAR) {
-    if (triangle->Contains(eq, p2)) {
-      triangle->SetConstrainedEdge(eq, p2);
+    if (SetConstrainedEdgeIfSideOfTriangle(*triangle, eq, p2)) {
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
       edge_event_.constrained_edge->q = p2;
@@ -386,28 +397,16 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   }
 }
 
-bool Sweep::IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq) const
-{
-  const int index = triangle.EdgeIndex(ep, eq);
-
-  if (index != -1) {
-    triangle.SetConstrainedEdge(index, true);
-    Triangle* t = triangle.GetNeighbor(index);
-    if (t) {
-      t->SetConstrainedEdge(ep, eq);
-    }
-    return true;
-  }
-  return false;
-}
-
 Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
 {
   Triangle* triangle = tcx_.AddTriangleToMap(point, node.point, node.next->point);
 
   TRACE_OUT << "NewFrontTriangle - triangle=" << *triangle << std::endl;
 
-  triangle->MarkNeighbor(*node.triangle);
+  int i, oi;
+  assert(node.triangle);
+  triangle->MarkNeighbor(*node.triangle, i, oi);
+  triangle->SetConstrainedEdge(i, node.triangle->IsConstrainedEdge(oi));
 
   Node* new_node = NewNode(point);
 
@@ -433,10 +432,13 @@ void Sweep::Fill(Node** node)
 
   TRACE_OUT << "Fill - triangle=" << *triangle << std::endl;
 
-  // TODO: should copy the constrained_edge value from neighbor triangles
-  //       for now constrained_edge values are copied during the legalize
-  triangle->MarkNeighbor(*filled_node->prev->triangle);
-  triangle->MarkNeighbor(*filled_node->triangle);
+  int i, oi;
+  assert(filled_node->prev->triangle);
+  triangle->MarkNeighbor(*filled_node->prev->triangle, i, oi);
+  triangle->SetConstrainedEdge(i, filled_node->prev->triangle->IsConstrainedEdge(oi));
+  assert(filled_node->triangle);
+  triangle->MarkNeighbor(*filled_node->triangle, i, oi);
+  triangle->SetConstrainedEdge(i, filled_node->triangle->IsConstrainedEdge(oi));
 
   // Update the front
   assert(front_);
@@ -582,6 +584,8 @@ void Sweep::Legalize() {
     for (int i = 0; i < 3; i++) {
       if (t->IsDelaunayEdge(i))
         continue;
+      if (t->IsConstrainedEdge(i))
+        continue;
 
       Triangle* ot = t->GetNeighbor(i);
 
@@ -590,16 +594,7 @@ void Sweep::Legalize() {
         const Point* op = ot->OppositePoint(*t, p);
         int oi = ot->Index(op);
         assert(0 <= oi && oi < 3);
-
-        // The constrained edge flag is not always symmetrical
-        if (t->IsConstrainedEdge(i)) {
-          ot->SetConstrainedEdge(oi, true);
-          continue;
-        }
-        if (ot->IsConstrainedEdge(oi)) {
-          t->SetConstrainedEdge(i, true);
-          continue;
-        }
+        assert(!ot->IsConstrainedEdge(oi));
 
         bool inside = Incircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
         if (inside) {

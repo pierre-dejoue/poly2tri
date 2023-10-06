@@ -145,11 +145,8 @@ public:
   const Point* OppositePoint(Triangle& t, const Point* p);
 
   Triangle* GetNeighbor(int index);
-  void MarkNeighbor(Triangle& t);
+  void MarkNeighbor(Triangle& ot, int& i, int& oi);
   void ClearNeighbors();
-
-  void SetConstrainedEdge(Edge& edge);
-  void SetConstrainedEdge(const Point* p, const Point* q);
 
   int Index(const Point* p);
   int EdgeIndex(const Point* p1, const Point* p2);
@@ -164,9 +161,9 @@ public:
   bool IsConstrainedEdgeCCW(const Point* p);
   bool IsConstrainedEdgeCW(const Point* p);
   void SetConstrainedEdge(int index, bool ce);
-  void SetConstrainedEdge(const Point* p, bool ce);
-  void SetConstrainedEdgeCCW(const Point* p, bool ce);
-  void SetConstrainedEdgeCW(const Point* p, bool ce);
+  int SetConstrainedEdge(const Point* p, bool ce);
+  int SetConstrainedEdge(Edge& edge);
+  int SetConstrainedEdge(const Point* p, const Point* q);
 
   bool IsDelaunayEdge(int index);
   bool IsDelaunayEdge(const Point* p);
