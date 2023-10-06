@@ -53,7 +53,7 @@ public:
   // Locate insertion point along the advancing front
   Node* LocateNode(double x);
 
-  void RemoveNode(Node** node);
+  void RemoveNode(Node** node, Node** trash);
 
 private:
 

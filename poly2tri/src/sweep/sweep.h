@@ -300,6 +300,9 @@ private:
   // Nodes of the advancing front
   std::vector<std::unique_ptr<Node>> nodes_;
 
+  // Discarded nodes can be reused
+  Node* discarded_nodes_;
+
   EdgeEventData edge_event_;
 
   std::vector<PendingLegalization> legalize_stack_;

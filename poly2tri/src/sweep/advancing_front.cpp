@@ -69,9 +69,11 @@ Node* AdvancingFront::LocateNode(double x)
 // Remove a node from the list
 // Cannot remove the head or the tail
 // The node passed as argument is replaced by the node directly preceeding the removed one
-void AdvancingFront::RemoveNode(Node** node)
+// The trash is a linked list of the previously removed nodes
+void AdvancingFront::RemoveNode(Node** node, Node** trash)
 {
   assert(node);
+  assert(trash);
   Node* deleted_node = *node;
   assert(deleted_node);
   assert(deleted_node->prev);   // The node is not the head of the list
@@ -79,7 +81,9 @@ void AdvancingFront::RemoveNode(Node** node)
   deleted_node->prev->next = deleted_node->next;
   deleted_node->next->prev = deleted_node->prev;
   *node = deleted_node->prev;
-  deleted_node->prev = deleted_node->next = nullptr;
+  deleted_node->prev = nullptr;
+  deleted_node->next = *trash;
+  *trash = deleted_node;
   deleted_node->ResetTriangle();
   if (search_node_ == deleted_node) { search_node_ = *node; }
 }

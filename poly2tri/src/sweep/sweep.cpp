@@ -45,6 +45,7 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   tcx_(tcx),
   front_(),
   nodes_(),
+  discarded_nodes_(nullptr),
   edge_event_(),
   legalize_stack_(),
   info_(info)
@@ -126,6 +127,7 @@ void Sweep::DeleteFront()
     std::swap(node, node->next);
   }
   front_.reset();
+  discarded_nodes_ = nullptr;
   nodes_.clear();   // Release all nodes
 }
 
@@ -442,7 +444,7 @@ void Sweep::Fill(Node** node)
 
   // Update the front
   assert(front_);
-  front_->RemoveNode(node);
+  front_->RemoveNode(node, &discarded_nodes_);
 
   (*node)->ResetTriangle();
   (*node)->SetTriangle(triangle);
@@ -1019,9 +1021,16 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)
 {
-  auto& new_node = nodes_.emplace_back(std::make_unique<Node>(p, t));
+  Node* new_node = nullptr;
+  if (discarded_nodes_) {
+    new_node = discarded_nodes_;
+    discarded_nodes_ = new_node->next;
+    *new_node = std::move(Node(p, t));
+  } else {
+    new_node = nodes_.emplace_back(std::make_unique<Node>(p, t)).get();
+  }
   if (t) { t->SetNode(*new_node); }
-  return new_node.get();
+  return new_node;
 }
 
 Sweep::~Sweep()
