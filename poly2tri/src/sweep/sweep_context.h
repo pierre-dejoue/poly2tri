@@ -66,8 +66,6 @@ public:
 
   const Point* tail() const;
 
-  size_t point_count() const;
-
   Triangle* AddTriangleToMap(const Point* a, const Point* b, const Point* c);
 
   const Point* GetPoint(size_t index);
@@ -89,7 +87,7 @@ private:
   friend class Sweep;
 
   template <typename GenPointPtr>
-  void  AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed);
+  void AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed);
 
   template <typename GenPointPtr>
   void AddPointsGen(GenPointPtr generator, std::size_t num_points);
@@ -120,11 +118,9 @@ struct SweepPoint
 };
 
 
+//
 // Implementations
-inline size_t SweepContext::point_count() const
-{
-  return points_.size();
-}
+//
 
 inline const Point* SweepContext::head() const
 {

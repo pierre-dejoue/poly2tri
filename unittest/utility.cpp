@@ -12,6 +12,12 @@ bool TriangulationSanityChecks(const p2t::CDT& cdt, const std::vector<p2t::Trian
   if (all_input_points.size() != pointset.size())
     return false;
 
+  const auto& info = cdt.LastTriangulationInfo();
+  if (static_cast<std::size_t>(info.nb_input_points) != pointset.size())
+    return false;
+  if (static_cast<std::size_t>(info.nb_output_triangles) != triangles.size())
+    return false;
+
   std::set<p2t::Triangle*> triangleset(std::cbegin(triangles), std::cend(triangles));
   if (triangles.size() != triangleset.size())
     return false;

@@ -139,37 +139,13 @@ public:
   std::size_t GetTrianglesCount() const;
 
   /**
-   * Get CDT triangles
+   * Get the CDT triangles
    *
    * OutIt: An output iterator of Triangle*
    */
   const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
   template <typename OutIt>
   void GetTriangles(OutIt triangle_pointer_dest) const;
-
-  /**
-   * Get the number of points that were given as input by the user
-   */
-  std::size_t GetInputPointsCount() const;
-
-  /**
-   * Get the list of all points that were given as input by the user
-   *
-   * For test and debug purpose only.
-   */
-  std::vector<const Point*> GetInputPoints() const;
-
-  /**
-   * Get the number of edges that were given as input by the user
-   */
-  std::size_t GetInputEdgesCount() const;
-
-  /**
-   * Get the list of all edges that were given as input by the user
-   *
-   * For test and debug purpose only.
-   */
-  std::vector<Edge*> GetInputEdges() const;
 
   struct Info {
     unsigned int nb_input_points = 0;
@@ -184,6 +160,13 @@ public:
    * Return some debug info with respect to the last triangulation
    */
   const Info& LastTriangulationInfo() const;
+
+  /**
+   * Get a vector of pointers to all points that were given as input by the user
+   *
+   * /!\ INTENDED FOR TEST AND DEBUG PURPOSE ONLY
+   */
+  std::vector<const Point*> GetInputPoints() const;
 
 private:
 

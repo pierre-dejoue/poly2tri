@@ -59,7 +59,7 @@ CDT::~CDT() = default;
 
 void CDT::AddPolyline(const std::vector<Point*>& polyline)
 {
-  if (sweep_context_->point_count() > 0) {
+  if (!sweep_context_->GetPoints().empty()) {
     throw std::invalid_argument("The outer polyline must be added first and only once");
   }
   sweep_context_->AddPolyline(polyline.data(), polyline.size(), CLOSED_POLYLINE);
@@ -67,7 +67,7 @@ void CDT::AddPolyline(const std::vector<Point*>& polyline)
 
 void CDT::AddPolyline(const Point* const* polyline, std::size_t num_points)
 {
-  if (sweep_context_->point_count() > 0) {
+  if (!sweep_context_->GetPoints().empty()) {
     throw std::invalid_argument("The outer polyline must be added first and only once");
   }
   sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE);
@@ -75,7 +75,7 @@ void CDT::AddPolyline(const Point* const* polyline, std::size_t num_points)
 
 void CDT::AddPolyline(const Point* polyline, std::size_t num_points, std::size_t stride)
 {
-  if (sweep_context_->point_count() > 0) {
+  if (!sweep_context_->GetPoints().empty()) {
     throw std::invalid_argument("The outer polyline must be added first and only once");
   }
   sweep_context_->AddPolyline(polyline, num_points, CLOSED_POLYLINE, stride);
@@ -130,7 +130,7 @@ void CDT::Triangulate(Policy triangulation_policy)
 {
   SweepContext& tcx = *sweep_context_;
   info_ = Info{};
-  if (tcx.point_count() > 0) {
+  if (!tcx.GetPoints().empty()) {
     tcx.InitTriangulation();
     info_.nb_input_points = static_cast<unsigned int>(tcx.GetPoints().size());
     info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdges().size());
@@ -148,34 +148,6 @@ const std::vector<std::unique_ptr<Triangle>>& CDT::GetTriangles() const
   return sweep_context_->GetTriangles();
 }
 
-std::size_t CDT::GetInputPointsCount() const
-{
-  return sweep_context_->GetPoints().size();
-}
-
-std::vector<const Point*> CDT::GetInputPoints() const
-{
-  std::vector<const Point*> result;
-  const auto& sweep_points = sweep_context_->GetPoints();
-  result.reserve(sweep_points.size());
-  std::transform(std::cbegin(sweep_points), std::cend(sweep_points), std::back_inserter(result), [](const auto& sweep_p) { return sweep_p.p; });
-  return result;
-}
-
-std::size_t CDT::GetInputEdgesCount() const
-{
-  return sweep_context_->GetEdges().size();
-}
-
-std::vector<Edge*> CDT::GetInputEdges() const
-{
-  std::vector<Edge*> result;
-  const auto& edges = sweep_context_->GetEdges();
-  result.reserve(edges.size());
-  std::transform(std::cbegin(edges), std::cend(edges), std::back_inserter(result), [](const auto& uniq_ptr) { return uniq_ptr.get(); });
-  return result;
-}
-
 std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)
 {
   std::vector<p2t::Triangle*> result;
@@ -187,6 +159,15 @@ std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)
 const CDT::Info& CDT::LastTriangulationInfo() const
 {
   return info_;
+}
+
+std::vector<const Point*> CDT::GetInputPoints() const
+{
+  std::vector<const Point*> result;
+  const auto& sweep_points = sweep_context_->GetPoints();
+  result.reserve(sweep_points.size());
+  std::transform(std::cbegin(sweep_points), std::cend(sweep_points), std::back_inserter(result), [](const auto& sweep_p) { return sweep_p.p; });
+  return result;
 }
 
 } // namespace p2t

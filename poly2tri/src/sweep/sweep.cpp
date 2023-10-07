@@ -133,7 +133,9 @@ void Sweep::DeleteFront()
 
 void Sweep::SweepPoints()
 {
-  for (size_t i = 1; i < tcx_.point_count(); i++) {
+  const std::size_t point_count = tcx_.points_.size();
+  // The point with index 0 is already in the advancing front
+  for (size_t i = 1; i < point_count; i++) {
     Node* node = &PointEvent(tcx_.GetPoint(i));
     Legalize();
     for (auto* e : tcx_.GetUpperEdges(i)) {
