@@ -149,18 +149,23 @@ namespace {
 
   void FloodFillOfInteriorTriangles(Triangle& interior_triangle)
   {
-    std::vector<Triangle *> triangles;
-    triangles.push_back(&interior_triangle);
+    std::vector<Triangle*> triangle_stack;
+    triangle_stack.emplace_back(&interior_triangle);
 
-    while(!triangles.empty()) {
-      Triangle *t = triangles.back();
-      triangles.pop_back();
-
-      if (t != nullptr && !t->IsInterior()) {
-        t->IsInterior(true);
-        for (int i = 0; i < 3; i++) {
-          if (!t->IsConstrainedEdge(i))
-            triangles.push_back(t->GetNeighbor(i));
+    while(!triangle_stack.empty()) {
+      Triangle* t = triangle_stack.back();
+      triangle_stack.pop_back();
+      assert(t);
+      if (t->IsInterior()) {
+        continue;
+      }
+      t->IsInterior(true);
+      for (int i = 0; i < 3; i++) {
+        if (!t->IsConstrainedEdge(i)) {
+          auto* nt = t->GetNeighbor(i);
+          if (nt && !nt->IsInterior()) {
+            triangle_stack.emplace_back(nt);
+          }
         }
       }
     }
