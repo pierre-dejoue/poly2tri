@@ -46,6 +46,7 @@ class Triangle;
 struct Node;
 struct Edge;
 
+class TriangleStorage;
 struct SweepPoint;
 
 class SweepContext {
@@ -53,6 +54,12 @@ public:
 
   SweepContext();
   ~SweepContext();
+
+  // Not moveable, not copyable
+  SweepContext(SweepContext&&) = delete;
+  SweepContext& operator=(SweepContext&&) = delete;
+  SweepContext(const SweepContext&) = delete;
+  SweepContext& operator=(const SweepContext&) = delete;
 
   void AddPolyline(const Point* const* polyline, std::size_t num_points, bool closed);
   void AddPolyline(const Point* polyline, std::size_t num_points, bool closed, std::size_t stride = 0u);
@@ -78,9 +85,11 @@ public:
 
   std::size_t GetEdgesCount() const;
 
-  const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
+  const std::vector<Triangle*>& GetTriangles() const;
 
   void InitTriangulation();
+
+  std::size_t TriangleStorageFootprint() const;
 
 private:
 
@@ -94,8 +103,15 @@ private:
 
   void InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed);
 
+  void AllocateTriangleBuffer();
+
   std::vector<SweepPoint> points_;
-  std::vector<std::unique_ptr<Triangle>> map_;
+
+  // Triangle storage
+  std::unique_ptr<TriangleStorage> triangle_storage_;
+
+  // The map of all triangles that are part of the triangulation
+  std::vector<Triangle*> map_;
 
   // Artificial points added to the triangulation
   std::unique_ptr<const Point> head_;

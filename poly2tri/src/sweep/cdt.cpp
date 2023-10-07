@@ -134,6 +134,7 @@ void CDT::Triangulate(Policy triangulation_policy)
     tcx.InitTriangulation();
     info_.nb_input_points = static_cast<unsigned int>(tcx.GetPoints().size());
     info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdgesCount());
+    info_.triangles_memory_footprint_in_bytes = tcx.TriangleStorageFootprint();
     Sweep(tcx, info_).Triangulate(triangulation_policy);
   }
 }
@@ -143,17 +144,9 @@ std::size_t CDT::GetTrianglesCount() const
   return sweep_context_->GetTriangles().size();
 }
 
-const std::vector<std::unique_ptr<Triangle>>& CDT::GetTriangles() const
+const std::vector<Triangle*>& CDT::GetTriangles() const
 {
   return sweep_context_->GetTriangles();
-}
-
-std::vector<Triangle*> GetTrianglesAsVector(const CDT& cdt)
-{
-  std::vector<p2t::Triangle*> result;
-  result.reserve(cdt.GetTrianglesCount());
-  cdt.GetTriangles(std::back_inserter(result));
-  return result;
 }
 
 const CDT::Info& CDT::LastTriangulationInfo() const

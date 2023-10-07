@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(BasicTest)
   const auto polyline = MakePointerVector(points);
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 1);
   BOOST_REQUIRE(result[0] != nullptr);
   p2t::Triangle& t = *result[0];
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(EdgeCases_EmptyInput)
 {
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 0);
 }
 
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(EdgeCases_SingleSteinerPoint)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPoint(&steiner));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 0);
 }
 
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(QuadTest)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(QuadSteinerTest)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPoints(steiner_points));
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(QuadTestModernAPI)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline.data(), polyline.size()));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(QuadTestWithStride)
   p2t::CDT cdt;
   BOOST_CHECK_NO_THROW(cdt.AddPolyline(reinterpret_cast<const p2t::Point*>(polyline.data()), polyline.size(), sizeof(PointStruct)));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -151,13 +151,13 @@ BOOST_AUTO_TEST_CASE(MultipleTriangulations)
   // First triangulation
   BOOST_CHECK_NO_THROW(cdt.AddPolyline(polyline.data(), polyline.size()));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  auto result = p2t::GetTrianglesAsVector(cdt);
+  auto result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
 
   // Add Steiner and perform another triangulation
   BOOST_CHECK_NO_THROW(cdt.AddPoints(points.data(), points.size()));
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  result = p2t::GetTrianglesAsVector(cdt);
+  result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 10);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(NarrowQuadTest)
   const auto polyline = MakePointerVector(points);
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(Pyramide)
   cdt.AddPolyline(outer_points.data(), outer_points.size());
   cdt.AddPoints(points.data(), points.size());
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 5);
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE(ConcaveBoundaryTest)
     cdt.AddPoint(&p);
 
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_REQUIRE_EQUAL(result.size(), 18);
   BOOST_CHECK(IsConstrainedDelaunay(result));
 }
@@ -279,7 +279,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest01)
   p2t::CDT cdt;
   cdt.AddPolyline(polyline);
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   // BOOST_CHECK(IsConstrainedDelaunay(result));            Fails
   BOOST_REQUIRE_EQUAL(result.size(), 10);
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest01_ConvexHull)
   p2t::CDT cdt;
   cdt.AddPolyline(polyline);
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   // BOOST_CHECK(IsConstrainedDelaunay(result));            Fails
   BOOST_REQUIRE_EQUAL(result.size(), 12);
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest02)
   const auto polyline = MakePointerVector(points);
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 11);
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest03)
   const auto polyline = MakePointerVector(points);
   p2t::CDT cdt{ polyline };
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 5);
@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest04)
   cdt.AddHole(hole);
 
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 13);
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(PolygonTest05)
   p2t::CDT cdt;
   cdt.AddPolyline(polyline);
   BOOST_CHECK_NO_THROW(cdt.Triangulate());
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_REQUIRE_EQUAL(result.size(), 5);
@@ -468,7 +468,7 @@ BOOST_AUTO_TEST_CASE(AddOpenPolyline_ConvexHull)
   p2t::CDT cdt;
   cdt.AddOpenPolyline(polyline.data(), polyline.size());
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
   BOOST_CHECK(IsConstrainedDelaunay(result));
   BOOST_CHECK_EQUAL(result.size(), 88);
@@ -481,7 +481,7 @@ BOOST_AUTO_TEST_CASE(AddOpenPolyline_OuterPolygon)
   p2t::CDT cdt;
   cdt.AddOpenPolyline(polyline.data(), polyline.size());
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::OuterPolygon));
-  const auto result = p2t::GetTrianglesAsVector(cdt);
+  const auto& result = cdt.GetTriangles();
   // BOOST_CHECK(result.empty());
 }
 
@@ -543,7 +543,7 @@ BOOST_AUTO_TEST_CASE(TestbedFilesTest)
     p2t::CDT cdt;
     cdt.AddPolyline(polyline);
     BOOST_CHECK_NO_THROW(cdt.Triangulate(test_case.triangulation_policy));
-    const auto result = p2t::GetTrianglesAsVector(cdt);
+    const auto& result = cdt.GetTriangles();
     BOOST_REQUIRE(result.size() * 3 > polyline.size());
     BOOST_CHECK_MESSAGE(TriangulationSanityChecks(cdt, result), case_message);
     BOOST_CHECK_MESSAGE(IsConstrainedDelaunay(result) == test_case.expected_is_cdt, case_message);

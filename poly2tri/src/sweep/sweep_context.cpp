@@ -42,13 +42,61 @@
 
 namespace p2t {
 
-SweepContext::SweepContext() :
-  points_(),
-  map_(),
-  head_(),
-  tail_()
-{
-}
+class TriangleStorage {
+public:
+  TriangleStorage(std::size_t nb_points)
+  {
+    //
+    // Geometry tells us that the triangulation of a planer point set P of size n,
+    // where k denotes the number of points in P that lie on the boundary of the
+    // convex hull of P, has 2n−2−k triangles.
+    // Assuming k is at least 3 in our use case we can evaluate the maximum
+    // number of triangles required for the purpose of computing the CDT.
+    //
+    assert(nb_points >= 3);
+    max_triangles_ = 2 * nb_points - 5;
+    triangles_.reserve(max_triangles_);
+  }
+
+  std::size_t MemoryFootprint() const
+  {
+    return triangles_.capacity() * sizeof(Triangle);
+  }
+
+  Triangle* NewTriangle(const Point* a, const Point* b, const Point* c)
+  {
+    Triangle* result = nullptr;
+    if (!discarded_triangles_.empty()) {
+      // Re-use a discarded triangle
+      result = discarded_triangles_.back();
+      discarded_triangles_.pop_back();
+      *result = Triangle(a, b, c);
+    } else {
+      // Initialize a Triangle from the storage (it was pre-allocated)
+      assert(triangles_.capacity() >= max_triangles_);
+      if (triangles_.size() >= max_triangles_) {
+        throw std::runtime_error("TriangleStorage: Out of memory capacity");
+      }
+      result = &triangles_.emplace_back(a, b, c);
+    }
+    assert(result != nullptr);
+    return result;
+  }
+
+  void DeleteTriangle(Triangle* t)
+  {
+    discarded_triangles_.push_back(t);
+  }
+
+private:
+  std::size_t max_triangles_;
+  std::vector<Triangle> triangles_;
+  std::vector<Triangle*> discarded_triangles_;
+};
+
+SweepContext::SweepContext() = default;
+
+SweepContext::~SweepContext() = default;
 
 template <typename GenPointPtr>
 void SweepContext::AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed)
@@ -114,7 +162,7 @@ std::size_t SweepContext::GetEdgesCount() const
   });
 }
 
-const std::vector<std::unique_ptr<Triangle>>& SweepContext::GetTriangles() const
+const std::vector<Triangle*>& SweepContext::GetTriangles() const
 {
   return map_;
 }
@@ -126,7 +174,11 @@ bool SweepPoint::cmp(const SweepPoint& a, const SweepPoint& b)
 
 void SweepContext::InitTriangulation()
 {
-  assert(points_.size() > 0);
+  // Clear any previous triangulation
+  map_.clear();
+  triangle_storage_.reset();
+
+  assert(!points_.empty());
   double xmax(points_[0].p->x), xmin(points_[0].p->x);
   double ymax(points_[0].p->y), ymin(points_[0].p->y);
 
@@ -146,14 +198,21 @@ void SweepContext::InitTriangulation()
   double dx = kAlpha * (xmax - xmin);
   double dy = kAlpha * (ymax - ymin);
 
+  // Artificial points
   head_ = std::make_unique<const Point>(xmin - dx, ymin - dy);
   tail_ = std::make_unique<const Point>(xmax + dx, ymin - dy);
 
-  // Sort points along y-axis
+  // Sort input points along y-axis
   std::sort(points_.begin(), points_.end(), &SweepPoint::cmp);
 
-  // Clear any previous triangulation
-  map_.clear();
+  // Triangle buffer
+  AllocateTriangleBuffer();
+}
+
+// Return the memory footprint of the Triangle storage, in bytes
+std::size_t SweepContext::TriangleStorageFootprint() const
+{
+  return triangle_storage_ ? triangle_storage_->MemoryFootprint() : 0u;
 }
 
 void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed)
@@ -183,25 +242,33 @@ const std::vector<Edge>& SweepContext::GetUpperEdges(size_t index) const
   return points_[index].edges;
 }
 
+void SweepContext::AllocateTriangleBuffer()
+{
+  assert(points_.size() > 0);
+  const std::size_t nb_points = points_.size() + 2;     // +2 artificial points: head and tail
+  triangle_storage_ = std::make_unique<TriangleStorage>(nb_points);
+}
 
 Triangle* SweepContext::AddTriangleToMap(const Point* a, const Point* b, const Point* c)
 {
-  auto& new_triangle = map_.emplace_back(std::make_unique<Triangle>(a, b, c));
-  return new_triangle.get();
+  assert(triangle_storage_);
+  Triangle* new_triangle = triangle_storage_->NewTriangle(a, b, c);
+  map_.emplace_back(new_triangle);
+  return new_triangle;
 }
 
 void SweepContext::MeshCleanExteriorTriangles()
 {
-  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [](auto& t) {
+  assert(triangle_storage_);
+  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [this](auto& t) {
     if (!t->IsInterior()) {
       t->ClearNeighbors();    // To clear the reciprocate neighbor link
+      triangle_storage_->DeleteTriangle(t);
       return true;
     }
     return false;
   });
   map_.erase(last_it, std::end(map_));
 }
-
-SweepContext::~SweepContext() = default;
 
 } // namespace p2t

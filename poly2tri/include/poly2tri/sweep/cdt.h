@@ -143,7 +143,7 @@ public:
    *
    * OutIt: An output iterator of Triangle*
    */
-  const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
+  const std::vector<Triangle*>& GetTriangles() const;
   template <typename OutIt>
   void GetTriangles(OutIt triangle_pointer_dest) const;
 
@@ -154,6 +154,7 @@ public:
     unsigned int nb_triangles_pre_finalization = 0;
     unsigned int nb_triangle_flips = 0;
     unsigned int max_legalize_depth = 0;
+    std::size_t triangles_memory_footprint_in_bytes;
   };
 
   /**
@@ -176,9 +177,6 @@ private:
 
 };
 
-// Utility function to help the transition from the original API: std::vector<p2t::Triangle*> CDT::GetTriangles();
-std::vector<Triangle*> GetTrianglesAsVector(const p2t::CDT& cdt);
-
 //
 // Implementations
 //
@@ -188,7 +186,7 @@ void CDT::GetTriangles(OutIt triangle_pointer_dest) const
 {
   for (const auto& t : GetTriangles())
   {
-    *triangle_pointer_dest++ = t.get();
+    *triangle_pointer_dest++ = t;
   }
 }
 

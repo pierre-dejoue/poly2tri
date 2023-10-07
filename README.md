@@ -46,11 +46,8 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Members Triangle::contrained_edge[] and Triangle::delaunay_edge[] are now private
 - Removed function IsDelaunay
 - Method Triangle::GetPoint(index) now returns a const Point*
-- Many other methods in class Triangle have changed to take or return const Point* instead of references.
-  Most of those methods, despite being public, are unlikely to be used in client code.
+- Many other methods in class Triangle have changed to take or return const Point* instead of references. Most of those methods, despite being public, are unlikely to be used in client code.
 - Remove CDT::GetMap(). That method was for debug purpose only and imposed an extra memory cost.
-- Method CDT::GetTriangles() returns a vector of unique_ptr by const ref. This is likely to break some client
-  code. A free function p2t::GetTrianglesAsVector(cdt) has been added to facilitate the transition.
 - Removed p2t::Triangle::DebugPrint(). Replaced by overloaded operator<<.
 
 ### Non-Breaking
@@ -58,6 +55,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Orientation enum is now public
 - Added method Triangle::GetOrientation()
 - Added a default constructor to class CDT
+- Method CDT::GetTriangles() returns by const ref
 - Added methods CDT::AddPolyline(polyline) and CDT::AddPoints(points)
 - Make the Point structure safer and more flexible:
     - Remove the edge_list from Point
