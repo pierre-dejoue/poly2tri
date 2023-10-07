@@ -119,7 +119,6 @@ struct P2T_DLL_SYMBOL Edge {
 
   /// Constructor
   Edge(const Point* p1, const Point* p2);
-
 };
 
 P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Edge&);

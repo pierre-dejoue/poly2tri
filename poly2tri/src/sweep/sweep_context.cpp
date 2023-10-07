@@ -36,6 +36,7 @@
 #include <cstddef>
 #include <exception>
 #include <iterator>
+#include <numeric>
 #include <stdexcept>
 
 
@@ -43,7 +44,6 @@ namespace p2t {
 
 SweepContext::SweepContext() :
   points_(),
-  edges_(),
   map_(),
   head_(),
   tail_()
@@ -107,9 +107,11 @@ const std::vector<SweepPoint>& SweepContext::GetPoints() const
   return points_;
 }
 
-const std::vector<std::unique_ptr<Edge>>& SweepContext::GetEdges() const
+std::size_t SweepContext::GetEdgesCount() const
 {
-  return edges_;
+  return std::accumulate(std::cbegin(points_), std::cend(points_), std::size_t{0}, [](std::size_t cumul, const SweepPoint& point) {
+    return cumul + point.edges.size();
+  });
 }
 
 const std::vector<std::unique_ptr<Triangle>>& SweepContext::GetTriangles() const
@@ -165,16 +167,10 @@ void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_p
   assert(end <= points_.size());
   for (std::size_t i = begin; i < last; i++) {
     std::size_t j = i < (end - 1) ? i + 1 : begin;
-    Edge* edge = NewEdge(points_[i].p, points_[j].p);
-    std::size_t upper_endpoint = (edge->q == points_[i].p ? i : j);
-    points_[upper_endpoint].edges.emplace_back(edge);
+    Edge edge = Edge(points_[i].p, points_[j].p);
+    const std::size_t upper_endpoint = (edge.q == points_[i].p ? i : j);
+    points_[upper_endpoint].edges.emplace_back(std::move(edge));
   }
-}
-
-Edge* SweepContext::NewEdge(const Point* a, const Point* b)
-{
-  edges_.emplace_back(std::make_unique<Edge>(a, b));
-  return edges_.back().get();
 }
 
 const Point* SweepContext::GetPoint(size_t index)
@@ -182,7 +178,7 @@ const Point* SweepContext::GetPoint(size_t index)
   return points_[index].p;
 }
 
-const std::vector<Edge*>& SweepContext::GetUpperEdges(size_t index)
+const std::vector<Edge>& SweepContext::GetUpperEdges(size_t index) const
 {
   return points_[index].edges;
 }

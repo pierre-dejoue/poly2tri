@@ -133,7 +133,7 @@ void CDT::Triangulate(Policy triangulation_policy)
   if (!tcx.GetPoints().empty()) {
     tcx.InitTriangulation();
     info_.nb_input_points = static_cast<unsigned int>(tcx.GetPoints().size());
-    info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdges().size());
+    info_.nb_input_edges = static_cast<unsigned int>(tcx.GetEdgesCount());
     Sweep(tcx, info_).Triangulate(triangulation_policy);
   }
 }

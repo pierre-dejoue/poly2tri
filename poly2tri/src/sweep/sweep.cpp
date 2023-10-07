@@ -138,8 +138,8 @@ void Sweep::SweepPoints()
   for (size_t i = 1; i < point_count; i++) {
     Node* node = &PointEvent(tcx_.GetPoint(i));
     Legalize();
-    for (auto* e : tcx_.GetUpperEdges(i)) {
-      EdgeEvent(e, node);
+    for (const auto& e : tcx_.GetUpperEdges(i)) {
+      EdgeEvent(&e, node);
       Legalize();
     }
   }
@@ -318,15 +318,15 @@ Node& Sweep::PointEvent(const Point* point)
   return new_node;
 }
 
-void Sweep::EdgeEvent(Edge* edge, Node* node)
+void Sweep::EdgeEvent(const Edge* edge, Node* node)
 {
+  assert(edge); assert(node);
   TRACE_OUT << "EdgeEvent - "
             << "edge=" << *edge << "; "
             << "node=" << *node
             << std::endl;
 
-  edge_event_.constrained_edge = edge;
-  edge_event_.right = (edge->p->x > edge->q->x);
+  edge_event_ = std::make_unique<EdgeEventData>(*edge, edge->p->x > edge->q->x);
 
   if (SetConstrainedEdgeIfSideOfTriangle(*node->triangle, edge->p, edge->q)) {
     return;
@@ -344,6 +344,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
   if (triangle == nullptr) {
     throw std::runtime_error("EdgeEvent - null triangle");
   }
+  assert(edge_event_);
   TRACE_OUT << "EdgeEvent - "
             << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
             << "triangle=" << *triangle << "; "
@@ -360,7 +361,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
     if (SetConstrainedEdgeIfSideOfTriangle(*triangle, eq, p1)) {
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      edge_event_.constrained_edge->q = p1;
+      edge_event_->constrained_edge.q = p1;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p1, triangle, p1);
     } else {
@@ -376,7 +377,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
     if (SetConstrainedEdgeIfSideOfTriangle(*triangle, eq, p2)) {
       // We are modifying the constraint maybe it would be better to
       // not change the given constraint and just keep a variable for the new constraint
-      edge_event_.constrained_edge->q = p2;
+      edge_event_->constrained_edge.q = p2;
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p2, triangle, p2);
     } else {
@@ -772,16 +773,17 @@ void Sweep::FillBasin(Basin& basin)
   }
 }
 
-void Sweep::FillEdgeEvent(Edge* edge, Node* node)
+void Sweep::FillEdgeEvent(const Edge* edge, Node* node)
 {
-  if (edge_event_.right) {
+  assert(edge_event_);
+  if (edge_event_->right) {
     FillRightAboveEdgeEvent(edge, node);
   } else {
     FillLeftAboveEdgeEvent(edge, node);
   }
 }
 
-void Sweep::FillRightAboveEdgeEvent(Edge* edge, Node* node)
+void Sweep::FillRightAboveEdgeEvent(const Edge* edge, Node* node)
 {
   while (node->next->point->x < edge->p->x) {
     // Check if next node is below the edge
@@ -793,7 +795,7 @@ void Sweep::FillRightAboveEdgeEvent(Edge* edge, Node* node)
   }
 }
 
-void Sweep::FillRightBelowEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillRightBelowEdgeEvent(const Edge* edge, Node& node)
 {
   if (node.point->x < edge->p->x) {
     if (Orient2d(*node.point, *node.next->point, *node.next->next->point) == CCW) {
@@ -808,7 +810,7 @@ void Sweep::FillRightBelowEdgeEvent(Edge* edge, Node& node)
   }
 }
 
-void Sweep::FillRightConcaveEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillRightConcaveEdgeEvent(const Edge* edge, Node& node)
 {
   {
     Node* next = node.next;
@@ -829,7 +831,7 @@ void Sweep::FillRightConcaveEdgeEvent(Edge* edge, Node& node)
   }
 }
 
-void Sweep::FillRightConvexEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillRightConvexEdgeEvent(const Edge* edge, Node& node)
 {
   // Next concave or convex?
   if (Orient2d(*node.next->point, *node.next->next->point, *node.next->next->next->point) == CCW) {
@@ -847,7 +849,7 @@ void Sweep::FillRightConvexEdgeEvent(Edge* edge, Node& node)
   }
 }
 
-void Sweep::FillLeftAboveEdgeEvent(Edge* edge, Node* node)
+void Sweep::FillLeftAboveEdgeEvent(const Edge* edge, Node* node)
 {
   while (node->prev->point->x > edge->p->x) {
     // Check if next node is below the edge
@@ -859,7 +861,7 @@ void Sweep::FillLeftAboveEdgeEvent(Edge* edge, Node* node)
   }
 }
 
-void Sweep::FillLeftBelowEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillLeftBelowEdgeEvent(const Edge* edge, Node& node)
 {
   if (node.point->x > edge->p->x) {
     if (Orient2d(*node.point, *node.prev->point, *node.prev->prev->point) == CW) {
@@ -874,7 +876,7 @@ void Sweep::FillLeftBelowEdgeEvent(Edge* edge, Node& node)
   }
 }
 
-void Sweep::FillLeftConvexEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillLeftConvexEdgeEvent(const Edge* edge, Node& node)
 {
   // Next concave or convex?
   if (Orient2d(*node.prev->point, *node.prev->prev->point, *node.prev->prev->prev->point) == CW) {
@@ -892,7 +894,7 @@ void Sweep::FillLeftConvexEdgeEvent(Edge* edge, Node& node)
   }
 }
 
-void Sweep::FillLeftConcaveEdgeEvent(Edge* edge, Node& node)
+void Sweep::FillLeftConcaveEdgeEvent(const Edge* edge, Node& node)
 {
   {
     Node* prev = node.prev;
@@ -916,6 +918,7 @@ void Sweep::FillLeftConcaveEdgeEvent(Edge* edge, Node& node)
 void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const Point* p)
 {
   assert(t);
+  assert(edge_event_);
   TRACE_OUT << "FlipEdgeEvent - "
             << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
             << "triangle=" << *t << "; "
@@ -938,7 +941,7 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
     info_.nb_triangle_flips++;
 
     if (p == eq && op == ep) {
-      if (eq == edge_event_.constrained_edge->q && ep == edge_event_.constrained_edge->p) {
+      if (eq == edge_event_->constrained_edge.q && ep == edge_event_->constrained_edge.p) {
         t->SetConstrainedEdge(ep, eq);
         ot->SetConstrainedEdge(ep, eq);
         LegalizePush(*t);

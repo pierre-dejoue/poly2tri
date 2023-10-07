@@ -112,7 +112,7 @@ private:
      * @param edge
      * @param node
      */
-  void EdgeEvent(Edge* edge, Node* node);
+  void EdgeEvent(const Edge* edge, Node* node);
 
    /**
      * Edge event
@@ -219,23 +219,23 @@ private:
 
   bool IsEdgeSideOfTriangle(Triangle& triangle, const Point* ep, const Point* eq) const;
 
-  void FillEdgeEvent(Edge* edge, Node* node);
+  void FillEdgeEvent(const Edge* edge, Node* node);
 
-  void FillRightAboveEdgeEvent(Edge* edge, Node* node);
+  void FillRightAboveEdgeEvent(const Edge* edge, Node* node);
 
-  void FillRightBelowEdgeEvent(Edge* edge, Node& node);
+  void FillRightBelowEdgeEvent(const Edge* edge, Node& node);
 
-  void FillRightConcaveEdgeEvent(Edge* edge, Node& node);
+  void FillRightConcaveEdgeEvent(const Edge* edge, Node& node);
 
-  void FillRightConvexEdgeEvent(Edge* edge, Node& node);
+  void FillRightConvexEdgeEvent(const Edge* edge, Node& node);
 
-  void FillLeftAboveEdgeEvent(Edge* edge, Node* node);
+  void FillLeftAboveEdgeEvent(const Edge* edge, Node* node);
 
-  void FillLeftBelowEdgeEvent(Edge* edge, Node& node);
+  void FillLeftBelowEdgeEvent(const Edge* edge, Node& node);
 
-  void FillLeftConcaveEdgeEvent(Edge* edge, Node& node);
+  void FillLeftConcaveEdgeEvent(const Edge* edge, Node& node);
 
-  void FillLeftConvexEdgeEvent(Edge* edge, Node& node);
+  void FillLeftConvexEdgeEvent(const Edge* edge, Node& node);
 
   void FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const Point* p);
 
@@ -275,10 +275,10 @@ private:
   void ConvexHullFillOfFront(AdvancingFront& front);    // AdvancingFront or BackFront
 
   struct EdgeEventData {
-    Edge* constrained_edge;
+    Edge constrained_edge;
     bool right;
 
-    EdgeEventData() : constrained_edge(nullptr), right(false) {}
+    EdgeEventData(const Edge& e, bool r) : constrained_edge(e), right(r) {}
   };
 
 private:
@@ -303,7 +303,7 @@ private:
   // Discarded nodes can be reused
   Node* discarded_nodes_;
 
-  EdgeEventData edge_event_;
+  std::unique_ptr<EdgeEventData> edge_event_;
 
   std::vector<PendingLegalization> legalize_stack_;
 

@@ -70,13 +70,13 @@ public:
 
   const Point* GetPoint(size_t index);
 
-  const std::vector<Edge*>& GetUpperEdges(size_t index);
+  const std::vector<Edge>& GetUpperEdges(size_t index) const;
 
   void MeshCleanExteriorTriangles();
 
   const std::vector<SweepPoint>& GetPoints() const;
 
-  const std::vector<std::unique_ptr<Edge>>& GetEdges() const;
+  std::size_t GetEdgesCount() const;
 
   const std::vector<std::unique_ptr<Triangle>>& GetTriangles() const;
 
@@ -94,10 +94,7 @@ private:
 
   void InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed);
 
-  Edge* NewEdge(const Point* a, const Point* b);
-
   std::vector<SweepPoint> points_;
-  std::vector<std::unique_ptr<Edge>> edges_;
   std::vector<std::unique_ptr<Triangle>> map_;
 
   // Artificial points added to the triangulation
@@ -110,11 +107,15 @@ private:
 struct SweepPoint
 {
   SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
+  SweepPoint(const SweepPoint&) = delete;
+  SweepPoint& operator=(const SweepPoint&) = delete;
+  SweepPoint(SweepPoint&&) = default;
+  SweepPoint& operator=(SweepPoint&&) = default;
 
   static bool cmp(const SweepPoint& a, const SweepPoint& b);
 
   const Point* p;
-  std::vector<Edge*> edges;   // List of edges for which this point is the upper endpoint
+  std::vector<Edge> edges;    // List of edges for which this point is the upper endpoint
 };
 
 
