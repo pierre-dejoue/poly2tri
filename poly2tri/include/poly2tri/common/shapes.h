@@ -30,6 +30,7 @@
 #pragma once
 
 #include "dll_symbol.h"
+#include "orientation.h"
 #include "point.h"
 
 #include <cassert>
@@ -48,8 +49,6 @@ struct P2T_DLL_SYMBOL Edge {
   /// Constructor
   Edge(const Point* p1, const Point* p2);
 };
-
-enum Orientation { CW, CCW, COLLINEAR };
 
 struct Node;
 

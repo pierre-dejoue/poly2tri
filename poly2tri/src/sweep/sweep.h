@@ -159,34 +159,6 @@ private:
   void Legalize();
 
   /**
-   * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
-   * <b>Requirement</b>:<br>
-   * 1. a,b and c form a triangle.<br>
-   * 2. a and d are known to be on opposite side of bc<br>
-   * <pre>
-   *                a
-   *                +
-   *               / \
-   *              /   \
-   *            b/     \c
-   *            +-------+
-   *           /    d    \
-   *          /     +     \
-   * </pre>
-   * <b>Fact</b>: d has to be in area A delimited by semi-lines ab and ac to have a chance to be inside
-   * the circumcircle of triangle abc<br>
-   *  d is outside A if orient2d(a,b,d) or orient2d(c,a,d) is CW<br>
-   *  This preknowledge gives us a way to optimize the incircle test
-   *
-   * @param a - triangle point, opposite to d
-   * @param b - triangle point
-   * @param c - triangle point
-   * @param d - point opposite to a
-   * @return true if d is inside the circumcircle of triangle abc, false if d is on or outside that circle
-   */
-  static bool Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd);
-
-  /**
    * Fills holes in the Advancing Front
    *
    * @param n

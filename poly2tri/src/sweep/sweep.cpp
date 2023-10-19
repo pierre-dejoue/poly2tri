@@ -33,6 +33,7 @@
 #include "back_triangles.h"
 #include "sweep_context.h"
 #include "trace.h"
+#include "../common/predicates.h"
 #include "../common/utils.h"
 
 #include <poly2tri/common/shapes_io.h>
@@ -608,8 +609,9 @@ void Sweep::Legalize() {
         assert(0 <= oi && oi < 3);
         assert(!ot->IsConstrainedEdge(oi));
 
-        bool inside = Incircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
+        bool inside = InCircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
         if (inside) {
+          //assert(!InCircle( *t->GetPoint((i + 2) % 3), *p, *op, *t->GetPoint((i + 1) % 3)));
 
           // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
           RotateTrianglePair(*t, i, *ot, oi, true);
@@ -633,43 +635,6 @@ void Sweep::Legalize() {
     }
   }
   info_.nb_triangle_flips += nb_flips;
-}
-
-bool Sweep::Incircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd)
-{
-  const double adx = pa.x - pd.x;
-  const double ady = pa.y - pd.y;
-  const double bdx = pb.x - pd.x;
-  const double bdy = pb.y - pd.y;
-
-  const double adxbdy = adx * bdy;
-  const double bdxady = bdx * ady;
-  const double oabd = adxbdy - bdxady;
-
-  if (oabd <= 0)
-    return false;
-
-  const double cdx = pc.x - pd.x;
-  const double cdy = pc.y - pd.y;
-
-  const double cdxady = cdx * ady;
-  const double adxcdy = adx * cdy;
-  const double ocad = cdxady - adxcdy;
-
-  if (ocad <= 0)
-    return false;
-
-  const double bdxcdy = bdx * cdy;
-  const double cdxbdy = cdx * bdy;
-  const double obcd = bdxcdy - cdxbdy;
-
-  const double alift = adx * adx + ady * ady;
-  const double blift = bdx * bdx + bdy * bdy;
-  const double clift = cdx * cdx + cdy * cdy;
-
-  const double det = alift * obcd + blift * ocad + clift * oabd;
-
-  return det > 0;
 }
 
 struct Basin {

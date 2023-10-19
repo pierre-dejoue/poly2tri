@@ -29,6 +29,7 @@
 #include <poly2tri/common/shapes.h>
 
 #include "node.h"
+#include "predicates.h"
 #include "utils.h"
 
 #include <cassert>

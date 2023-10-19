@@ -53,31 +53,6 @@ constexpr double LEFT_DIRECTION = -1.0;
 constexpr double RIGHT_DIRECTION = 1.0;
 
 /**
- * <b>Determines the orientation of triangle abc</b><br>
- * Uses the formula to calculate the signed area:<br>
- * <pre>
- * A[P1,P2,P3]  =  (x1*y2 - y1*x2) + (x2*y3 - y2*x3) + (x3*y1 - y3*x1)
- *              =  (x1-x3)*(y2-y3) - (y1-y3)*(x2-x3)
- * </pre>
- * Positive if CCW<br>
- * Negative if CW<br>
- * 0 if collinear<br>
- */
-inline Orientation Orient2d(const Point& pa, const Point& pb, const Point& pc)
-{
-  double oabc = (pa.x - pc.x) * (pb.y - pc.y) - (pa.y - pc.y) * (pb.x - pc.x);
-// Using a tolerance here fails on concave-by-subepsilon boundaries
-//   if (oabc > -EPSILON && oabc < EPSILON) {
-// Using == on double makes -Wfloat-equal warnings yell at us
-  if (std::fpclassify(oabc) == FP_ZERO) {
-    return COLLINEAR;
-  } else if (oabc > 0) {
-    return CCW;
-  }
-  return CW;
-}
-
-/**
  * <b>Determines if semi-line ad intersects triangle abc</b><br>
  * Corner case: if d is collinear with a and b, or a and c, then return false
  */
