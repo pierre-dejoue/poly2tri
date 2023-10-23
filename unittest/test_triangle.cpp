@@ -15,7 +15,15 @@ BOOST_AUTO_TEST_CASE(TriangleTest)
   BOOST_CHECK(triangle.Contains(&b));
   BOOST_CHECK(triangle.Contains(&c));
   BOOST_CHECK(!triangle.Contains(&b_cpy));
-  BOOST_CHECK(triangle.CircumcircleContains(p2t::Point(0.5, 0.1)));
-  BOOST_CHECK(!triangle.CircumcircleContains(p2t::Point(1.0, 0.4)));
   BOOST_CHECK_EQUAL(triangle.GetOrientation(), p2t::Orientation::CCW);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.5,  0.25)),true);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.0,  0.5)), false);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.25, 0.3)), true);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 1.0,  0.5)), false);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.75, 0.3)), true);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.5, -1.0)), false);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.5, -0.1)), true);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 0.5,  1.0)), false);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point(-1.0, -0.5)), false);
+  BOOST_CHECK_EQUAL(triangle.CircumcircleContains(p2t::Point( 2.0, -0.5)), false);
 }

@@ -465,18 +465,24 @@ void Triangle::ResetNode(Node& node)
 bool Triangle::CircumcircleContains(const Point& point) const
 {
   assert(GetOrientation() == Orientation::CCW);
-  const double dx = points_[0]->x - point.x;
-  const double dy = points_[0]->y - point.y;
-  const double ex = points_[1]->x - point.x;
-  const double ey = points_[1]->y - point.y;
-  const double fx = points_[2]->x - point.x;
-  const double fy = points_[2]->y - point.y;
-
-  const double ap = dx * dx + dy * dy;
-  const double bp = ex * ex + ey * ey;
-  const double cp = fx * fx + fy * fy;
-
-  return (dx * (fy * bp - cp * ey) - dy * (fx * bp - cp * ex) + ap * (fx * ey - fy * ex)) < 0;
+  bool same_side[3];
+  same_side[0] = (Orient2d(point, *points_[1], *points_[2]) == Orientation::CCW);
+  same_side[1] = (Orient2d(point, *points_[2], *points_[0]) == Orientation::CCW);
+  same_side[2] = (Orient2d(point, *points_[0], *points_[1]) == Orientation::CCW);
+  const int count_same_side = (same_side[0] ? 1 : 0) + (same_side[1] ? 1 : 0) + (same_side[2] ? 1 : 0);
+  if (count_same_side == 3) {
+    return true;
+  } else if (count_same_side == 2) {
+    if (!same_side[0]) {
+      return InCircle(*points_[0], *points_[1], *points_[2], point);
+    } else if (!same_side[1]) {
+      return InCircle(*points_[1], *points_[2], *points_[0], point);
+    } else {
+      return InCircle(*points_[2], *points_[0], *points_[1], point);
+    }
+  }
+  assert(count_same_side == 1);
+  return false;
 }
 
 Orientation Triangle::GetOrientation() const
