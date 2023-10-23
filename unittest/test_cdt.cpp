@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(AddOpenPolyline_OuterPolygon)
   cdt.AddOpenPolyline(polyline.data(), polyline.size());
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::OuterPolygon));
   const auto& result = cdt.GetTriangles();
-  // BOOST_CHECK(result.empty());
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
 }
 
 struct FileTest
