@@ -1,6 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2023, Poly2Tri Contributors
- *
+ * Poly2Tri Copyright (c) 2018-2023, Poly2Tri Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,24 +27,19 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "node.h"
+#pragma once
 
-#include <poly2tri/common/shapes_io.h>
+#include "dll_symbol.h"
+#include "point.h"
+#include "shapes.h"
+
+#include <ostream>
 
 namespace p2t {
 
-std::ostream& operator<<(std::ostream& out, const Node& node)
-{
-  out << "{ point=" << *node.point << "; triangle=";
-  if (node.triangle) {
-    out << *node.triangle;
-    if (!node.triangle->IsInterior()) {
-       out << "; EXTERIOR";
-    }
-  } else {
-    out << "NULL";
-  }
-  return out << " }";
-}
+  P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
+  P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Edge&);
+  P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Triangle&);
+  P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Orientation);
 
 }

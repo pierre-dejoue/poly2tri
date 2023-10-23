@@ -31,4 +31,5 @@
 #pragma once
 
 #include "common/shapes.h"
+#include "common/shapes_io.h"
 #include "sweep/cdt.h"

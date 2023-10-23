@@ -35,6 +35,8 @@
 #include "trace.h"
 #include "../common/utils.h"
 
+#include <poly2tri/common/shapes_io.h>
+
 #include <algorithm>
 #include <cassert>
 #include <stdexcept>

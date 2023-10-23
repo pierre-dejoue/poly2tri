@@ -34,13 +34,10 @@
 
 #include <cassert>
 #include <cstddef>
-#include <ostream>
 #include <stdexcept>
 #include <vector>
 
 namespace p2t {
-
-P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
 
 // Represents a simple polygon's edge
 struct P2T_DLL_SYMBOL Edge {
@@ -52,11 +49,7 @@ struct P2T_DLL_SYMBOL Edge {
   Edge(const Point* p1, const Point* p2);
 };
 
-P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Edge&);
-
 enum Orientation { CW, CCW, COLLINEAR };
-
-P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Orientation);
 
 struct Node;
 
@@ -146,8 +139,6 @@ private:
   bool interior_;
 
 };
-
-P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Triangle&);
 
 /**
  * Rotates a triangle pair one vertex CW.

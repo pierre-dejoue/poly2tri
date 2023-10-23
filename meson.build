@@ -4,6 +4,7 @@ include = include_directories('poly2tri/include')
 lib = static_library('poly2tri', sources : [
 	'poly2tri/src/common/node.cpp',
 	'poly2tri/src/common/shapes.cpp',
+	'poly2tri/src/common/shapes_io.cpp',
 	'poly2tri/src/sweep/advancing_front.cpp',
 	'poly2tri/src/sweep/cdt.cpp',
 	'poly2tri/src/sweep/policy.cpp',

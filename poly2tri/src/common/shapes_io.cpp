@@ -1,6 +1,5 @@
 /*
- * Poly2Tri Copyright (c) 2023, Poly2Tri Contributors
- *
+ * Poly2Tri Copyright (c) 2018-2023, Poly2Tri Contributors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,24 +27,41 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "node.h"
-
 #include <poly2tri/common/shapes_io.h>
+
+#include <cassert>
 
 namespace p2t {
 
-std::ostream& operator<<(std::ostream& out, const Node& node)
+std::ostream& operator<<(std::ostream& out, const Point& point)
 {
-  out << "{ point=" << *node.point << "; triangle=";
-  if (node.triangle) {
-    out << *node.triangle;
-    if (!node.triangle->IsInterior()) {
-       out << "; EXTERIOR";
-    }
-  } else {
-    out << "NULL";
-  }
-  return out << " }";
+  return out << "{ " << point.x << ", " << point.y << " }";
 }
 
+std::ostream& operator<<(std::ostream& out, const Edge& edge)
+{
+  return out << "{ p=" << *edge.p << ", q=" << *edge.q << " }";
 }
+
+std::ostream& operator<<(std::ostream& out, const Triangle& t)
+{
+  return out << "{ a=" << *t.GetPoint(0) << ", b=" << *t.GetPoint(1) << ", c=" << *t.GetPoint(2) << " }";
+}
+
+std::ostream& operator<<(std::ostream& out, Orientation o)
+{
+  switch (o)
+  {
+    case Orientation::COLLINEAR:
+      return out << "COLLINEAR";
+    case Orientation::CCW:
+      return out << "CCW";
+    case Orientation::CW:
+      return out << "CW";
+    default:
+      assert(0);
+      return out;
+  }
+}
+
+} // namespace p2t

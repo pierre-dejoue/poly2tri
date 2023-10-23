@@ -27,19 +27,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <poly2tri/common/shapes.h>
+
 #include "node.h"
 #include "utils.h"
 
 #include <cassert>
-#include <iostream>
 #include <utility>
 
 namespace p2t {
-
-std::ostream& operator<<(std::ostream& out, const Point& point)
-{
-  return out << "{ " << point.x << ", " << point.y << " }";
-}
 
 Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
 {
@@ -53,32 +48,6 @@ Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
       // Repeat points
       throw std::runtime_error("Edge::Edge: *p1 == *p2");
     }
-  }
-}
-
-std::ostream& operator<<(std::ostream& out, const Edge& edge)
-{
-  return out << "{ p=" << *edge.p << ", q=" << *edge.q << " }";
-}
-
-std::ostream& operator<<(std::ostream& out, const Triangle& t)
-{
-  return out << "{ a=" << *t.GetPoint(0) << ", b=" << *t.GetPoint(1) << ", c=" << *t.GetPoint(2) << " }";
-}
-
-std::ostream& operator<<(std::ostream& out, Orientation o)
-{
-  switch (o)
-  {
-    case Orientation::COLLINEAR:
-      return out << "COLLINEAR";
-    case Orientation::CCW:
-      return out << "CCW";
-    case Orientation::CW:
-      return out << "CW";
-    default:
-      assert(0);
-      return out;
   }
 }
 
