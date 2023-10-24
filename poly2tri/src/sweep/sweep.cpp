@@ -309,8 +309,10 @@ Node& Sweep::PointEvent(const Point* point)
   Node* node_ptr = front_->LocateNode(point->x);
   if (!node_ptr || !node_ptr->point || !node_ptr->next || !node_ptr->next->point)
   {
-    throw std::runtime_error("PointEvent - null node");
+    HandleError("PointEvent - null node");
   }
+  assert(node_ptr);
+  assert(node_ptr->point);
 
   Node& node = *node_ptr;
   Node& new_node = NewFrontTriangle(point, node);
@@ -350,8 +352,9 @@ void Sweep::EdgeEvent(const Edge* edge, Node* node)
 void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, const Point* point)
 {
   if (triangle == nullptr) {
-    throw std::runtime_error("EdgeEvent - null triangle");
+    HandleError("EdgeEvent - null triangle");
   }
+  assert(triangle);
   assert(edge_event_);
   TRACE_OUT << "EdgeEvent - "
             << "edge={ ep=" << *ep << ", eq=" << *eq << " }; "
@@ -373,7 +376,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p1, triangle, p1);
     } else {
-      throw std::runtime_error("EdgeEvent - collinear points not supported");
+      HandleError("EdgeEvent - collinear points not supported");
     }
     return;
   }
@@ -389,7 +392,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
       triangle = triangle->NeighborAcross(point);
       EdgeEvent(ep, p2, triangle, p2);
     } else {
-      throw std::runtime_error("EdgeEvent - collinear points not supported");
+      HandleError("EdgeEvent - collinear points not supported");
     }
     return;
   }
@@ -900,8 +903,9 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
   Triangle* ot = t->NeighborAcross(p);
   if (ot == nullptr)
   {
-    throw std::runtime_error("FlipEdgeEvent - null neighbor across");
+    HandleError("FlipEdgeEvent - null neighbor across");
   }
+  assert(ot);
   const Point* op = ot->OppositePoint(*t, p);
 
   const auto index_p = t->Index(p);
@@ -940,17 +944,19 @@ void Sweep::FlipEdgeEvent(const Point* ep, const Point* eq, Triangle* t, const P
 
 const Point* Sweep::NextFlipPoint(const Point* ep, const Point* eq, Triangle& ot, const Point* op)
 {
+  const Point* result = nullptr;
   const Orientation o2d = Orient2d(*eq, *op, *ep);
   if (o2d == CW) {
     // Right
-    return ot.PointCCW(op);
+    result = ot.PointCCW(op);
   } else if (o2d == CCW) {
     // Left
-    return ot.PointCW(op);
+    result = ot.PointCW(op);
   } else {
     assert(o2d == COLLINEAR);
-    throw std::runtime_error("[Unsupported] Opposing point on constrained edge");
+    HandleError("[Unsupported] Opposing point on constrained edge");
   }
+  return result;
 }
 
 void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_triangle,
@@ -964,19 +970,22 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
             << std::endl;
   Triangle* ot_ptr = t.NeighborAcross(p);
   if (ot_ptr == nullptr) {
-    throw std::runtime_error("FlipScanEdgeEvent - null neighbor across");
+    HandleError("FlipScanEdgeEvent - null neighbor across");
   }
+  assert(ot_ptr);
 
   const Point* op = ot_ptr->OppositePoint(t, p);
   if (op == nullptr) {
-    throw std::runtime_error("FlipScanEdgeEvent - null opposing point");
+    HandleError("FlipScanEdgeEvent - null opposing point");
   }
+  assert(op);
 
   const Point* p1 = flip_triangle.PointCCW(eq);
   const Point* p2 = flip_triangle.PointCW(eq);
   if (p1 == nullptr || p2 == nullptr) {
-    throw std::runtime_error("FlipScanEdgeEvent - null on either of points");
+    HandleError("FlipScanEdgeEvent - null on either of points");
   }
+  assert(p1); assert(p2);
 
   Triangle& ot = *ot_ptr;
 
@@ -994,6 +1003,13 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
     const Point* new_p = NextFlipPoint(ep, eq, ot, op);
     FlipScanEdgeEvent(ep, eq, flip_triangle, ot, new_p);
   }
+}
+
+void Sweep::HandleError(std::string_view msg)
+{
+  DeleteFront();
+  legalize_stack_.clear();
+  throw std::runtime_error(msg.data());
 }
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)

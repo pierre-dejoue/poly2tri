@@ -41,6 +41,7 @@
 #include <poly2tri/sweep/policy.h>
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace p2t {
@@ -260,6 +261,8 @@ private:
     Triangle* triangle;
     unsigned int depth;
   };
+
+  void HandleError(std::string_view msg);
 
   Node* NewNode(const Point* p, Triangle* t = nullptr);
 
