@@ -614,7 +614,13 @@ void Sweep::Legalize() {
 
         bool inside = InCircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
         if (inside) {
-          //assert(!InCircle( *t->GetPoint((i + 2) % 3), *p, *op, *t->GetPoint((i + 1) % 3)));
+          if (InCircle(*t->GetPoint((i + 2) % 3), *p, *op, *t->GetPoint((i + 1) % 3))) {
+            // If the Delaunay criteria is not verified after the triangle flip the legalization process
+            // could go into an infinite loop.
+            // This is always a consequence of numerical precision issues in the geometric predicates.
+            TRACE_OUT << "Legalize Exception - InCircle input: t=" << *t << "; op=" << *op << std::endl;
+            HandleError("Legalize - Numerical precision issue in geometric predicate InCircle");
+          }
 
           // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
           RotateTrianglePair(*t, i, *ot, oi, true);
