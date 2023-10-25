@@ -317,10 +317,10 @@ Node& Sweep::PointEvent(const Point* point)
   Node& node = *node_ptr;
   Node& new_node = NewFrontTriangle(point, node);
 
-  // Only need to check +epsilon since point never have smaller
-  // x value than node due to how we fetch nodes from the front
-  if (point->x <= node.point->x + EPSILON) {
-    TRACE_OUT << "PointEvent - Fill" << std::endl;
+  // In case the projection coincides with the node's point, fill the previous node
+  // Note: Legitimate use of the equal operator for comparing the input points' coordinates
+  if (point->x == node.point->x) {
+    TRACE_OUT << "PointEvent - The projection coincides with front node=" << node << std::endl;
     Fill(&node_ptr);
   }
 
