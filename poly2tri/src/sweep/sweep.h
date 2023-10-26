@@ -50,9 +50,6 @@ class AdvancingFront;
 using BackFront = AdvancingFront;
 class SweepContext;
 struct Node;
-struct Point;
-struct Edge;
-class Triangle;
 struct Basin;
 
 class Sweep {

@@ -30,7 +30,6 @@
 #pragma once
 
 #include "../common/dll_symbol.h"
-#include "../common/shapes.h"
 #include "policy.h"
 
 #include <memory>

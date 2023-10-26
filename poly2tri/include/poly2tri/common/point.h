@@ -37,21 +37,22 @@
 namespace p2t {
 
 struct Point {
+  using scalar = double;
 
-  double x, y;
+  scalar x, y;
 
-  Point() : x(0.0), y(0.0) {}
-  Point(double x_, double y_) : x(x_), y(y_) {}
+  Point() : x{0}, y{0} {}
+  Point(scalar x_, scalar y_) : x(x_), y(y_) {}
 
   /// Set this point to all zeros.
   void set_zero()
   {
-    x = 0.0;
-    y = 0.0;
+    x = 0;
+    y = 0;
   }
 
   /// Set this point to some specified coordinates.
-  void set(double x_, double y_)
+  void set(scalar x_, scalar y_)
   {
     x = x_;
     y = y_;
@@ -80,22 +81,22 @@ struct Point {
   }
 
   /// Multiply this point by a scalar.
-  void operator *=(double a)
+  void operator *=(scalar a)
   {
     x *= a;
     y *= a;
   }
 
   /// Get the length of this point (the norm).
-  double Length() const
+  scalar Length() const
   {
     return std::sqrt(x * x + y * y);
   }
 
   /// Convert this point into a unit point. Returns the Length.
-  double Normalize()
+  scalar Normalize()
   {
-    const double len = Length();
+    const scalar len = Length();
     x /= len;
     y /= len;
     return len;
@@ -116,56 +117,54 @@ inline bool cmp(const Point* a, const Point* b)
   return false;
 }
 
-/// Add two points_ component-wise.
-inline Point operator +(const Point& a, const Point& b)
+/// Add two points_ component-wise
+inline Point operator+(const Point& a, const Point& b)
 {
   return Point(a.x + b.x, a.y + b.y);
 }
 
-/// Subtract two points_ component-wise.
-inline Point operator -(const Point& a, const Point& b)
+/// Subtract two points_ component-wise
+inline Point operator-(const Point& a, const Point& b)
 {
   return Point(a.x - b.x, a.y - b.y);
 }
 
 /// Multiply point by scalar
-inline Point operator *(double s, const Point& a)
+inline Point operator*(typename Point::scalar s, const Point& a)
 {
   return Point(s * a.x, s * a.y);
 }
 
-inline bool operator ==(const Point& a, const Point& b)
+inline bool operator==(const Point& a, const Point& b)
 {
   return a.x == b.x && a.y == b.y;
 }
 
-inline bool operator !=(const Point& a, const Point& b)
+inline bool operator!=(const Point& a, const Point& b)
 {
   return !(a.x == b.x) || !(a.y == b.y);
 }
 
-/// Peform the dot product on two vectors.
-inline double Dot(const Point& a, const Point& b)
+/// Peform the dot product on two vectors
+inline typename Point::scalar Dot(const Point& a, const Point& b)
 {
   return a.x * b.x + a.y * b.y;
 }
 
-/// Perform the cross product on two vectors. In 2D this produces a scalar.
-inline double Cross(const Point& a, const Point& b)
+/// Perform the cross product on two vectors. In 2D this produces a scalar
+inline typename Point::scalar Cross(const Point& a, const Point& b)
 {
   return a.x * b.y - a.y * b.x;
 }
 
-/// Perform the cross product on a point and a scalar. In 2D this produces
-/// a point.
-inline Point Cross(const Point& a, double s)
+/// Perform the cross product on a point and a scalar. In 2D this produces a point
+inline Point Cross(const Point& a, typename Point::scalar s)
 {
   return Point(s * a.y, -s * a.x);
 }
 
-/// Perform the cross product on a scalar and a point. In 2D this produces
-/// a point.
-inline Point Cross(double s, const Point& a)
+/// Perform the cross product on a scalar and a point. In 2D this produces a point
+inline Point Cross(typename Point::scalar s, const Point& a)
 {
   return Point(-s * a.y, s * a.x);
 }

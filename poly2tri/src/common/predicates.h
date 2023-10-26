@@ -30,11 +30,20 @@
 #pragma once
 
 #include <poly2tri/common/orientation.h>
-#include <poly2tri/common/point.h>
 
 #include <cassert>
 #include <cmath>
 
+/**
+ * Definition of the geometric predicates used in poly2tri
+ *
+ * The input is a generic Point type which can be as simple as:
+ *
+ *   struct P {
+ *    using scalar = double;
+ *    scalar x, y;
+ *   };
+ */
 namespace p2t {
 
 /**
@@ -49,9 +58,12 @@ namespace p2t {
  *   Negative if it is CW
  *   Zero if it is degenerated.
  */
-inline Orientation Orient2d(const Point& pa, const Point& pb, const Point& pc)
+template <typename P>
+inline Orientation Orient2d(const P& pa, const P& pb, const P& pc)
 {
-  double oabc = (pa.x - pc.x) * (pb.y - pc.y) - (pa.y - pc.y) * (pb.x - pc.x);
+  using F = typename P::scalar;
+
+  F oabc = (pa.x - pc.x) * (pb.y - pc.y) - (pa.y - pc.y) * (pb.x - pc.x);
   // Using a tolerance here fails on concave-by-subepsilon boundaries
   // e.g.  if (oabc > -EPSILON && oabc < EPSILON) {
   // Using == on double makes -Wfloat-equal warnings yell at us
@@ -62,6 +74,7 @@ inline Orientation Orient2d(const Point& pa, const Point& pb, const Point& pc)
   }
   return CW;
 }
+
 
 /**
  * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
@@ -89,41 +102,44 @@ inline Orientation Orient2d(const Point& pa, const Point& pb, const Point& pc)
  * @param pd - point opposite to a
  * @return true if d is inside the circumcircle of triangle abc, false if d is on or outside that circle
  */
-inline bool InCircle(const Point& pa, const Point& pb, const Point& pc, const Point& pd)
+template <typename P>
+inline bool InCircle(const P& pa, const P& pb, const P& pc, const P& pd)
 {
-  const double adx = pa.x - pd.x;
-  const double ady = pa.y - pd.y;
-  const double bdx = pb.x - pd.x;
-  const double bdy = pb.y - pd.y;
+  using F = typename P::scalar;
 
-  const double adxbdy = adx * bdy;
-  const double bdxady = bdx * ady;
-  const double oabd = adxbdy - bdxady;
+  const F adx = pa.x - pd.x;
+  const F ady = pa.y - pd.y;
+  const F bdx = pb.x - pd.x;
+  const F bdy = pb.y - pd.y;
 
-  if (oabd <= 0.0)
+  const F adxbdy = adx * bdy;
+  const F bdxady = bdx * ady;
+  const F oabd = adxbdy - bdxady;
+
+  if (oabd <= 0)
     return false;
 
-  const double cdx = pc.x - pd.x;
-  const double cdy = pc.y - pd.y;
+  const F cdx = pc.x - pd.x;
+  const F cdy = pc.y - pd.y;
 
-  const double cdxady = cdx * ady;
-  const double adxcdy = adx * cdy;
-  const double ocad = cdxady - adxcdy;
+  const F cdxady = cdx * ady;
+  const F adxcdy = adx * cdy;
+  const F ocad = cdxady - adxcdy;
 
-  if (ocad <= 0.0)
+  if (ocad <= 0)
     return false;
 
-  const double bdxcdy = bdx * cdy;
-  const double cdxbdy = cdx * bdy;
-  const double obcd = bdxcdy - cdxbdy;
+  const F bdxcdy = bdx * cdy;
+  const F cdxbdy = cdx * bdy;
+  const F obcd = bdxcdy - cdxbdy;
 
-  const double adsqnorm = adx * adx + ady * ady;
-  const double bdsqnorm = bdx * bdx + bdy * bdy;
-  const double cdsqnorm = cdx * cdx + cdy * cdy;
+  const F adsqnorm = adx * adx + ady * ady;
+  const F bdsqnorm = bdx * bdx + bdy * bdy;
+  const F cdsqnorm = cdx * cdx + cdy * cdy;
 
-  const double det = adsqnorm * obcd + bdsqnorm * ocad + cdsqnorm * oabd;
+  const F det = adsqnorm * obcd + bdsqnorm * ocad + cdsqnorm * oabd;
 
-  return det > 0.0;
+  return det > 0;
 }
 
 } // namespace p2t
