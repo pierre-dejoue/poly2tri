@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <limits>
 
 /**
  * Definition of the geometric predicates used in poly2tri
@@ -77,7 +78,7 @@ inline Orientation Orient2d(const P& pa, const P& pb, const P& pc)
 
 
 /**
- * <b>Determines if d is inside the circumcircle of triangle abc</b><br>
+ * <b>Determines if d is strictly inside the circumcircle of triangle abc</b><br>
  * <b>Requirement</b>:<br>
  * 1. a,b and c form a triangle.<br>
  * 2. a and d are known to be on opposite side of bc<br>
@@ -93,8 +94,8 @@ inline Orientation Orient2d(const P& pa, const P& pb, const P& pc)
  * </pre>
  * <b>Fact</b>: d has to be in area A delimited by semi-lines ab and ac to have a chance to be inside
  * the circumcircle of triangle abc<br>
- *  d is outside A if orient2d(a,b,d) or orient2d(c,a,d) is CW<br>
- *  This preknowledge gives us a way to optimize the incircle test
+ * d is outside A if orient2d(a,b,d) or orient2d(c,a,d) is CW<br>
+ * This preknowledge gives us a way to optimize the incircle test.
  *
  * @param pa - triangle point, opposite to d
  * @param pb - triangle point
@@ -107,6 +108,9 @@ inline bool InCircle(const P& pa, const P& pb, const P& pc, const P& pd)
 {
   using F = typename P::scalar;
 
+  // Set eps = 0 for the theoritical computation. The value of epsilon set here is to account for precision errors.
+  constexpr F eps = std::numeric_limits<F>::epsilon();
+
   const F adx = pa.x - pd.x;
   const F ady = pa.y - pd.y;
   const F bdx = pb.x - pd.x;
@@ -114,7 +118,9 @@ inline bool InCircle(const P& pa, const P& pb, const P& pc, const P& pd)
 
   const F adxbdy = adx * bdy;
   const F bdxady = bdx * ady;
-  const F oabd = adxbdy - bdxady;
+
+  // Minimize |oabd|
+  const F oabd = (adxbdy - bdxady) - eps * 2 * std::abs(adxbdy + bdxady);
 
   if (oabd <= 0)
     return false;
@@ -124,22 +130,34 @@ inline bool InCircle(const P& pa, const P& pb, const P& pc, const P& pd)
 
   const F cdxady = cdx * ady;
   const F adxcdy = adx * cdy;
-  const F ocad = cdxady - adxcdy;
+
+  // Minimize |ocad|
+  const F ocad = (cdxady - adxcdy) - eps * 2 * std::abs(cdxady + adxcdy);
 
   if (ocad <= 0)
     return false;
 
   const F bdxcdy = bdx * cdy;
   const F cdxbdy = cdx * bdy;
-  const F obcd = bdxcdy - cdxbdy;
 
-  const F adsqnorm = adx * adx + ady * ady;
-  const F bdsqnorm = bdx * bdx + bdy * bdy;
-  const F cdsqnorm = cdx * cdx + cdy * cdy;
+  // Maximize |obcd|
+  const F obcd = (bdxcdy - cdxbdy) - eps * 2 * std::abs(bdxcdy + cdxbdy);
 
-  const F det = adsqnorm * obcd + bdsqnorm * ocad + cdsqnorm * oabd;
+  if (obcd > 0)
+    return true;
 
-  return det > 0;
+  const F adsqnorm = (adx * adx + ady * ady) * (F{1} + eps * 2);     // Maximize
+  const F bdsqnorm = (bdx * bdx + bdy * bdy) * (F{1} - eps * 2);     // Minimize
+  const F cdsqnorm = (cdx * cdx + cdy * cdy) * (F{1} - eps * 2);     // Minimize
+
+  const F det_ab =  oabd * cdsqnorm * (F{1} - eps);    assert(det_ab >= 0);    // Minimize
+  const F det_bc = -obcd * adsqnorm * (F{1} + eps);    assert(det_bc >= 0);    // Maximize
+  const F det_ca =  ocad * bdsqnorm * (F{1} - eps);    assert(det_ca >= 0);    // Minimize
+
+  const F det = det_ab - det_bc + det_ca;   // Minimized value of the determinant
+
+  // The theoritical predicate would be: The point is strictly in the circumcircle iff det > 0.
+  return det > eps * (det_ab + det_bc + det_ca);
 }
 
 } // namespace p2t
