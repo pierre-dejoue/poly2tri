@@ -589,8 +589,16 @@ void Sweep::LegalizePush(Triangle& triangle)
 }
 
 void Sweep::Legalize() {
-  unsigned int nb_flips = 0;
+  std::size_t nb_flips = 0;
+  const std::size_t max_nb_flips = 4 * tcx_.points_.size() * tcx_.points_.size();
   while (!legalize_stack_.empty()) {
+    if (nb_flips > max_nb_flips) {
+      // Note that this criteria for detecting an infinite loop is completely arbitrary!
+      // We set a maximum number of flips equal to the square of the maximum number of triangles for this point set.
+      // Actually the maximum number of triangulations (i.e. the space explored by the Legalization process) is
+      // bounded by the Catalan numbers, which grows exponentially.
+      HandleError("Legalize - Potential infinite loop was catched in Legalize");
+    }
     const PendingLegalization legalize = legalize_stack_.back();
     legalize_stack_.pop_back();
     info_.max_legalize_depth = std::max(info_.max_legalize_depth, legalize.depth);
@@ -614,13 +622,10 @@ void Sweep::Legalize() {
 
         bool inside = InCircle(*p, *t->GetPoint((i + 1) % 3), *t->GetPoint((i + 2) % 3), *op);
         if (inside) {
-          if (InCircle(*t->GetPoint((i + 2) % 3), *p, *op, *t->GetPoint((i + 1) % 3))) {
-            // If the Delaunay criteria is not verified after the triangle flip the legalization process
-            // could go into an infinite loop.
-            // This is always a consequence of numerical precision issues in the geometric predicates.
-            TRACE_OUT << "Legalize Exception - InCircle input: t=" << *t << "; op=" << *op << std::endl;
-            HandleError("Legalize - Numerical precision issue in geometric predicate InCircle");
-          }
+          // If the Delaunay criteria is not verified after the triangle flip
+          // the legalization process could go into an infinite loop.
+          // This would always ne a consequence of numerical precision issues in the geometric predicates.
+          assert(!InCircle(*t->GetPoint((i + 2) % 3), *p, *op, *t->GetPoint((i + 1) % 3)));
 
           // Lets rotate shared edge one vertex CW to legalize it (create a Delaunay pair)
           RotateTrianglePair(*t, i, *ot, oi, true);
@@ -643,7 +648,7 @@ void Sweep::Legalize() {
       }
     }
   }
-  info_.nb_triangle_flips += nb_flips;
+  info_.nb_triangle_flips += static_cast<unsigned int>(nb_flips);
 }
 
 struct Basin {
