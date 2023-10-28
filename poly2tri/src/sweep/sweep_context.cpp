@@ -257,7 +257,7 @@ Triangle* SweepContext::AddTriangleToMap(const Point* a, const Point* b, const P
   return new_triangle;
 }
 
-void SweepContext::MeshCleanExteriorTriangles()
+std::size_t SweepContext::MeshCleanExteriorTriangles()
 {
   assert(triangle_storage_);
   const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [this](auto& t) {
@@ -268,7 +268,9 @@ void SweepContext::MeshCleanExteriorTriangles()
     }
     return false;
   });
+  const auto erased = static_cast<std::size_t>(std::distance(last_it, std::end(map_)));
   map_.erase(last_it, std::end(map_));
+  return erased;
 }
 
 } // namespace p2t

@@ -79,7 +79,7 @@ public:
 
   const std::vector<Edge>& GetUpperEdges(size_t index) const;
 
-  void MeshCleanExteriorTriangles();
+  std::size_t MeshCleanExteriorTriangles();
 
   const std::vector<SweepPoint>& GetPoints() const;
 

@@ -209,7 +209,8 @@ void Sweep::FinalizationConvexHull()
   assert(back_front);
 
   // Remove exterior triangles from the mesh
-  tcx_.MeshCleanExteriorTriangles();
+  const auto erased_ext = tcx_.MeshCleanExteriorTriangles();
+  TRACE_OUT << "FinalizationConvexHull - cleared exterior triangles: " << erased_ext << std::endl;
 
   // Add the bordering triangles to form the convex hull of the back front
   TRACE_OUT << "FinalizationConvexHull -\n"
@@ -233,8 +234,9 @@ void Sweep::FinalizationOuterPolygon()
   // Delete the advancing front and release the nodes
   DeleteFront();
 
-  // Remove exterior triangles
-  tcx_.MeshCleanExteriorTriangles();
+  // Remove exterior triangles from the mesh
+  const auto erased_ext = tcx_.MeshCleanExteriorTriangles();
+  TRACE_OUT << "FinalizationOuterPolygon - cleared exterior triangles: " << erased_ext << std::endl;
 }
 
 BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
