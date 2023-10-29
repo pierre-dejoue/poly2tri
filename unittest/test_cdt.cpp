@@ -485,6 +485,48 @@ BOOST_AUTO_TEST_CASE(AddOpenPolyline_OuterPolygon)
   BOOST_CHECK(TriangulationSanityChecks(cdt, result));
 }
 
+namespace assets {
+  const std::vector<p2t::Point>& pyramide(bool dir)
+  {
+    const double dir_x = dir ? 1.0 : -1.0;
+    static std::vector<p2t::Point> points {
+      p2t::Point(dir_x * 0.0000000000000000,  10.000000000000000),
+      p2t::Point(dir_x * -20.000000000000000, 4.0000000000000000),
+      p2t::Point(dir_x * 20.000000000000000,  0.0000000000000000),
+      p2t::Point(dir_x * 16.444444444444439, 1.8888888888888891),
+      p2t::Point(dir_x * 13.096296296296289,  3.6666666666666661),
+      p2t::Point(dir_x * 8.8000000000000007, 5.8296296296296291),
+      p2t::Point(dir_x * 4.4444444444444402,  7.9629629629629619),
+      p2t::Point(dir_x * -5.1851851851851833, 7.4888888888888889)
+    };
+    return points;
+  }
+} // namespace assets
+
+BOOST_AUTO_TEST_CASE(PyramideRight_ConvexHull)
+{
+  const auto& points = assets::pyramide(true);
+  p2t::CDT cdt;
+  cdt.AddPoints(points.data(), points.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
+  const auto& result = cdt.GetTriangles();
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+  BOOST_CHECK_EQUAL(result.size(), 7);
+}
+
+BOOST_AUTO_TEST_CASE(PyramideLeft_ConvexHull)
+{
+  const auto& points = assets::pyramide(false);
+  p2t::CDT cdt;
+  cdt.AddPoints(points.data(), points.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
+  const auto& result = cdt.GetTriangles();
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+  BOOST_CHECK_EQUAL(result.size(), 7);
+}
+
 struct FileTest
 {
   const char* filename;

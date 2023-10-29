@@ -450,13 +450,16 @@ void Sweep::Fill(Node** node)
 
   TRACE_OUT << "Fill - triangle=" << *triangle << std::endl;
 
-  int i, oi;
-  assert(filled_node->prev->triangle);
-  triangle->MarkNeighbor(*filled_node->prev->triangle, i, oi);
-  triangle->SetConstrainedEdge(i, filled_node->prev->triangle->IsConstrainedEdge(oi));
-  assert(filled_node->triangle);
-  triangle->MarkNeighbor(*filled_node->triangle, i, oi);
-  triangle->SetConstrainedEdge(i, filled_node->triangle->IsConstrainedEdge(oi));
+  if (filled_node->prev->triangle) {
+    int i, oi;
+    triangle->MarkNeighbor(*filled_node->prev->triangle, i, oi);
+    triangle->SetConstrainedEdge(i, filled_node->prev->triangle->IsConstrainedEdge(oi));
+  }
+  if (filled_node->triangle) {
+    int i, oi;
+    triangle->MarkNeighbor(*filled_node->triangle, i, oi);
+    triangle->SetConstrainedEdge(i, filled_node->triangle->IsConstrainedEdge(oi));
+  }
 
   // Update the front
   assert(front_);
