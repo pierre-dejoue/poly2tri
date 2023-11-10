@@ -265,7 +265,6 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
     }
     if (!mid) {
       node->SetTriangle(tri->GetNeighbor(pivot));
-      assert(node->triangle == nullptr || node->triangle->IsInterior());
     }
     if (last && !mid) {
       const Point* q = tri->PointCW(tri->GetPoint(pivot));
@@ -278,6 +277,17 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
   });
   node->next = t;
   t->prev = node;
+
+  // Ensure that all the node triangles are interior ones
+  node = h;
+  while (node != nullptr && node != t)
+  {
+    if (node->triangle && !node->triangle->IsInterior()) {
+      node->ResetTriangle();
+    }
+    node = node->next;
+  }
+
   return back_front;
 }
 

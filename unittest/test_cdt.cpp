@@ -501,6 +501,20 @@ namespace assets {
     };
     return points;
   }
+
+  const std::vector<p2t::Point>& thin_back_front(bool dir)
+  {
+    const double dir_x = dir ? 1.0 : -1.0;
+    static std::vector<p2t::Point> points {
+      p2t::Point(dir_x * -3.26,    1.32),
+      p2t::Point(dir_x *  4.61,    1.5),
+      p2t::Point(dir_x *  0.2428, -15.0),
+      p2t::Point(dir_x *  0.3284, -9.0),
+      p2t::Point(dir_x *  0.4752, -18.0),
+      p2t::Point(dir_x *  0.7632, -10.0)
+    };
+    return points;
+  }
 } // namespace assets
 
 BOOST_AUTO_TEST_CASE(PyramideRight_ConvexHull)
@@ -518,6 +532,30 @@ BOOST_AUTO_TEST_CASE(PyramideRight_ConvexHull)
 BOOST_AUTO_TEST_CASE(PyramideLeft_ConvexHull)
 {
   const auto& points = assets::pyramide(false);
+  p2t::CDT cdt;
+  cdt.AddPoints(points.data(), points.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
+  const auto& result = cdt.GetTriangles();
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+  BOOST_CHECK_EQUAL(result.size(), 7);
+}
+
+BOOST_AUTO_TEST_CASE(ThinBackFrontRight_ConvexHull)
+{
+  const auto& points = assets::thin_back_front(true);
+  p2t::CDT cdt;
+  cdt.AddPoints(points.data(), points.size());
+  BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
+  const auto& result = cdt.GetTriangles();
+  BOOST_CHECK(TriangulationSanityChecks(cdt, result));
+  BOOST_CHECK(IsConstrainedDelaunay(result));
+  BOOST_CHECK_EQUAL(result.size(), 7);
+}
+
+BOOST_AUTO_TEST_CASE(ThinBackFrontLeft_ConvexHull)
+{
+  const auto& points = assets::thin_back_front(false);
   p2t::CDT cdt;
   cdt.AddPoints(points.data(), points.size());
   BOOST_CHECK_NO_THROW(cdt.Triangulate(p2t::Policy::ConvexHull));
