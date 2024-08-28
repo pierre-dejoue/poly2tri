@@ -243,9 +243,9 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
 {
   assert(tail_triangle);
   auto* back_front = CreateBackFront();
-  Node* const h = back_front->head();
-  Node* const t = back_front->tail();
-  Node* node = h;
+  Node* const hd = back_front->head();
+  Node* const tl = back_front->tail();
+  Node* node = hd;
 
   // Mark "interior" all triangles
   for (auto& tri : tcx_.map_) { tri->IsInterior(true); }
@@ -256,7 +256,7 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
     if (mid && !last)
       return;
     const Point* p = tri->PointCCW(tri->GetPoint(pivot));
-    assert(p != front_->head()->point && p != front_->tail()->point);   // Do not use variables h, t here to prevent a warning in Release
+    assert(p != front_->head()->point && p != front_->tail()->point);   // Do not use variables hd and tl here to prevent a warning in Release
     if (p != node->point) {
       Node* new_node = NewNode(p);
       node->next = new_node;
@@ -275,12 +275,12 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
       node = new_node;
     }
   });
-  node->next = t;
-  t->prev = node;
+  node->next = tl;
+  tl->prev = node;
 
   // Ensure that all the node triangles are interior ones
-  node = h;
-  while (node != nullptr && node != t)
+  node = hd;
+  while (node != nullptr && node != tl)
   {
     if (node->triangle && !node->triangle->IsInterior()) {
       node->ResetTriangle();
