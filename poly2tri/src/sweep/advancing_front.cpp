@@ -42,8 +42,6 @@ AdvancingFront::AdvancingFront(Node& head, Node& tail) :
 {
 }
 
-AdvancingFront::~AdvancingFront() = default;
-
 Node* AdvancingFront::LocateNode(double x)
 {
   Node* node = search_node_;

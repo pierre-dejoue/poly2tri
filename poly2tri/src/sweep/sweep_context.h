@@ -29,11 +29,12 @@
 
 #pragma once
 
+#include <poly2tri/common/point.h>
+
 #include <cassert>
 #include <cstddef>
 #include <memory>
 #include <vector>
-
 
 namespace p2t {
 
@@ -41,7 +42,6 @@ namespace p2t {
 // PointSet width to both left and right.
 constexpr double kAlpha = 0.3;
 
-struct Point;
 class Triangle;
 struct Node;
 struct Edge;
@@ -114,8 +114,8 @@ private:
   std::vector<Triangle*> map_;
 
   // Artificial points added to the triangulation
-  std::unique_ptr<const Point> head_;
-  std::unique_ptr<const Point> tail_;
+  Point head_;
+  Point tail_;
 
 };
 
@@ -141,12 +141,12 @@ struct SweepPoint
 
 inline const Point* SweepContext::head() const
 {
-  return head_.get();
+  return &head_;
 }
 
 inline const Point* SweepContext::tail() const
 {
-  return tail_.get();
+  return &tail_;
 }
 
 }

@@ -45,7 +45,6 @@ class AdvancingFront {
 public:
 
   AdvancingFront(Node& head, Node& tail);
-  ~AdvancingFront();
 
   Node* head() const { return head_; }
   Node* tail() const { return tail_; }
@@ -57,12 +56,11 @@ public:
 
 private:
 
-  Node* const head_;
-  Node* const tail_;
-  Node* search_node_;
-
   Node* FindSearchNode(double x);
 
+  Node* head_;
+  Node* tail_;
+  Node* search_node_;
 };
 
 std::ostream& operator<<(std::ostream& out, const AdvancingFront& front);

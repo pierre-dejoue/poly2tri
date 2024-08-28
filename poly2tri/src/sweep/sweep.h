@@ -36,17 +36,19 @@
 
 #pragma once
 
+#include "advancing_front.h"
 #include <poly2tri/common/shapes.h>
 #include <poly2tri/sweep/cdt.h>
 #include <poly2tri/sweep/policy.h>
 
 #include <memory>
+#include <optional>
 #include <stack>
 #include <string_view>
+#include <vector>
 
 namespace p2t {
 
-class AdvancingFront;
 using BackFront = AdvancingFront;
 class SweepContext;
 struct Node;
@@ -267,7 +269,7 @@ private:
   SweepContext& tcx_;
 
   // Advancing front. Also used for the back front in the finalization phase.
-  std::unique_ptr<AdvancingFront> front_;
+  std::optional<AdvancingFront> front_;
 
   // Nodes of the advancing front
   std::vector<std::unique_ptr<Node>> nodes_;
@@ -275,7 +277,7 @@ private:
   // Discarded nodes can be reused
   Node* discarded_nodes_;
 
-  std::unique_ptr<EdgeEventData> edge_event_;
+  std::optional<EdgeEventData> edge_event_;
 
   std::stack<PendingLegalization> legalize_stack_;
 

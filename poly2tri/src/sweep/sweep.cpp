@@ -97,12 +97,12 @@ AdvancingFront* Sweep::CreateAdvancingFront()
   af_middle->prev = af_head;
   af_tail->prev = af_middle;
 
-  assert(front_ == nullptr);
-  front_ = std::make_unique<AdvancingFront>(*af_head, *af_tail);
+  assert(!front_);
+  front_ = std::make_optional<AdvancingFront>(*af_head, *af_tail);
 
-  TRACE_OUT << "CreateAdvancingFront - advancing_front=" << *front_ << std::endl;
+  TRACE_OUT << "CreateAdvancingFront - advancing_front=" << front_.value() << std::endl;
 
-  return front_.get();
+  return &front_.value();
 }
 
 BackFront* Sweep::CreateBackFront()
@@ -116,10 +116,10 @@ BackFront* Sweep::CreateBackFront()
   bf_head->next = bf_tail;
   bf_tail->prev = bf_head;
 
-  assert(front_ == nullptr);
-  front_ = std::make_unique<BackFront>(*bf_head, *bf_tail);
+  assert(!front_);
+  front_ = std::make_optional<BackFront>(*bf_head, *bf_tail);
 
-  return front_.get();
+  return &front_.value();
 }
 
 void Sweep::DeleteFront()
@@ -350,7 +350,8 @@ void Sweep::EdgeEvent(const Edge* edge, Node* node)
             << "node=" << *node
             << std::endl;
 
-  edge_event_ = std::make_unique<EdgeEventData>(*edge, edge->p->x > edge->q->x);
+  // TODO: Reset the edge event when done
+  edge_event_ = std::make_optional<EdgeEventData>(*edge, edge->p->x > edge->q->x);
 
   if (SetConstrainedEdgeIfSideOfTriangle(*node->triangle, edge->p, edge->q)) {
     return;

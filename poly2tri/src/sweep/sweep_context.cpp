@@ -199,8 +199,8 @@ void SweepContext::InitTriangulation()
   double dy = kAlpha * (ymax - ymin);
 
   // Artificial points
-  head_ = std::make_unique<const Point>(xmin - dx, ymin - dy);
-  tail_ = std::make_unique<const Point>(xmax + dx, ymin - dy);
+  head_ = Point(xmin - dx, ymin - dy);
+  tail_ = Point(xmax + dx, ymin - dy);
 
   // Sort input points along y-axis
   std::sort(points_.begin(), points_.end(), &SweepPoint::cmp);
