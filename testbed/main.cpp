@@ -233,6 +233,7 @@ std::ostream& operator<<(std::ostream& out, const p2t::CDT::Info& info)
   out << "  Number of output triangles = "            << info.nb_output_triangles << std::endl;
   out << "  Number of triangles, pre-finalization = " << info.nb_triangles_pre_finalization << std::endl;
   out << "  Triangles memory footprint = "            << (static_cast<double>(info.triangles_memory_footprint_in_bytes) / 1024.0) << " kB" << std::endl;
+  out << "  Nodes     memory footprint = "            << (static_cast<double>(info.nodes_memory_footprint_in_bytes) / 1024.0) << " kB" << std::endl;
   out << "  Number of triangle flips = "              << info.nb_triangle_flips << std::endl;
   out << "  Max Legalize depth = "                    << info.max_legalize_depth << std::endl;
   return out;

@@ -153,7 +153,8 @@ public:
     unsigned int nb_triangles_pre_finalization = 0;
     unsigned int nb_triangle_flips = 0;
     unsigned int max_legalize_depth = 0;
-    std::size_t triangles_memory_footprint_in_bytes;
+    std::size_t triangles_memory_footprint_in_bytes = 0;
+    std::size_t nodes_memory_footprint_in_bytes = 0;
   };
 
   /**

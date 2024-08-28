@@ -33,6 +33,7 @@
 #include "back_triangles.h"
 #include "sweep_context.h"
 #include "trace.h"
+#include "../common/node.h"
 #include "../common/predicates.h"
 #include "../common/utils.h"
 
@@ -55,7 +56,10 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
 {
 }
 
-Sweep::~Sweep() = default;
+Sweep::~Sweep()
+{
+  info_.nodes_memory_footprint_in_bytes = nodes_.capacity() * sizeof(Node);
+}
 
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(Policy policy)
