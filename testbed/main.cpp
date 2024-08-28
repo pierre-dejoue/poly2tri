@@ -335,17 +335,29 @@ void GenerateRandomPointDistribution(size_t num_points, double min, double max,
   }
 }
 
+// Call after glfwMakeContextCurrent
+void BackendInfo(std::ostream& out)
+{
+  int glfw_major = 0, glfw_minor = 0, glfw_revision = 0;
+  glfwGetVersion(&glfw_major, &glfw_minor, &glfw_revision);
+  out << "GLFW " << glfw_major << "." << glfw_minor << "." << glfw_revision << std::endl;
+  const auto* open_gl_version_str = glGetString(GL_VERSION);      // Return null if there is no current OpenGL context
+  if (open_gl_version_str)
+    out << "OpenGL Version " << open_gl_version_str << std::endl;
+}
+
 void Init(int window_width, int window_height)
 {
   if (glfwInit() != GL_TRUE)
     ShutDown(1);
-  // width x height, 16 bit color, no depth, alpha or stencil buffers, windowed
   window = glfwCreateWindow(window_width, window_height, "Poly2Tri - C++", nullptr, nullptr);
   if (!window)
     ShutDown(1);
-
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
+
+  // Display the backend info
+  BackendInfo(std::cout);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
