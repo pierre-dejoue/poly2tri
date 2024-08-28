@@ -52,7 +52,10 @@ public:
   // Locate insertion point along the advancing front
   Node* LocateNode(double x);
 
-  void RemoveNode(Node** node, Node** trash);
+  // Remove a node from the list
+  // Cannot remove the head or the tail
+  // Return the node directly preceeding the removed one
+  Node* RemoveNode(Node* node);
 
 private:
 

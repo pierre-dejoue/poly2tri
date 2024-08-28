@@ -39,30 +39,18 @@ namespace p2t {
 // Advancing front node
 struct Node {
 
-  const Point* point;
-  Triangle* triangle;     // This triangle (if set) should contain the edge between this node and the next one.
-
-  Node* next;
-  Node* prev;
-
-  double value;
-
-  Node(const Point* p, Triangle* t = nullptr) :
-    point(p),
-    triangle(t),
-    next(nullptr),
-    prev(nullptr),
-    value()
+  Node(const Point* p = nullptr, Triangle* t = nullptr)
+    : next(nullptr)
+    , prev(nullptr)
+    , point(p)
+    , triangle(t)
+    , value{0}
   {
-    assert(p);
-    value = p->x;
-  }
-
-  ~Node() {
-    assert(triangle == nullptr);
+    if(p) { value = p->x; }
   }
 
   void SetTriangle(Triangle* t) {
+    assert(point);
     // Set the triangle and the backlink
     assert(triangle == nullptr);
     triangle = t;
@@ -74,6 +62,11 @@ struct Node {
     triangle = nullptr;
   }
 
+  Node* next;
+  Node* prev;
+  const Point* point;
+  Triangle* triangle;     // This triangle (if set) should contain the edge between this node and the next one.
+  double value;
 };
 
 std::ostream& operator<<(std::ostream& out, const Node& node);

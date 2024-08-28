@@ -40,25 +40,117 @@
 #include <poly2tri/common/shapes_io.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <memory>
 #include <stdexcept>
 
 namespace p2t {
 
+class NodeStorage {
+public:
+  NodeStorage()
+    : capacity{0}
+    , next_batch_sz{FIRST_BATCH_SZ}
+    , next_batch_idx{0}
+    , available_nodes{nullptr}
+    , node_buffers{}
+  {
+    // Memory is allocated in successive batches to ensure the next/prev pointers of the Nodes remain valid.
+    // The size of the batches follow a geometric progression starting with a first allocation of FIRST_BATCH_SZ (256) Nodes.
+    //
+    //      Batch_sz   Total_capacity      Mem_footprint
+    //      256        256                 10 kB
+    //      256        512                 20 kB
+    //      512        1024                40 kB
+    //      1024       2048                80 kB
+    //      ...        ...                 ...
+    //
+    PrepareNextBatchOfNodes(FIRST_BATCH_SZ);
+  }
+
+  Node* NewNode()
+  {
+    if (!available_nodes) {
+      PrepareNextBatchOfNodes(next_batch_sz);
+      next_batch_sz = 2 * next_batch_sz;
+    }
+    assert(available_nodes);
+    Node* new_node = available_nodes;
+    available_nodes = new_node->next;
+    new_node->next = nullptr;
+    new_node->prev = nullptr;
+    return new_node;
+  }
+
+  void DiscardNode(Node* node)
+  {
+    assert(node);
+    node->next = available_nodes;
+    available_nodes = node;
+  }
+
+  // Storage total capacity in number of Nodes
+  std::size_t Capacity() const
+  {
+    return capacity;
+  }
+
+  std::size_t MemoryFootprint() const
+  {
+    return capacity * sizeof(Node);
+  }
+
+private:
+  static constexpr std::size_t FIRST_BATCH_SZ = 256u;
+
+  void PrepareNextBatchOfNodes(std::size_t batch_sz)
+  {
+    assert(available_nodes == nullptr);
+    if (next_batch_idx >= node_buffers.size())
+    {
+       throw std::runtime_error("NodeStorage: Out of memory capacity");
+    }
+    assert(!node_buffers[next_batch_idx]);
+    node_buffers[next_batch_idx] = std::unique_ptr<Node[]>(new Node[batch_sz]);
+    Node* new_node = node_buffers[next_batch_idx++].get();
+    std::size_t count = batch_sz;
+    Node** node_pptr = &available_nodes;
+    while (count--) {
+      *node_pptr = new_node;
+      node_pptr = &(new_node->next);
+      new_node++;
+    }
+    capacity += batch_sz;
+    assert(available_nodes != nullptr);
+  }
+
+private:
+  std::size_t capacity;
+  std::size_t next_batch_sz;
+  std::size_t next_batch_idx;
+
+  // Linked list of available nodes. Discarded nodes are put back in the list and can be reused.
+  Node* available_nodes;
+
+  std::array<std::unique_ptr<Node[]>, 32> node_buffers;
+};
+
+
 Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
   tcx_(tcx),
   front_(),
-  nodes_(),
-  discarded_nodes_(nullptr),
+  node_storage_(),
   edge_event_(),
   legalize_stack_(),
   info_(info)
 {
+  node_storage_ = std::make_unique<NodeStorage>();
 }
 
-Sweep::~Sweep()
-{
-  info_.nodes_memory_footprint_in_bytes = nodes_.capacity() * sizeof(Node);
+Sweep::~Sweep() {
+  if (node_storage_)
+    info_.nodes_memory_footprint_in_bytes = node_storage_->MemoryFootprint();
 }
 
 // Triangulate simple polygon with holes
@@ -96,10 +188,12 @@ AdvancingFront* Sweep::CreateAdvancingFront()
   Node* af_middle = NewNode(lowest_point, triangle);
   Node* af_tail = NewNode(tcx_.tail());
 
+  assert(af_head->prev == nullptr);
   af_head->next = af_middle;
-  af_middle->next = af_tail;
   af_middle->prev = af_head;
+  af_middle->next = af_tail;
   af_tail->prev = af_middle;
+  assert(af_tail->next == nullptr);
 
   assert(!front_);
   front_ = std::make_optional<AdvancingFront>(*af_head, *af_tail);
@@ -117,8 +211,10 @@ BackFront* Sweep::CreateBackFront()
   Node* bf_head = NewNode(tcx_.tail());
   Node* bf_tail = NewNode(tcx_.head());
 
+  assert(bf_head->prev == nullptr);
   bf_head->next = bf_tail;
   bf_tail->prev = bf_head;
+  assert(bf_tail->next == nullptr);
 
   assert(!front_);
   front_ = std::make_optional<BackFront>(*bf_head, *bf_tail);
@@ -133,11 +229,11 @@ void Sweep::DeleteFront()
   while (node != nullptr) {
     node->ResetTriangle();
     node->prev = nullptr;
-    std::swap(node, node->next);
+    Node* delete_me = node;
+    node = node->next;
+    node_storage_->DiscardNode(delete_me);
   }
   front_.reset();
-  discarded_nodes_ = nullptr;
-  nodes_.clear();   // Release all nodes
 }
 
 void Sweep::SweepPoints()
@@ -480,10 +576,11 @@ void Sweep::Fill(Node** node)
 
   // Update the front
   assert(front_);
-  front_->RemoveNode(node, &discarded_nodes_);
-
-  (*node)->ResetTriangle();
-  (*node)->SetTriangle(triangle);
+  Node* prev_node = front_->RemoveNode(*node);
+  FreeNode(*node);
+  prev_node->ResetTriangle();
+  prev_node->SetTriangle(triangle);
+  *node = prev_node;
 
   LegalizePush(*triangle);
 }
@@ -1047,16 +1144,17 @@ void Sweep::HandleError(std::string_view msg)
 
 Node* Sweep::NewNode(const Point* p, Triangle* t)
 {
-  Node* new_node = nullptr;
-  if (discarded_nodes_) {
-    new_node = discarded_nodes_;
-    discarded_nodes_ = new_node->next;
-    *new_node = std::move(Node(p, t));
-  } else {
-    new_node = nodes_.emplace_back(std::make_unique<Node>(p, t)).get();
-  }
+  assert(p);
+  Node* new_node = node_storage_->NewNode();
+  *new_node = Node(p, t);
   if (t) { t->SetNode(*new_node); }
   return new_node;
+}
+
+void Sweep::FreeNode(Node* node)
+{
+  assert(node);
+  node_storage_->DiscardNode(node);
 }
 
 } // namespace p2t

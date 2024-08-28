@@ -45,13 +45,13 @@
 #include <optional>
 #include <stack>
 #include <string_view>
-#include <vector>
 
 namespace p2t {
 
 using BackFront = AdvancingFront;
 class SweepContext;
 struct Node;
+class NodeStorage;
 struct Basin;
 
 class Sweep {
@@ -265,17 +265,16 @@ private:
 
   Node* NewNode(const Point* p, Triangle* t = nullptr);
 
+  void FreeNode(Node* node);
+
   // Sweep context
   SweepContext& tcx_;
 
   // Advancing front. Also used for the back front in the finalization phase.
   std::optional<AdvancingFront> front_;
 
-  // Nodes of the advancing front
-  std::vector<std::unique_ptr<Node>> nodes_;
-
-  // Discarded nodes can be reused
-  Node* discarded_nodes_;
+  // Node storage
+  std::unique_ptr<NodeStorage> node_storage_;
 
   std::optional<EdgeEventData> edge_event_;
 

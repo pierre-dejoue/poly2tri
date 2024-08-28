@@ -64,26 +64,20 @@ Node* AdvancingFront::LocateNode(double x)
   return nullptr;
 }
 
-// Remove a node from the list
-// Cannot remove the head or the tail
-// The node passed as argument is replaced by the node directly preceeding the removed one
-// The trash is a linked list of the previously removed nodes
-void AdvancingFront::RemoveNode(Node** node, Node** trash)
+Node* AdvancingFront::RemoveNode(Node* deleted_node)
 {
-  assert(node);
-  assert(trash);
-  Node* deleted_node = *node;
   assert(deleted_node);
-  assert(deleted_node->prev);   // The node is not the head of the list
-  assert(deleted_node->next);   // The node is not the tail of the list
+  assert(deleted_node);
+  assert(deleted_node->prev);   // The node is NOT the head of the list
+  assert(deleted_node->next);   // The node is NOT the tail of the list
   deleted_node->prev->next = deleted_node->next;
   deleted_node->next->prev = deleted_node->prev;
-  *node = deleted_node->prev;
+  Node* prev_node = deleted_node->prev;
   deleted_node->prev = nullptr;
-  deleted_node->next = *trash;
-  *trash = deleted_node;
   deleted_node->ResetTriangle();
-  if (search_node_ == deleted_node) { search_node_ = *node; }
+  if (search_node_ == deleted_node) { search_node_ = prev_node; }
+  assert(prev_node);
+  return prev_node;
 }
 
 std::ostream& operator<<(std::ostream& out, const AdvancingFront& front)
