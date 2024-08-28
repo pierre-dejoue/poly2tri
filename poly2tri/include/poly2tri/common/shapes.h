@@ -35,6 +35,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -60,6 +61,8 @@ public:
 
   /// Constructor
   Triangle(const Point* a, const Point* b, const Point* c);
+
+  void Reset(const Point* a, const Point* b, const Point* c);
 
   const Point* GetPoint(int index) const;
   const Point* PointCW(const Point* point);
@@ -107,8 +110,16 @@ public:
 
   void ClearDelaunayEdges();
 
-  inline bool IsInterior() const;
-  inline void IsInterior(bool b);
+  using State_t = std::uint8_t;
+  struct State {
+    static constexpr State_t Normal    = 0;
+    static constexpr State_t Interior  = 1;           // Used with Policy::OuterPolygon to indicate the triangle is part of the finalized CDT
+    static constexpr State_t Discarded = 2;           // Removed from the triangulation. Can be reused.
+  };
+
+  inline State_t GetState() const;
+  inline void SetInterior();
+  inline void Discard();
 
   bool CircumcircleContains(const Point&) const;
 
@@ -134,9 +145,8 @@ private:
   /// Flags to determine if an edge is a Delaunay edge
   bool delaunay_edge_[3];
 
-  /// Has this triangle been marked as an interior triangle, meaning a triangle that belongs to the finalized CDT
-  bool interior_;
-
+  /// State
+  State_t state_;
 };
 
 /**
@@ -184,14 +194,20 @@ inline bool Triangle::Contains(const Point* p, const Point* q)
   return Contains(p) && Contains(q);
 }
 
-inline bool Triangle::IsInterior() const
+inline Triangle::State_t Triangle::GetState() const
 {
-  return interior_;
+  return state_;
 }
 
-inline void Triangle::IsInterior(bool b)
+inline void Triangle::SetInterior()
 {
-  interior_ = b;
+  assert(state_ != State::Discarded);
+  state_ = State::Interior;
+}
+
+inline void Triangle::Discard()
+{
+  state_ = State::Discarded;
 }
 
 }

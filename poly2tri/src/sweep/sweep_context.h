@@ -30,6 +30,7 @@
 #pragma once
 
 #include <poly2tri/common/point.h>
+#include <poly2tri/common/shapes.h>
 
 #include <cassert>
 #include <cstddef>
@@ -42,7 +43,6 @@ namespace p2t {
 // PointSet width to both left and right.
 constexpr double kAlpha = 0.3;
 
-class Triangle;
 struct Node;
 struct Edge;
 
@@ -73,13 +73,15 @@ public:
 
   const Point* tail() const;
 
-  Triangle* AddTriangleToMap(const Point* a, const Point* b, const Point* c);
+  Triangle* AddTriangle(const Point* a, const Point* b, const Point* c);
+
+  void DiscardTriangle(Triangle& t);
 
   const Point* GetPoint(size_t index);
 
   const std::vector<Edge>& GetUpperEdges(size_t index) const;
 
-  std::size_t MeshCleanExteriorTriangles();
+  void PopulateTriangleMap(Triangle::State_t filter);
 
   const std::vector<SweepPoint>& GetPoints() const;
 
@@ -90,6 +92,8 @@ public:
   void InitTriangulation();
 
   std::size_t TriangleStorageFootprint() const;
+
+  std::size_t TriangleStorageNbOfCreatedTriangles() const;
 
 private:
 

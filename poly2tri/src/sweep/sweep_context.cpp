@@ -37,6 +37,7 @@
 #include <exception>
 #include <iterator>
 #include <numeric>
+#include <stack>
 #include <stdexcept>
 
 
@@ -47,7 +48,7 @@ public:
   TriangleStorage(std::size_t nb_points)
   {
     //
-    // Geometry tells us that the triangulation of a planer point set P of size n,
+    // Geometry tells us that the triangulation of a planar point set P of size n,
     // where k denotes the number of points in P that lie on the boundary of the
     // convex hull of P, has 2n−2−k triangles.
     // Assuming k is at least 3 in our use case we can evaluate the maximum
@@ -63,35 +64,47 @@ public:
     return triangles_.capacity() * sizeof(Triangle);
   }
 
+  std::size_t CreatedTriangles() const
+  {
+    return triangles_.size();
+  }
+
   Triangle* NewTriangle(const Point* a, const Point* b, const Point* c)
   {
-    Triangle* result = nullptr;
-    if (!discarded_triangles_.empty()) {
-      // Re-use a discarded triangle
-      result = discarded_triangles_.back();
-      discarded_triangles_.pop_back();
-      *result = Triangle(a, b, c);
-    } else {
+    if (discarded_triangles_.empty()) {
       // Initialize a Triangle from the storage (it was pre-allocated)
       assert(triangles_.capacity() >= max_triangles_);
       if (triangles_.size() >= max_triangles_) {
         throw std::runtime_error("TriangleStorage: Out of memory capacity");
       }
-      result = &triangles_.emplace_back(a, b, c);
+      return &triangles_.emplace_back(a, b, c);
+    } else {
+      // Re-use a discarded triangle
+      Triangle* t = discarded_triangles_.top();
+      discarded_triangles_.pop();
+      t->Reset(a, b, c);
+      return t;
     }
-    assert(result != nullptr);
-    return result;
   }
 
-  void DeleteTriangle(Triangle* t)
+  void DeleteTriangle(Triangle& t)
   {
-    discarded_triangles_.push_back(t);
+    t.Discard();
+    discarded_triangles_.push(&t);
+  }
+
+  template <typename F>
+  void TraverseTriangles(F f)
+  {
+    for (Triangle& t: triangles_) {
+      f(t);
+    }
   }
 
 private:
   std::size_t max_triangles_;
   std::vector<Triangle> triangles_;
-  std::vector<Triangle*> discarded_triangles_;
+  std::stack<Triangle*> discarded_triangles_;
 };
 
 SweepContext::SweepContext() = default;
@@ -215,6 +228,11 @@ std::size_t SweepContext::TriangleStorageFootprint() const
   return triangle_storage_ ? triangle_storage_->MemoryFootprint() : 0u;
 }
 
+std::size_t SweepContext::TriangleStorageNbOfCreatedTriangles() const
+{
+  return triangle_storage_ ? triangle_storage_->CreatedTriangles() : 0u;
+}
+
 void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_points, bool closed)
 {
   if (num_points == 0) {
@@ -249,28 +267,34 @@ void SweepContext::AllocateTriangleBuffer()
   triangle_storage_ = std::make_unique<TriangleStorage>(nb_points);
 }
 
-Triangle* SweepContext::AddTriangleToMap(const Point* a, const Point* b, const Point* c)
+Triangle* SweepContext::AddTriangle(const Point* a, const Point* b, const Point* c)
 {
   assert(triangle_storage_);
-  Triangle* new_triangle = triangle_storage_->NewTriangle(a, b, c);
-  map_.emplace_back(new_triangle);
-  return new_triangle;
+  return triangle_storage_->NewTriangle(a, b, c);
 }
 
-std::size_t SweepContext::MeshCleanExteriorTriangles()
+void SweepContext::DiscardTriangle(Triangle& t)
 {
   assert(triangle_storage_);
-  const auto last_it = std::remove_if(std::begin(map_), std::end(map_), [this](auto& t) {
-    if (!t->IsInterior()) {
-      t->ClearNeighbors();    // To clear the reciprocate neighbor link
-      triangle_storage_->DeleteTriangle(t);
-      return true;
-    }
-    return false;
-  });
-  const auto erased = static_cast<std::size_t>(std::distance(last_it, std::end(map_)));
-  map_.erase(last_it, std::end(map_));
-  return erased;
+  t.ClearNeighbors();
+  return triangle_storage_->DeleteTriangle(t);
 }
+
+void SweepContext::PopulateTriangleMap(Triangle::State_t filter)
+{
+  assert(triangle_storage_);
+  assert(map_.empty());
+  const std::size_t nb_triangles = triangle_storage_->CreatedTriangles();     // Interior + Exterior ones
+  map_.reserve(nb_triangles);
+  triangle_storage_->TraverseTriangles([this, filter](Triangle& t) {
+    if (t.GetState() == filter) {
+      map_.emplace_back(&t);
+    } else {
+      t.ClearNeighbors();    // To clear the reciprocate neighbor links
+    }
+  });
+  assert(map_.size() <= nb_triangles);
+}
+
 
 } // namespace p2t

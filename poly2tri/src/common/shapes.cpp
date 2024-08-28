@@ -53,6 +53,18 @@ Edge::Edge(const Point* p1, const Point* p2) : p(p1), q(p2)
 }
 
 Triangle::Triangle(const Point* a, const Point* b, const Point* c)
+  : points_{ a, b, c }
+  , nodes_ { nullptr, nullptr, nullptr }
+  , neighbors_{ nullptr, nullptr, nullptr }
+  , constrained_edge_{ false, false, false }
+  , delaunay_edge_{ false, false, false }
+  , state_{ State::Normal }
+{
+  assert(a); assert(b); assert(c);
+  assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
+}
+
+void Triangle::Reset(const Point* a, const Point* b, const Point* c)
 {
   assert(a); assert(b); assert(c);
   points_[0] = a; points_[1] = b; points_[2] = c;
@@ -60,7 +72,7 @@ Triangle::Triangle(const Point* a, const Point* b, const Point* c)
   neighbors_[0] = nullptr; neighbors_[1] = nullptr; neighbors_[2] = nullptr;
   constrained_edge_[0] = constrained_edge_[1] = constrained_edge_[2] = false;
   delaunay_edge_[0] = delaunay_edge_[1] = delaunay_edge_[2] = false;
-  interior_ = false;
+  state_ = State::Normal;
   assert(Orient2d(*points_[0], *points_[1], *points_[2]) != Orientation::CW);
 }
 

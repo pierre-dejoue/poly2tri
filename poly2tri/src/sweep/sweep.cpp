@@ -159,7 +159,7 @@ void Sweep::Triangulate(Policy policy)
   CreateAdvancingFront();
   SweepPoints();
 
-  info_.nb_triangles_pre_finalization = static_cast<unsigned int>(tcx_.map_.size());
+  info_.nb_triangles_pre_finalization = static_cast<unsigned int>(tcx_.TriangleStorageNbOfCreatedTriangles());
 
   // Finalize the triangulation
   switch (policy)
@@ -174,7 +174,7 @@ void Sweep::Triangulate(Policy policy)
       break;
   }
 
-  info_.nb_output_triangles = static_cast<unsigned int>(tcx_.map_.size());
+  info_.nb_output_triangles = static_cast<unsigned int>(tcx_.GetTriangles().size());
 }
 
 AdvancingFront* Sweep::CreateAdvancingFront()
@@ -182,7 +182,7 @@ AdvancingFront* Sweep::CreateAdvancingFront()
   // Initial triangle
   assert(tcx_.points_.size() > 0);
   const Point* lowest_point = tcx_.GetPoint(0);
-  Triangle* triangle = tcx_.AddTriangleToMap(lowest_point, tcx_.head(), tcx_.tail());
+  Triangle* triangle = tcx_.AddTriangle(lowest_point, tcx_.head(), tcx_.tail());
 
   Node* af_head = NewNode(tcx_.head(), triangle);
   Node* af_middle = NewNode(lowest_point, triangle);
@@ -261,14 +261,14 @@ namespace {
       Triangle* t = triangle_stack.back();
       triangle_stack.pop_back();
       assert(t);
-      if (t->IsInterior()) {
+      if (t->GetState() == Triangle::State::Interior) {
         continue;
       }
-      t->IsInterior(true);
+      t->SetInterior();
       for (int i = 0; i < 3; i++) {
         if (!t->IsConstrainedEdge(i)) {
           auto* nt = t->GetNeighbor(i);
-          if (nt && !nt->IsInterior()) {
+          if (nt && nt->GetState() == Triangle::State::Normal) {
             triangle_stack.emplace_back(nt);
           }
         }
@@ -310,15 +310,14 @@ void Sweep::FinalizationConvexHull()
   auto* back_front = MeshClearBackFrontTriangles(tail_triangle);
   assert(back_front);
 
-  // Remove exterior triangles from the mesh
-  const auto erased_ext = tcx_.MeshCleanExteriorTriangles();
-  TRACE_OUT << "FinalizationConvexHull - cleared exterior triangles: " << erased_ext << std::endl;
-
   // Add the bordering triangles to form the convex hull of the back front
   TRACE_OUT << "FinalizationConvexHull -\n"
             << "  back_front=" << *back_front << std::endl;
   ConvexHullFillOfFront(*back_front);
   DeleteFront();
+
+  // The final triangulation is made of all the non-discarded Triangles
+  tcx_.PopulateTriangleMap(Triangle::State::Normal);
 }
 
 void Sweep::FinalizationOuterPolygon()
@@ -336,9 +335,8 @@ void Sweep::FinalizationOuterPolygon()
   // Delete the advancing front and release the nodes
   DeleteFront();
 
-  // Remove exterior triangles from the mesh
-  const auto erased_ext = tcx_.MeshCleanExteriorTriangles();
-  TRACE_OUT << "FinalizationOuterPolygon - cleared exterior triangles: " << erased_ext << std::endl;
+  // Filter out the external Triangle to get the triangulation
+  tcx_.PopulateTriangleMap(Triangle::State::Interior);
 }
 
 BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
@@ -349,12 +347,16 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
   Node* const tl = back_front->tail();
   Node* node = hd;
 
-  // Mark "interior" all triangles
-  for (auto& tri : tcx_.map_) { tri->IsInterior(true); }
+  Node* triangles_to_discard = nullptr;
 
-  // Mark "exterior" the triangles of the back front and simultaneously build the back front linked list.
-  TraverseBackTriangles(tcx_.head(), tcx_.tail(), tail_triangle, [this, &node](Triangle* tri, int pivot, bool mid, bool last) {
-    tri->IsInterior(false);
+  // Mark "to_discard" the triangles attached with the head and tail artificial points and simultaneously build the back front linked list.
+  TraverseBackTriangles(tcx_.head(), tcx_.tail(), tail_triangle, [this, &node, &triangles_to_discard](Triangle* tri, int pivot, bool mid, bool last) {
+    // Mark current triangle "to be discarded"
+    Node* discard_node = node_storage_->NewNode();
+    discard_node->triangle = tri;
+    discard_node->next = triangles_to_discard;
+    triangles_to_discard = discard_node;
+    // Build the back front
     if (mid && !last)
       return;
     const Point* p = tri->PointCCW(tri->GetPoint(pivot));
@@ -380,11 +382,21 @@ BackFront* Sweep::MeshClearBackFrontTriangles(Triangle* tail_triangle)
   node->next = tl;
   tl->prev = node;
 
-  // Ensure that all the node triangles are interior ones
+  // Discard the back triangles
+  while (triangles_to_discard) {
+    assert(triangles_to_discard->triangle);
+    tcx_.DiscardTriangle(*triangles_to_discard->triangle);
+    triangles_to_discard->triangle = nullptr;
+    Node* delete_me = triangles_to_discard;
+    triangles_to_discard = triangles_to_discard->next;
+    node_storage_->DiscardNode(delete_me);
+  }
+
+  // Ensure that all the node triangles in the back front are normal ones
   node = hd;
   while (node != nullptr && node != tl)
   {
-    if (node->triangle && !node->triangle->IsInterior()) {
+    if (node->triangle && node->triangle->GetState() == Triangle::State::Discarded) {
       node->ResetTriangle();
     }
     node = node->next;
@@ -530,7 +542,7 @@ void Sweep::EdgeEvent(const Point* ep, const Point* eq, Triangle* triangle, cons
 
 Node& Sweep::NewFrontTriangle(const Point* point, Node& node)
 {
-  Triangle* triangle = tcx_.AddTriangleToMap(point, node.point, node.next->point);
+  Triangle* triangle = tcx_.AddTriangle(point, node.point, node.next->point);
 
   TRACE_OUT << "NewFrontTriangle - triangle=" << *triangle << std::endl;
 
@@ -559,7 +571,7 @@ void Sweep::Fill(Node** node)
 {
   assert(node); assert(*node);
   Node* filled_node = *node;
-  Triangle* triangle = tcx_.AddTriangleToMap(filled_node->prev->point, filled_node->point, filled_node->next->point);
+  Triangle* triangle = tcx_.AddTriangle(filled_node->prev->point, filled_node->point, filled_node->next->point);
 
   TRACE_OUT << "Fill - triangle=" << *triangle << std::endl;
 

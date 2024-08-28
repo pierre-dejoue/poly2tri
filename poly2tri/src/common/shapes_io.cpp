@@ -48,6 +48,27 @@ std::ostream& operator<<(std::ostream& out, const Triangle& t)
   return out << "{ a=" << *t.GetPoint(0) << ", b=" << *t.GetPoint(1) << ", c=" << *t.GetPoint(2) << " }";
 }
 
+std::ostream& operator<<(std::ostream& out, Triangle::State_t state)
+{
+  switch(state)
+  {
+    case Triangle::State::Normal:
+      out << "Normal";
+      break;
+    case Triangle::State::Interior:
+      out << "interior";
+      break;
+    case Triangle::State::Discarded:
+      out << "Discarded";
+      break;
+    default:
+      assert(0);
+      out << "Unknown enum";
+      break;
+  }
+  return out;
+}
+
 std::ostream& operator<<(std::ostream& out, Orientation o)
 {
   switch (o)

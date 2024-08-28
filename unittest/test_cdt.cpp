@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(BasicTest)
   BOOST_CHECK_EQUAL(*t.GetPoint(0), *polyline[0]);
   BOOST_CHECK_EQUAL(*t.GetPoint(1), *polyline[1]);
   BOOST_CHECK_EQUAL(*t.GetPoint(2), *polyline[2]);
-  BOOST_CHECK(t.IsInterior());
+  BOOST_CHECK(t.GetState() != p2t::Triangle::State::Discarded);
 }
 
 BOOST_AUTO_TEST_CASE(EdgeCases_EmptyInput)

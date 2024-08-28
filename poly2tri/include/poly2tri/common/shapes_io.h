@@ -40,6 +40,7 @@ namespace p2t {
   P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Point&);
   P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Edge&);
   P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, const Triangle&);
+  P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Triangle::State_t);
   P2T_DLL_SYMBOL std::ostream& operator<<(std::ostream&, Orientation);
 
 }

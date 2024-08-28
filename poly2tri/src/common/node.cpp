@@ -38,10 +38,7 @@ std::ostream& operator<<(std::ostream& out, const Node& node)
 {
   out << "{ point=" << *node.point << "; triangle=";
   if (node.triangle) {
-    out << *node.triangle;
-    if (!node.triangle->IsInterior()) {
-       out << "; EXTERIOR";
-    }
+    out << *node.triangle << "; " << node.triangle->GetState();
   } else {
     out << "NULL";
   }
