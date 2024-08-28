@@ -41,8 +41,8 @@
 #include <poly2tri/sweep/policy.h>
 
 #include <memory>
+#include <stack>
 #include <string_view>
-#include <vector>
 
 namespace p2t {
 
@@ -277,7 +277,7 @@ private:
 
   std::unique_ptr<EdgeEventData> edge_event_;
 
-  std::vector<PendingLegalization> legalize_stack_;
+  std::stack<PendingLegalization> legalize_stack_;
 
   CDT::Info& info_;
 

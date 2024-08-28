@@ -55,6 +55,8 @@ Sweep::Sweep(SweepContext& tcx, CDT::Info& info) :
 {
 }
 
+Sweep::~Sweep() = default;
+
 // Triangulate simple polygon with holes
 void Sweep::Triangulate(Policy policy)
 {
@@ -600,7 +602,7 @@ void Sweep::FillAdvancingFront(Node& n)
 
 void Sweep::LegalizePush(Triangle& triangle)
 {
-  legalize_stack_.emplace_back(&triangle, 0u);
+  legalize_stack_.emplace(&triangle, 0u);
 }
 
 void Sweep::Legalize() {
@@ -614,8 +616,8 @@ void Sweep::Legalize() {
       // bounded by the Catalan numbers, which grows exponentially.
       HandleError("Legalize - Potential infinite loop was catched in Legalize");
     }
-    const PendingLegalization legalize = legalize_stack_.back();
-    legalize_stack_.pop_back();
+    const PendingLegalization legalize = legalize_stack_.top();
+    legalize_stack_.pop();
     info_.max_legalize_depth = std::max(info_.max_legalize_depth, legalize.depth);
     Triangle* t = legalize.triangle;
 
@@ -649,8 +651,8 @@ void Sweep::Legalize() {
 
           // We now got one valid Delaunay Edge shared by two triangles
           // This gives us 4 new edges to check for Delaunay: This function is called recursively
-          legalize_stack_.emplace_back(t, legalize.depth + 1);
-          legalize_stack_.emplace_back(ot, legalize.depth + 1);
+          legalize_stack_.emplace(t, legalize.depth + 1);
+          legalize_stack_.emplace(ot, legalize.depth + 1);
 
           // If triangle have been legalized no need to check the other edges since
           // the recursive legalization will handle those so we can end here
@@ -1034,7 +1036,7 @@ void Sweep::FlipScanEdgeEvent(const Point* ep, const Point* eq, Triangle& flip_t
 void Sweep::HandleError(std::string_view msg)
 {
   DeleteFront();
-  legalize_stack_.clear();
+  while (!legalize_stack_.empty()) { legalize_stack_.pop(); }
   throw std::runtime_error(msg.data());
 }
 
@@ -1050,11 +1052,6 @@ Node* Sweep::NewNode(const Point* p, Triangle* t)
   }
   if (t) { t->SetNode(*new_node); }
   return new_node;
-}
-
-Sweep::~Sweep()
-{
-  assert(legalize_stack_.empty());
 }
 
 } // namespace p2t
