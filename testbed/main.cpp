@@ -266,6 +266,12 @@ bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std:
         if (tokens[0] == "#") {   // A comment
           continue;
         }
+        if (tokens[0] == "POINT_CLOUD") {
+          continue;
+        }
+        if (tokens[0] == "POINT_PATH") {
+          continue;
+        }
         if (tokens.size() == 1u) {
           const auto token = tokens[0];
           if (token == "HOLE") {
@@ -277,7 +283,7 @@ bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std:
           } else {
             throw std::runtime_error("Invalid token [" + token + "]");
           }
-        } else {
+        } else if (tokens.size() == 2u) {
           double x = StringToDouble(tokens[0]);
           double y = StringToDouble(tokens[1]);
           switch (state) {
