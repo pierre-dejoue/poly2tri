@@ -261,8 +261,12 @@ bool ParseFile(std::string filename, std::vector<p2t::Point>& out_polyline, std:
         std::vector<std::string> tokens;
         copy(std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>(), std::back_inserter(tokens));
         if (tokens.empty()) {
-          break;
-        } else if (tokens.size() == 1u) {
+          continue;
+        }
+        if (tokens[0] == "#") {   // A comment
+          continue;
+        }
+        if (tokens.size() == 1u) {
           const auto token = tokens[0];
           if (token == "HOLE") {
             state = Hole;
