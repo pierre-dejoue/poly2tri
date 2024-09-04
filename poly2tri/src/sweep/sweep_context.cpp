@@ -31,7 +31,10 @@
 
 #include <poly2tri/common/shapes.h>
 
+#include "../common/node.h"
+
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <exception>
@@ -107,9 +110,117 @@ private:
   std::stack<Triangle*> discarded_triangles_;
 };
 
-SweepContext::SweepContext() = default;
+class NodeStorage {
+public:
+  NodeStorage() :
+    capacity{0},
+    next_batch_sz{FIRST_BATCH_SZ},
+    next_batch_idx{0},
+    available_nodes{nullptr},
+    node_buffers{}
+  {
+    // Memory is allocated in successive batches to ensure the next/prev pointers of the Nodes remain valid.
+    // The size of the batches follow a geometric progression starting with a first allocation of FIRST_BATCH_SZ (256) Nodes.
+    //
+    //      Batch_sz   Total_capacity      Mem_footprint
+    //      256        256                 10 kB
+    //      256        512                 20 kB
+    //      512        1024                40 kB
+    //      1024       2048                80 kB
+    //      ...        ...                 ...
+    //
+    PrepareNextBatchOfNodes(FIRST_BATCH_SZ);
+  }
 
-SweepContext::~SweepContext() = default;
+  Node* NewNode()
+  {
+    if (!available_nodes) {
+      PrepareNextBatchOfNodes(next_batch_sz);
+      next_batch_sz = 2 * next_batch_sz;
+    }
+    assert(available_nodes);
+    Node* new_node = available_nodes;
+    available_nodes = new_node->next;
+    new_node->next = nullptr;
+    new_node->prev = nullptr;
+    return new_node;
+  }
+
+  void DiscardNode(Node* node)
+  {
+    assert(node);
+    node->next = available_nodes;
+    available_nodes = node;
+  }
+
+  // Storage total capacity in number of Nodes
+  std::size_t Capacity() const
+  {
+    return capacity;
+  }
+
+  // Nb of available nodes
+  std::size_t ComputeNbOfAvailableNodes() const
+  {
+    Node* node_ptr = available_nodes;
+    std::size_t count = 0;
+    while (node_ptr)
+    {
+      count++;
+      node_ptr = node_ptr->next;
+    }
+    return count;
+  }
+
+  // Nodes memory footprint in bytes
+  std::size_t MemoryFootprint() const
+  {
+    return capacity * sizeof(Node);
+  }
+
+private:
+  static constexpr std::size_t FIRST_BATCH_SZ = 256u;
+
+  void PrepareNextBatchOfNodes(std::size_t batch_sz)
+  {
+    assert(available_nodes == nullptr);
+    if (next_batch_idx >= node_buffers.size())
+    {
+       throw std::runtime_error("NodeStorage: Out of memory capacity");
+    }
+    assert(!node_buffers[next_batch_idx]);
+    node_buffers[next_batch_idx] = std::unique_ptr<Node[]>(new Node[batch_sz]);
+    Node* new_node = node_buffers[next_batch_idx++].get();
+    std::size_t count = batch_sz;
+    Node** node_pptr = &available_nodes;
+    while (count--) {
+      *node_pptr = new_node;
+      node_pptr = &(new_node->next);
+      new_node++;
+    }
+    capacity += batch_sz;
+    assert(available_nodes != nullptr);
+  }
+
+private:
+  std::size_t capacity;
+  std::size_t next_batch_sz;
+  std::size_t next_batch_idx;
+
+  // Linked list of available nodes. Discarded nodes are put back in the list and can be reused.
+  Node* available_nodes;
+
+  std::array<std::unique_ptr<Node[]>, 32> node_buffers;
+};
+
+SweepContext::SweepContext()
+{
+  node_storage_ = std::make_unique<NodeStorage>();
+}
+
+SweepContext::~SweepContext()
+{
+}
 
 template <typename GenPointPtr>
 void SweepContext::AddPolylineGen(GenPointPtr generator, std::size_t num_points, bool closed)
@@ -191,6 +302,9 @@ void SweepContext::InitTriangulation()
   map_.clear();
   triangle_storage_.reset();
 
+  assert(node_storage_);
+  assert(node_storage_->Capacity() == node_storage_->ComputeNbOfAvailableNodes());
+
   assert(!points_.empty());
   double xmax(points_[0].p->x), xmin(points_[0].p->x);
   double ymax(points_[0].p->y), ymin(points_[0].p->y);
@@ -269,6 +383,7 @@ void SweepContext::AllocateTriangleBuffer()
 
 Triangle* SweepContext::AddTriangle(const Point* a, const Point* b, const Point* c)
 {
+  assert(a); assert(b); assert(c);
   assert(triangle_storage_);
   return triangle_storage_->NewTriangle(a, b, c);
 }
@@ -278,6 +393,38 @@ void SweepContext::DiscardTriangle(Triangle& t)
   assert(triangle_storage_);
   t.ClearNeighbors();
   return triangle_storage_->DeleteTriangle(t);
+}
+
+Node* SweepContext::AddEmptyNode()
+{
+  assert(node_storage_);
+  Node* new_node = node_storage_->NewNode();
+  new_node->point = nullptr;
+  new_node->triangle = nullptr;
+  return new_node;
+}
+
+Node* SweepContext::AddNode(const Point* p, Triangle* t)
+{
+  assert(p);
+  assert(node_storage_);
+  Node* new_node = node_storage_->NewNode();
+  *new_node = Node(p, t);
+  if (t) { t->SetNode(*new_node); }
+  return new_node;
+}
+
+void SweepContext::DiscardNode(Node* node)
+{
+  assert(node);
+  assert(node_storage_);
+  node_storage_->DiscardNode(node);
+}
+
+std::size_t SweepContext::NodeMemoryFootprint() const
+{
+  assert(node_storage_);
+  return node_storage_->MemoryFootprint();
 }
 
 void SweepContext::PopulateTriangleMap(Triangle::State_t filter)

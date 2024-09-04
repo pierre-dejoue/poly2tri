@@ -45,7 +45,8 @@ namespace {
 }
 
 CDT::CDT() :
-  sweep_context_(std::make_unique<SweepContext>())
+  sweep_context_(std::make_unique<SweepContext>()),
+  info_{}
 {
 }
 

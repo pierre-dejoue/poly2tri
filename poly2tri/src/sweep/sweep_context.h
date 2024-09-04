@@ -47,6 +47,7 @@ struct Node;
 struct Edge;
 
 class TriangleStorage;
+class NodeStorage;
 struct SweepPoint;
 
 class SweepContext {
@@ -76,6 +77,14 @@ public:
   Triangle* AddTriangle(const Point* a, const Point* b, const Point* c);
 
   void DiscardTriangle(Triangle& t);
+
+  Node* AddEmptyNode();
+
+  Node* AddNode(const Point* p, Triangle* t = nullptr);
+
+  void DiscardNode(Node* node);
+
+  std::size_t NodeMemoryFootprint() const;
 
   const Point* GetPoint(size_t index);
 
@@ -113,6 +122,9 @@ private:
 
   // Triangle storage
   std::unique_ptr<TriangleStorage> triangle_storage_;
+
+  // Node storage
+  std::unique_ptr<NodeStorage> node_storage_;
 
   // The map of all triangles that are part of the triangulation
   std::vector<Triangle*> map_;

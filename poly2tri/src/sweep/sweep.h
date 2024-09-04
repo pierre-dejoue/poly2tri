@@ -41,7 +41,6 @@
 #include <poly2tri/sweep/cdt.h>
 #include <poly2tri/sweep/policy.h>
 
-#include <memory>
 #include <optional>
 #include <stack>
 #include <string_view>
@@ -263,18 +262,11 @@ private:
 
   void HandleError(std::string_view msg);
 
-  Node* NewNode(const Point* p, Triangle* t = nullptr);
-
-  void FreeNode(Node* node);
-
   // Sweep context
   SweepContext& tcx_;
 
   // Advancing front. Also used for the back front in the finalization phase.
   std::optional<AdvancingFront> front_;
-
-  // Node storage
-  std::unique_ptr<NodeStorage> node_storage_;
 
   std::optional<EdgeEventData> edge_event_;
 
