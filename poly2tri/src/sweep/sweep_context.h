@@ -94,6 +94,8 @@ public:
   void AddPoints(const Point* const* points, std::size_t num_points);
   void AddPoints(const Point* points, std::size_t num_points, std::size_t stride = 0);
 
+  void ClearInput();
+
   inline const Point* head() const { return &head_; }
 
   inline const Point* tail() const { return &tail_; }

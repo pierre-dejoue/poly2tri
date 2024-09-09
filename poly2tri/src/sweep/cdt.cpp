@@ -127,6 +127,11 @@ void CDT::AddPoints(const Point* polyline, std::size_t num_points, std::size_t s
   sweep_context_->AddPoints(polyline, num_points, stride);
 }
 
+void CDT::ClearInput()
+{
+  sweep_context_->ClearInput();
+}
+
 void CDT::Triangulate(Policy triangulation_policy)
 {
   SweepContext& tcx = *sweep_context_;

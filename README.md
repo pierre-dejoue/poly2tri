@@ -66,6 +66,7 @@ Compared to the forked [repository](https://github.com/jhasse/poly2tri).
 - Add CDT::AddOpenPolyline(...)
 - Neighbor triangles in the triangulation result are now consistent (no links to triangles exterior to the CDT)
 - Add CDT::LastTriangulationInfo()
+- Add CDT::ClearInput()
 
 Dependencies
 ------------

@@ -128,6 +128,11 @@ public:
   void AddPoints(const Point* points, std::size_t num_points, std::size_t stride = 0u);
 
   /**
+   * Clear all input points and polylines
+   */
+  void ClearInput();
+
+  /**
    * Triangulate - do this AFTER you've added the polyline, holes, and Steiner points
    */
   void Triangulate(Policy triangulation_policy = Policy::OuterPolygon);

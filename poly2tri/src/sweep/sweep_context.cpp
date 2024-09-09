@@ -274,6 +274,12 @@ void SweepContext::AddPoints(const Point* points, std::size_t num_points, std::s
   AddPointsGen([&mem_ptr, stride]() { auto p = reinterpret_cast<const Point*>(mem_ptr); mem_ptr += stride; return p; }, num_points);
 }
 
+void SweepContext::ClearInput()
+{
+  points_.clear();
+  constrained_edges_.clear();
+}
+
 const std::vector<SweepPoint>& SweepContext::GetPoints() const
 {
   return points_;
