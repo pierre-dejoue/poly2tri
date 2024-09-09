@@ -70,9 +70,9 @@ public:
   void AddPoints(const Point* const* points, std::size_t num_points);
   void AddPoints(const Point* points, std::size_t num_points, std::size_t stride = 0);
 
-  const Point* head() const;
+  inline const Point* head() const { return &head_; }
 
-  const Point* tail() const;
+  inline const Point* tail() const { return &tail_; }
 
   Triangle* AddTriangle(const Point* a, const Point* b, const Point* c);
 
@@ -141,28 +141,13 @@ struct SweepPoint
   SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
   SweepPoint(const SweepPoint&) = delete;
   SweepPoint& operator=(const SweepPoint&) = delete;
-  SweepPoint(SweepPoint&&) = default;
-  SweepPoint& operator=(SweepPoint&&) = default;
+  SweepPoint(SweepPoint&&) noexcept = default;
+  SweepPoint& operator=(SweepPoint&&) noexcept = default;
 
-  static bool cmp(const SweepPoint& a, const SweepPoint& b);
+  static inline bool cmp(const SweepPoint& a, const SweepPoint& b) { return p2t::cmp(a.p, b.p); }
 
   const Point* p;
-  std::vector<Edge> edges;    // List of edges for which this point is the upper endpoint
+  std::vector<Edge> edges;    // List of constrained edges for which this point is the upper endpoint (max: 2)
 };
-
-
-//
-// Implementations
-//
-
-inline const Point* SweepContext::head() const
-{
-  return &head_;
-}
-
-inline const Point* SweepContext::tail() const
-{
-  return &tail_;
-}
 
 }

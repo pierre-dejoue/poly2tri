@@ -291,11 +291,6 @@ const std::vector<Triangle*>& SweepContext::GetTriangles() const
   return map_;
 }
 
-bool SweepPoint::cmp(const SweepPoint& a, const SweepPoint& b)
-{
-  return p2t::cmp(a.p, b.p);
-}
-
 void SweepContext::InitTriangulation()
 {
   // Clear any previous triangulation
