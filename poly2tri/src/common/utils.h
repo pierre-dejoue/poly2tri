@@ -35,6 +35,7 @@
 #include <poly2tri/common/shapes.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 
 // C99 removes M_PI from math.h
@@ -53,6 +54,42 @@ constexpr double LEFT_DIRECTION = -1.0;
 constexpr double RIGHT_DIRECTION = 1.0;
 
 /**
+ * Memory allocations
+ *
+ * Memory doubling is more suited if the CDT object is used many times with varying input size.
+ * The default std::vector<T>::reserve() behavior will produce a smaller memory footprint in general.
+ */
+#ifndef P2T_POLICY_MEMORY_DOUBLING
+#define P2T_POLICY_MEMORY_DOUBLING 1
+#endif
+
+#if P2T_POLICY_MEMORY_DOUBLING
+inline std::size_t NextPowerOfTwo(std::size_t n) noexcept
+{
+  static_assert(sizeof(std::size_t) == 4 || sizeof(std::size_t) == 8);
+  n--;
+  n |= n >> 1;
+  n |= n >> 2;
+  n |= n >> 4;
+  n |= n >> 8;
+  n |= n >> 16;
+  if constexpr (sizeof(std::size_t) == 8) { n |= n >> 32; }
+  return ++n;
+}
+#endif
+
+inline std::size_t VectorReservePolicy(std::size_t capacity_request) noexcept
+{
+#if P2T_POLICY_MEMORY_DOUBLING
+  return NextPowerOfTwo(capacity_request);
+#else
+  return capacity_request;
+#endif
+}
+
+/**
+ * InScanArea
+ *
  * <b>Determines if semi-line ad intersects triangle abc</b><br>
  * Corner case: if d is collinear with a and b, or a and c, then return false
  */
@@ -70,6 +107,9 @@ inline bool InScanArea(const Point& pa, const Point& pb, const Point& pc, const 
   return true;
 }
 
+/**
+ * Determines the angle quadrant
+ */
 class Angle {
 public:
   // Quadrants: ONE = [0, PI/2), TWO = [PI/2, PI), THREE = [PI, 3*PI/2), FOUR = [3*PI/2, 2*PI)

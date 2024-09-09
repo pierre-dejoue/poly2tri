@@ -32,6 +32,7 @@
 #include <poly2tri/common/shapes.h>
 
 #include "../common/node.h"
+#include "../common/utils.h"
 
 #include <algorithm>
 #include <array>
@@ -70,7 +71,7 @@ public:
     assert(nb_points >= 3);
     const std::size_t max_triangles = 2 * nb_points - 5;
     if (max_triangles > max_capacity_) {
-      triangles_.reserve(max_triangles);
+      triangles_.reserve(VectorReservePolicy(max_triangles));
       max_capacity_ = triangles_.capacity();
     }
   }
@@ -253,7 +254,7 @@ void SweepContext::AddPolylineGen(GenPointPtr generator, std::size_t num_points,
     throw std::invalid_argument("An open polyline must have at least 2 vertices");
   }
   const std::size_t begin_index = points_.size();
-  points_.reserve(begin_index + num_points);
+  points_.reserve(VectorReservePolicy(begin_index + num_points));
   std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
   InitEdges(begin_index, num_points, closed);
 }
@@ -262,7 +263,7 @@ template <typename GenPointPtr>
 void SweepContext::AddPointsGen(GenPointPtr generator, std::size_t num_points)
 {
   const std::size_t begin_index = points_.size();
-  points_.reserve(begin_index + num_points);
+  points_.reserve(VectorReservePolicy(begin_index + num_points));
   std::generate_n(std::back_inserter(points_), num_points, [&generator]() { return SweepPoint(generator()); });
 }
 
@@ -319,7 +320,7 @@ void SweepContext::InitTriangulation()
   // Reset the triangle buffer
   AllocateTriangleBuffer();
 
-  // Assert all Nodes are available
+  // Assert that all the Nodes are available
   assert(node_storage_);
   assert(node_storage_->Capacity() == node_storage_->ComputeNbOfAvailableNodes());
 
@@ -371,7 +372,7 @@ void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_p
   const std::size_t end   = polyline_begin_index + num_points;
   const std::size_t last  = end - (closed ? 0 : 1);
   assert(end <= points_.size());
-  constrained_edges_.reserve(constrained_edges_.size() + num_points);
+  constrained_edges_.reserve(VectorReservePolicy(constrained_edges_.size() + num_points));
   for (std::size_t i = begin; i < last; i++) {
     const std::size_t j = i < (end - 1) ? i + 1 : begin;
     const std::uint32_t edge_idx = static_cast<std::uint32_t>(constrained_edges_.size());
@@ -465,7 +466,7 @@ void SweepContext::PopulateTriangleMap(Triangle::State_t filter)
   assert(triangle_storage_);
   assert(map_.empty());
   const std::size_t nb_triangles = triangle_storage_->CreatedTriangles();     // Interior + Exterior ones
-  map_.reserve(nb_triangles);
+  map_.reserve(VectorReservePolicy(nb_triangles));
   triangle_storage_->TraverseTriangles([this, filter](Triangle& t) {
     if (t.GetState() == filter) {
       map_.emplace_back(&t);
