@@ -48,8 +48,18 @@ namespace p2t {
 
 class TriangleStorage {
 public:
-  TriangleStorage(std::size_t nb_points)
+  TriangleStorage() :
+    max_capacity_{0},
+    triangles_(),
+    discarded_triangles_()
+  { }
+
+  // Allocate sufficient memory before the triangulation
+  void Allocate(std::size_t nb_points)
   {
+    // If the storage is reallocated, all previous Triangles are invalidated
+    Clear();
+
     //
     // Geometry tells us that the triangulation of a planar point set P of size n,
     // where k denotes the number of points in P that lie on the boundary of the
@@ -58,8 +68,11 @@ public:
     // number of triangles required for the purpose of computing the CDT.
     //
     assert(nb_points >= 3);
-    max_triangles_ = 2 * nb_points - 5;
-    triangles_.reserve(max_triangles_);
+    const std::size_t max_triangles = 2 * nb_points - 5;
+    if (max_triangles > max_capacity_) {
+      triangles_.reserve(max_triangles);
+      max_capacity_ = triangles_.capacity();
+    }
   }
 
   std::size_t MemoryFootprint() const
@@ -76,8 +89,8 @@ public:
   {
     if (discarded_triangles_.empty()) {
       // Initialize a Triangle from the storage (it was pre-allocated)
-      assert(triangles_.capacity() >= max_triangles_);
-      if (triangles_.size() >= max_triangles_) {
+      assert(triangles_.capacity() >= max_capacity_);
+      if (triangles_.size() >= max_capacity_) {
         throw std::runtime_error("TriangleStorage: Out of memory capacity");
       }
       return &triangles_.emplace_back(a, b, c);
@@ -105,7 +118,14 @@ public:
   }
 
 private:
-  std::size_t max_triangles_;
+  void Clear()
+  {
+    triangles_.clear();
+    while (!discarded_triangles_.empty()) { discarded_triangles_.pop(); }
+  }
+
+private:
+  std::size_t max_capacity_;
   std::vector<Triangle> triangles_;
   std::stack<Triangle*> discarded_triangles_;
 };
@@ -215,6 +235,7 @@ private:
 
 SweepContext::SweepContext()
 {
+  triangle_storage_ = std::make_unique<TriangleStorage>();
   node_storage_ = std::make_unique<NodeStorage>();
 }
 
@@ -294,8 +315,11 @@ void SweepContext::InitTriangulation()
 {
   // Clear any previous triangulation
   map_.clear();
-  triangle_storage_.reset();
 
+  // Reset the triangle buffer
+  AllocateTriangleBuffer();
+
+  // Assert all Nodes are available
   assert(node_storage_);
   assert(node_storage_->Capacity() == node_storage_->ComputeNbOfAvailableNodes());
 
@@ -325,9 +349,6 @@ void SweepContext::InitTriangulation()
 
   // Sort input points along y-axis
   std::sort(points_.begin(), points_.end(), &SweepPoint::cmp);
-
-  // Triangle buffer
-  AllocateTriangleBuffer();
 }
 
 // Return the memory footprint of the Triangle storage, in bytes
@@ -383,8 +404,9 @@ const Edge& SweepContext::GetConstrainedEdge(size_t index) const
 void SweepContext::AllocateTriangleBuffer()
 {
   assert(points_.size() > 0);
+  assert(triangle_storage_);
   const std::size_t nb_points = points_.size() + 2;     // +2 artificial points: head and tail
-  triangle_storage_ = std::make_unique<TriangleStorage>(nb_points);
+  triangle_storage_->Allocate(nb_points);
 }
 
 Triangle* SweepContext::AddTriangle(const Point* a, const Point* b, const Point* c)
