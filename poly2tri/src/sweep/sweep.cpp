@@ -150,7 +150,10 @@ void Sweep::SweepPoints()
   for (size_t i = 1; i < point_count; i++) {
     Node* node = &PointEvent(tcx_.GetPoint(i));
     Legalize();
-    for (const auto& e : tcx_.GetUpperEdges(i)) {
+    // Traverse constrained edges
+    const auto& upper_edges = tcx_.GetUpperEdges(i);
+    for (std::uint32_t idx = 0; idx < upper_edges.nb_edges; idx++) {
+      auto& e = tcx_.GetConstrainedEdge(upper_edges.edges[idx]);
       EdgeEvent(&e, node);
       Legalize();
     }

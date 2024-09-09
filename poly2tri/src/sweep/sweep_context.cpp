@@ -279,13 +279,6 @@ const std::vector<SweepPoint>& SweepContext::GetPoints() const
   return points_;
 }
 
-std::size_t SweepContext::GetEdgesCount() const
-{
-  return std::accumulate(std::cbegin(points_), std::cend(points_), std::size_t{0}, [](std::size_t cumul, const SweepPoint& point) {
-    return cumul + point.edges.size();
-  });
-}
-
 const std::vector<Triangle*>& SweepContext::GetTriangles() const
 {
   return map_;
@@ -351,22 +344,34 @@ void SweepContext::InitEdges(std::size_t polyline_begin_index, std::size_t num_p
   const std::size_t end   = polyline_begin_index + num_points;
   const std::size_t last  = end - (closed ? 0 : 1);
   assert(end <= points_.size());
+  constrained_edges_.reserve(constrained_edges_.size() + num_points);
   for (std::size_t i = begin; i < last; i++) {
-    std::size_t j = i < (end - 1) ? i + 1 : begin;
-    Edge edge = Edge(points_[i].p, points_[j].p);
+    const std::size_t j = i < (end - 1) ? i + 1 : begin;
+    const std::uint32_t edge_idx = static_cast<std::uint32_t>(constrained_edges_.size());
+    const Edge& edge = constrained_edges_.emplace_back(points_[i].p, points_[j].p);
     const std::size_t upper_endpoint = (edge.q == points_[i].p ? i : j);
-    points_[upper_endpoint].edges.emplace_back(std::move(edge));
+    SweepPoint::UpperEdges& upper_edges = points_[upper_endpoint].upper_edges;
+    assert(upper_edges.nb_edges < 2);
+    upper_edges.edges[upper_edges.nb_edges++] = edge_idx;
   }
 }
 
-const Point* SweepContext::GetPoint(size_t index)
+const Point* SweepContext::GetPoint(size_t index) const
 {
+  assert(index < points_.size());
   return points_[index].p;
 }
 
-const std::vector<Edge>& SweepContext::GetUpperEdges(size_t index) const
+const SweepPoint::UpperEdges& SweepContext::GetUpperEdges(size_t index) const
 {
-  return points_[index].edges;
+  assert(index < points_.size());
+  return points_[index].upper_edges;
+}
+
+const Edge& SweepContext::GetConstrainedEdge(size_t index) const
+{
+  assert(index < constrained_edges_.size());
+  return constrained_edges_[index];
 }
 
 void SweepContext::AllocateTriangleBuffer()
@@ -414,6 +419,11 @@ void SweepContext::DiscardNode(Node* node)
   assert(node);
   assert(node_storage_);
   node_storage_->DiscardNode(node);
+}
+
+std::size_t SweepContext::InputMemoryFootprint() const
+{
+  return points_.capacity() * sizeof(SweepPoint) + constrained_edges_.capacity() * sizeof(Edge);
 }
 
 std::size_t SweepContext::NodeMemoryFootprint() const

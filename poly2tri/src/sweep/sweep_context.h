@@ -32,8 +32,10 @@
 #include <poly2tri/common/point.h>
 #include <poly2tri/common/shapes.h>
 
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -48,8 +50,30 @@ struct Edge;
 
 class TriangleStorage;
 class NodeStorage;
-struct SweepPoint;
 
+
+// Wrapper structure around the Points provided by the user
+struct SweepPoint
+{
+  struct UpperEdges
+  {
+    std::uint32_t nb_edges{0};
+    std::array<std::uint32_t, 2> edges;
+  };
+
+  SweepPoint(const Point* p_) : p(p_), upper_edges{} { assert(p != nullptr); }
+  SweepPoint(const SweepPoint&) = delete;
+  SweepPoint& operator=(const SweepPoint&) = delete;
+  SweepPoint(SweepPoint&&) noexcept = default;
+  SweepPoint& operator=(SweepPoint&&) noexcept = default;
+
+  static inline bool cmp(const SweepPoint& a, const SweepPoint& b) { return p2t::cmp(a.p, b.p); }
+
+  const Point* p;
+  UpperEdges upper_edges;         // List of constrained edges for which this point is the upper endpoint (max: 2)
+};
+
+// The sweep context
 class SweepContext {
 public:
 
@@ -84,21 +108,25 @@ public:
 
   void DiscardNode(Node* node);
 
-  std::size_t NodeMemoryFootprint() const;
+  const Point* GetPoint(size_t index) const;
 
-  const Point* GetPoint(size_t index);
+  const SweepPoint::UpperEdges& GetUpperEdges(size_t index) const;
 
-  const std::vector<Edge>& GetUpperEdges(size_t index) const;
+  const Edge& GetConstrainedEdge(size_t index) const;
 
   void PopulateTriangleMap(Triangle::State_t filter);
 
   const std::vector<SweepPoint>& GetPoints() const;
 
-  std::size_t GetEdgesCount() const;
+  std::size_t GetEdgesCount() const { return constrained_edges_.size(); }
 
   const std::vector<Triangle*>& GetTriangles() const;
 
   void InitTriangulation();
+
+  std::size_t InputMemoryFootprint() const;
+
+  std::size_t NodeMemoryFootprint() const;
 
   std::size_t TriangleStorageFootprint() const;
 
@@ -118,7 +146,9 @@ private:
 
   void AllocateTriangleBuffer();
 
+  // Triangulation input
   std::vector<SweepPoint> points_;
+  std::vector<Edge>       constrained_edges_;
 
   // Triangle storage
   std::unique_ptr<TriangleStorage> triangle_storage_;
@@ -133,21 +163,6 @@ private:
   Point head_;
   Point tail_;
 
-};
-
-// Wrapper structure around the Points provided by the user
-struct SweepPoint
-{
-  SweepPoint(const Point* p_) : p(p_), edges() { assert(p != nullptr); }
-  SweepPoint(const SweepPoint&) = delete;
-  SweepPoint& operator=(const SweepPoint&) = delete;
-  SweepPoint(SweepPoint&&) noexcept = default;
-  SweepPoint& operator=(SweepPoint&&) noexcept = default;
-
-  static inline bool cmp(const SweepPoint& a, const SweepPoint& b) { return p2t::cmp(a.p, b.p); }
-
-  const Point* p;
-  std::vector<Edge> edges;    // List of constrained edges for which this point is the upper endpoint (max: 2)
 };
 
 }
