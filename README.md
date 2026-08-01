@@ -3,9 +3,7 @@
 
 ## About this fork of the library
 
-This fork of [jhasse/poly2tri](https://github.com/jhasse/poly2tri) was created by Pierre Dejoue [:email:](mailto:pierre.dejoue@gmail.com).
-
-In this repository I share a number of changes I made to the library for my own purpose. Some of thoses changes impact the API and are listed below.
+This fork of [jhasse/poly2tri](https://github.com/jhasse/poly2tri) gathers a number of changes I made to the library for my own purpose. Some of thoses changes impact the API and are listed below.
 
 There is no intent to provide any level of maintainance or support of this repository. It is open source and closed to contributions. That being stated, feel free to [submit an issue](https://github.com/pierre-dejoue/poly2tri/issues/new) for a bug report, or a question.
 
